@@ -1,0 +1,37 @@
+# ===============================
+# Core Framework
+# ===============================
+fastapi
+uvicorn[standard]
+
+# ===============================
+# Database
+# ===============================
+sqlalchemy
+psycopg2-binary
+
+# ===============================
+# Migrations
+# ===============================
+alembic
+
+# ===============================
+# Authentication & Security
+# ===============================
+python-jose
+passlib[bcrypt]
+
+# ===============================
+# Environment Variables
+# ===============================
+python-dotenv
+
+# ===============================
+# Validation & Serialization
+# ===============================
+pydantic
+
+# ===============================
+# Optional (Recommended for Production)
+# ===============================
+httpx
