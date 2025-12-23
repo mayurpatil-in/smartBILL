@@ -6,6 +6,8 @@ from app.routers.party import router as party_router
 from app.routers.item import router as item_router
 from app.routers.challan import router as challan_router
 from app.routers.stock import router as stock_router
+from app.routers.invoice import router as invoice_router
+from app.routers.invoice_pdf import router as invoice_pdf_router
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -15,6 +17,9 @@ app.include_router(party_router)
 app.include_router(item_router)
 app.include_router(challan_router)
 app.include_router(stock_router)
+app.include_router(invoice_router)
+app.include_router(invoice_pdf_router)
+
 
 
 @app.get("/")
