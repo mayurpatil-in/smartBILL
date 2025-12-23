@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
-import api from "../api/axios";
+import DashboardLayout from "../layouts/DashboardLayout";
+import StatCard from "../components/StatCard";
 
 export default function Dashboard() {
-  const [sales, setSales] = useState(0);
-
-  useEffect(() => {
-    api.get("/reports/sales").then((res) => {
-      setSales(res.data.total_sales);
-    });
-  }, []);
-
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <div style={{ fontSize: 24 }}>
-        💰 Total Sales: ₹ {sales}
+    <DashboardLayout>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 20,
+        }}
+      >
+        <StatCard title="Total Sales" value="₹ 2,45,000" />
+        <StatCard title="Invoices" value="128" />
+        <StatCard title="Stock Items" value="56" />
+        <StatCard title="Pending Payments" value="₹ 35,000" />
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
