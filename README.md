@@ -27,5 +27,25 @@ Production-ready multi-tenant billing system built with React, FastAPI, and Post
 - Audit-friendly schema
 
 ---
+## ⚙️ BackEnd
+### Backend Run
+```bash
+uv run uvicorn app.main:app --reload
+```
+### Database Update
+```bash
+uv run python -c "from app.database.init_db import init_db; init_db()"
+```
+---
 
+## ⭐ FrontEnd
+### Frontend Run
+```bash
+npm run dev
+```
+### Install Dependencies
+```bash
+npm install axios react-router-dom @mui/material @mui/icons-material recharts
+```
+---
 ## Status: 🚧 In Progress
