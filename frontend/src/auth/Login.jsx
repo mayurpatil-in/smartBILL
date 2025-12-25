@@ -11,7 +11,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ THEME STATE
+  // ✅ Single source of truth for theme
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark")
   );
@@ -24,7 +24,7 @@ export default function Login() {
     }
   }, []);
 
-  // ✅ Sync theme with HTML
+  // ✅ Sync dark mode globally
   useEffect(() => {
     setDarkMode(isDark);
   }, [isDark]);
@@ -39,10 +39,14 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const res = await api.post("/auth/login", {
+        email,
+        password,
+      });
+
       const token = res.data.access_token;
 
-      // ✅ FIXED REMEMBER-ME LOGIC
+      // ✅ Correct remember-me token storage
       if (remember) {
         localStorage.setItem("token", token);
         sessionStorage.removeItem("token");
@@ -54,7 +58,7 @@ export default function Login() {
       localStorage.setItem("remember", remember ? "true" : "false");
 
       window.location.href = "/";
-    } catch {
+    } catch (err) {
       setError("Invalid email or password");
     } finally {
       setLoading(false);
@@ -82,8 +86,12 @@ export default function Login() {
         <div className="h-1 w-16 bg-blue-600 rounded-full mx-auto mb-6" />
 
         {/* Logo */}
-        <div className="flex justify-center mb-1">
-          <img src="/logo2.png" alt="Logo" className="h-32 object-contain" />
+        <div className="flex justify-center mb-2">
+          <img
+            src="/logo2.png"
+            alt="SmartBill Logo"
+            className="h-32 object-contain"
+          />
         </div>
 
         <h2 className="text-3xl font-bold text-center tracking-wide text-gray-900 dark:text-white">
@@ -99,13 +107,22 @@ export default function Login() {
         </p>
 
         {error && (
-          <p className="text-red-500 text-sm text-center mb-4">{error}</p>
+          <p className="text-red-500 text-sm text-center mb-4">
+            {error}
+          </p>
         )}
 
         {/* Email */}
         <input
           type="email"
+          autoFocus
           placeholder="Email address"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (error) setError("");
+          }}
+          onKeyDown={(e) => e.key === "Enter" && login()}
           className="
             w-full px-4 py-3 mb-4 rounded-lg
             border border-gray-300 dark:border-gray-700
@@ -113,8 +130,6 @@ export default function Login() {
             text-gray-900 dark:text-white
             focus:ring-2 focus:ring-blue-500 outline-none
           "
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && login()}
         />
 
         {/* Password */}
@@ -122,6 +137,12 @@ export default function Login() {
           <input
             type={showPwd ? "text" : "password"}
             placeholder="Password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError("");
+            }}
+            onKeyDown={(e) => e.key === "Enter" && login()}
             className="
               w-full px-4 py-3 rounded-lg
               border border-gray-300 dark:border-gray-700
@@ -129,8 +150,6 @@ export default function Login() {
               text-gray-900 dark:text-white
               focus:ring-2 focus:ring-blue-500 outline-none
             "
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && login()}
           />
           <button
             type="button"
@@ -164,7 +183,8 @@ export default function Login() {
           className="
             w-full py-3 rounded-lg font-semibold
             bg-blue-600 hover:bg-blue-700
-            text-white transition disabled:opacity-60
+            text-white transition
+            disabled:opacity-60 disabled:cursor-not-allowed
           "
         >
           {loading ? "Signing in..." : "Sign In"}

@@ -10,6 +10,7 @@ import {
   Settings,
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
+import SessionTimer from "./SessionTimer";
 import { setDarkMode } from "../utils/theme";
 
 export default function Navbar({ onMenuClick }) {
@@ -31,19 +32,21 @@ export default function Navbar({ onMenuClick }) {
   }, []);
 
   const toggleTheme = () => {
-    setDarkMode(!dark);
-    setDark(!dark);
+    const next = !dark;
+    setDarkMode(next);
+    setDark(next);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     window.location.href = "/login";
   };
 
   return (
     <header
       className="
-        sticky top-0 z-20
+        sticky top-0 z-30
         bg-white dark:bg-gray-800
         border-b border-gray-200 dark:border-gray-700
         px-6 py-4
@@ -65,18 +68,16 @@ export default function Navbar({ onMenuClick }) {
             Dashboard
           </h1>
           <Breadcrumbs />
+          <SessionTimer />
         </div>
       </div>
 
       {/* RIGHT */}
       <div className="flex items-center gap-4">
-        {/* Theme Toggle */}
+        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="
-            text-gray-500 hover:text-gray-800
-            dark:hover:text-white transition
-          "
+          className="text-gray-500 hover:text-gray-800 dark:hover:text-white transition"
           aria-label="Toggle theme"
         >
           {dark ? <Sun size={18} /> : <Moon size={18} />}
@@ -84,10 +85,7 @@ export default function Navbar({ onMenuClick }) {
 
         {/* Notifications */}
         <button
-          className="
-            relative text-gray-500 hover:text-gray-800
-            dark:hover:text-white transition
-          "
+          className="relative text-gray-500 hover:text-gray-800 dark:hover:text-white transition"
           aria-label="Notifications"
         >
           <Bell size={18} />
@@ -97,7 +95,7 @@ export default function Navbar({ onMenuClick }) {
         {/* USER DROPDOWN */}
         <div ref={dropdownRef} className="relative">
           <button
-            onClick={() => setOpen(!open)}
+            onClick={() => setOpen((v) => !v)}
             className="flex items-center gap-2"
             aria-haspopup="menu"
             aria-expanded={open}
@@ -105,68 +103,41 @@ export default function Navbar({ onMenuClick }) {
             <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
               <User size={16} />
             </div>
+
             <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
               Admin
             </span>
+
             <ChevronDown size={14} className="text-gray-400" />
           </button>
 
-          {/* Dropdown */}
           {open && (
             <div
               className="
-                absolute right-0 mt-2 w-44
+                absolute right-0 mt-2 w-48
+                z-50
                 bg-white dark:bg-gray-800
                 border border-gray-200 dark:border-gray-700
-                rounded-lg shadow-lg
+                rounded-xl shadow-xl
                 py-1 text-sm
-                origin-top-right
-                animate-scale-in
+                animate-fade-in
               "
             >
-              {/* Profile */}
-              <button
-                className="
-                  w-full flex items-center gap-3
-                  px-4 py-2 text-sm
-                  text-gray-700 dark:text-gray-200
-                  hover:bg-gray-100 dark:hover:bg-gray-700
-                  transition rounded-md
-                  focus:outline-none
-                "
-              >
+              <button className="dropdown-item">
                 <User size={16} />
                 Profile
               </button>
 
-              {/* Settings */}
-              <button
-                className="
-                  w-full flex items-center gap-3
-                  px-4 py-2 text-sm
-                  text-gray-700 dark:text-gray-200
-                  hover:bg-gray-100 dark:hover:bg-gray-700
-                  transition rounded-md
-                  focus:outline-none
-                "
-              >
+              <button className="dropdown-item">
                 <Settings size={16} />
                 Settings
               </button>
 
               <hr className="my-1 border-gray-200 dark:border-gray-700" />
 
-              {/* Logout */}
               <button
                 onClick={logout}
-                className="
-                  w-full flex items-center gap-3
-                  px-4 py-2 text-sm
-                  text-red-600
-                  hover:bg-red-50 dark:hover:bg-red-900/20
-                  transition rounded-md
-                  focus:outline-none
-                "
+                className="dropdown-item text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
               >
                 <LogOut size={16} />
                 Logout
