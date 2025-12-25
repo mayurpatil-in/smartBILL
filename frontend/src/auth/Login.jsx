@@ -51,13 +51,18 @@ export default function Login() {
           <div className="h-1 w-16 bg-blue-600 rounded-full mx-auto mb-6" />
 
           {/* Logo */}
-          <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Logo" className="h-12" />
+          <div className="flex justify-center mb-1">
+            <img src="/logo2.png" alt="Logo" className="h-32" />
           </div>
 
-          <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
-            SmartBill
+          <h2 className="text-3xl font-bold text-center tracking-wide text-gray-900 dark:text-white">
+            Smart<span className="text-blue-600">Bill</span>
           </h2>
+
+          <p className="text-center text-sm text-gray-500 mt-1">
+            Smart billing for modern businesses
+          </p>
+
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
             Login to continue
           </p>
