@@ -1,3 +1,4 @@
+// src/api/axios.js
 import axios from "axios";
 import { getToken } from "../utils/sessionTimer";
 
@@ -20,7 +21,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
-      window.location.href = "/login";
+      window.location.replace("/login");
     }
     return Promise.reject(err);
   }

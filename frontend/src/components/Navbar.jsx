@@ -10,7 +10,6 @@ import {
   Settings,
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
-import SessionTimer from "./SessionTimer";
 import { setDarkMode } from "../utils/theme";
 
 export default function Navbar({ onMenuClick }) {
@@ -20,43 +19,58 @@ export default function Navbar({ onMenuClick }) {
   );
   const dropdownRef = useRef(null);
 
-  // Close dropdown on outside click
+  // 🔒 Close dropdown on outside click + ESC
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false);
       }
+      if (e.key === "Escape") setOpen(false);
     };
+
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", handler);
+    };
   }, []);
 
+  // 🌙 Theme toggle
   const toggleTheme = () => {
     const next = !dark;
     setDarkMode(next);
     setDark(next);
   };
 
+  // 🔓 Logout
   const logout = () => {
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
-    window.location.href = "/login";
+    window.location.replace("/login");
   };
 
   return (
     <header
       className="
         sticky top-0 z-30
-        bg-white dark:bg-gray-800
+        bg-white dark:bg-gray-900/95
+        backdrop-blur
         border-b border-gray-200 dark:border-gray-700
         px-6 py-4
         flex items-center justify-between
+        shadow-sm dark:shadow-black/30
       "
     >
       {/* LEFT */}
       <div className="flex items-center gap-4">
         <button
-          className="md:hidden text-gray-700 dark:text-white"
+          className="
+            md:hidden
+            text-gray-600 hover:text-gray-900
+            dark:text-gray-300 dark:hover:text-white
+            transition
+          "
           onClick={onMenuClick}
           aria-label="Open menu"
         >
@@ -64,20 +78,24 @@ export default function Navbar({ onMenuClick }) {
         </button>
 
         <div>
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-white">
+          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
             Dashboard
           </h1>
           <Breadcrumbs />
-          <SessionTimer />
         </div>
       </div>
 
       {/* RIGHT */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="text-gray-500 hover:text-gray-800 dark:hover:text-white transition"
+          className="
+            p-2 rounded-lg
+            text-gray-500 hover:text-gray-900 hover:bg-gray-100
+            dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800
+            transition
+          "
           aria-label="Toggle theme"
         >
           {dark ? <Sun size={18} /> : <Moon size={18} />}
@@ -85,18 +103,29 @@ export default function Navbar({ onMenuClick }) {
 
         {/* Notifications */}
         <button
-          className="relative text-gray-500 hover:text-gray-800 dark:hover:text-white transition"
+          className="
+            relative p-2 rounded-lg
+            text-gray-500 hover:text-gray-900 hover:bg-gray-100
+            dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800
+            transition
+          "
           aria-label="Notifications"
         >
           <Bell size={18} />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400 dark:bg-red-500" />
         </button>
 
         {/* USER DROPDOWN */}
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2"
+            className="
+              flex items-center gap-2
+              px-2 py-1.5 rounded-lg
+              hover:bg-gray-100
+              dark:hover:bg-gray-800
+              transition
+            "
             aria-haspopup="menu"
             aria-expanded={open}
           >
@@ -108,15 +137,19 @@ export default function Navbar({ onMenuClick }) {
               Admin
             </span>
 
-            <ChevronDown size={14} className="text-gray-400" />
+            <ChevronDown
+              size={14}
+              className={`text-gray-400 transition-transform ${
+                open ? "rotate-180" : ""
+              }`}
+            />
           </button>
 
           {open && (
             <div
               className="
-                absolute right-0 mt-2 w-48
-                z-50
-                bg-white dark:bg-gray-800
+                absolute right-0 mt-2 w-48 z-50
+                bg-white dark:bg-gray-900
                 border border-gray-200 dark:border-gray-700
                 rounded-xl shadow-xl
                 py-1 text-sm

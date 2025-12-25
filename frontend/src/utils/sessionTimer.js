@@ -1,50 +1,74 @@
-// 🔐 Get token from storage
+// src/utils/sessionTimer.js
+let listeners = [];
+let interval = null;
+
 export function getToken() {
-  return (
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token")
-  );
+  return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
-// ⏳ Decode JWT expiry
-export function getTokenExpiry(token) {
+export function getExpiry(token) {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000; // convert to ms
+    return JSON.parse(atob(token.split(".")[1])).exp * 1000;
   } catch {
-    return null;
+    return 0;
   }
 }
 
-// ⏱ Remaining time
-export function getRemainingTime(token) {
-  const expiry = getTokenExpiry(token);
-  if (!expiry) return 0;
-  return expiry - Date.now();
-}
-
-// ❌ CLEAR SESSION (🔥 THIS WAS MISSING)
-export function clearSession() {
-  localStorage.removeItem("token");
-  sessionStorage.removeItem("token");
-  localStorage.removeItem("remember");
-}
-
-// ⏰ Start auto logout timer
-export function startSessionTimer(onExpire) {
+export function getRemainingTime() {
   const token = getToken();
-  if (!token) return;
+  if (!token) return 0;
+  return getExpiry(token) - Date.now();
+}
 
-  const remaining = getRemainingTime(token);
+// 🔔 Subscribe UI
+export function subscribe(cb) {
+  listeners.push(cb);
+  return () => {
+    listeners = listeners.filter(l => l !== cb);
+  };
+}
 
-  if (remaining <= 0) {
-    clearSession();
-    onExpire();
-    return;
-  }
+// 🔁 START / RESTART TIMER
+export function startTimer() {
+  stopTimer();
 
-  setTimeout(() => {
-    clearSession();
-    onExpire();
-  }, remaining);
+  interval = setInterval(() => {
+    const remaining = getRemainingTime();
+
+    listeners.forEach(cb => cb(remaining));
+
+    if (remaining <= 0) {
+      stopTimer();
+      clearSession();
+      window.location.replace("/login");
+    }
+  }, 1000);
+}
+
+export function stopTimer() {
+  if (interval) clearInterval(interval);
+}
+
+export function clearSession() {
+  stopTimer();
+  localStorage.clear();
+  sessionStorage.clear();
+}
+
+// 🔁 Refresh token + restart timer
+export async function refreshSession() {
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL}/auth/refresh`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    }
+  );
+
+  const data = await res.json();
+  localStorage.setItem("token", data.access_token);
+
+  startTimer(); // 🔥 THIS WAS MISSING
 }

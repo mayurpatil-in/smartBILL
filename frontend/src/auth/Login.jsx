@@ -204,17 +204,41 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-400 mt-6">
-          © {new Date().getFullYear()}{" "}
+        <p className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
+          © {new Date().getFullYear()} ·{" "}
+          <span className="font-medium text-gray-800 dark:text-gray-200">
+            <a
+              href="https://www.arcneuron.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="
+      font-semibold tracking-wide
+      text-gray-800 dark:text-gray-200
+      hover:text-blue-600 dark:hover:text-blue-400
+      transition-colors
+    "
+            >
+              ArcNeuron.ai
+            </a>{" "}
+          </span>{" "}
+          · Built with{" "}
+          <span className="text-red-500">❤</span>{" "}
+          by{" "}
           <a
             href="https://www.mayurpatil.in"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
+            className="
+      font-medium text-blue-600 dark:text-blue-400
+      hover:underline underline-offset-4
+      transition-colors duration-200
+    "
           >
-            mayurpatil.in
+            Mayur Patil
           </a>
         </p>
+
+
       </div>
     </div>
   );
