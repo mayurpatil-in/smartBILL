@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import Login from "./auth/Login";
 import Dashboard from "./pages/Dashboard";
@@ -9,8 +10,17 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          className: `
+            bg-white text-gray-900 border border-gray-200
+            dark:bg-gray-800 dark:text-white dark:border-gray-700
+          `,
+        }}
+      />
 
+      <Routes>
         {/* Public */}
         <Route path="/login" element={<Login />} />
 
@@ -30,7 +40,6 @@ function App() {
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" />} />
-
       </Routes>
     </BrowserRouter>
   );
