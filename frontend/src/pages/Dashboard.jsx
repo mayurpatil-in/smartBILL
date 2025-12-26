@@ -1,61 +1,56 @@
-import { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import SessionWarning from "../components/SessionWarning";
+import { useEffect, useState } from "react";
+import FinancialYearCard from "../components/FinancialYearCard";
+import { getActiveFinancialYear } from "../api/financialYear";
 
-export default function DashboardLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+export default function Dashboard() {
+  const [financialYear, setFinancialYear] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // 🔒 Lock body scroll when mobile sidebar is open
+  // Fetch active financial year when dashboard loads
   useEffect(() => {
-    if (sidebarOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    let mounted = true;
+
+    const fetchFY = async () => {
+      try {
+        const data = await getActiveFinancialYear();
+        if (mounted) setFinancialYear(data);
+      } catch (err) {
+        // 404 = no active FY (valid business case)
+        if (mounted) setFinancialYear(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchFY();
 
     return () => {
-      document.body.style.overflow = "";
+      mounted = false;
     };
-  }, [sidebarOpen]);
+  }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-
-      {/* Sidebar */}
-      <Sidebar
-        open={sidebarOpen}
-        collapsed={collapsed}
-        onClose={() => setSidebarOpen(false)}
-        onToggleCollapse={() => setCollapsed((v) => !v)}
-      />
-
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <Navbar
-          onMenuClick={() => setSidebarOpen(true)}
-        />
-
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-
-        <Footer />
+    <div className="space-y-6">
+      {/* ===== TOP DASHBOARD ROW (YOUR RED BOX AREA) ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <FinancialYearCard fy={financialYear} loading={loading} />
       </div>
 
-      {/* ⏰ Session Expiry Warning */}
-      <SessionWarning />
+      {/* ===== NEXT ROWS (FUTURE) ===== */}
+      {/* 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <InvoiceSummaryCard />
+        <PartyCountCard />
+        <StockAlertCard />
+      </div>
+      */}
+
+      {error && (
+        <p className="text-sm text-red-500">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

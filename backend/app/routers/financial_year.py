@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.models.financial_year import FinancialYear
 from app.schemas.financial_year import FinancialYearCreate, FinancialYearResponse
 from app.core.dependencies import get_company_id
+from app.services.financial_year_service import (
+    create_financial_year,
+    get_active_financial_year,
+    lock_financial_year
+)
 
 router = APIRouter(
     prefix="/financial-year",
@@ -13,64 +17,39 @@ router = APIRouter(
 
 
 @router.post("/", response_model=FinancialYearResponse)
-def create_financial_year(
+def create_financial_year_api(
     data: FinancialYearCreate,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    # Deactivate existing FY
-    db.query(FinancialYear).filter(
-        FinancialYear.company_id == company_id,
-        FinancialYear.is_active == True
-    ).update({"is_active": False})
-
-    fy = FinancialYear(
+    return create_financial_year(
+        db=db,
         company_id=company_id,
         start_date=data.start_date,
-        end_date=data.end_date,
-        is_active=True
+        end_date=data.end_date
     )
-
-    db.add(fy)
-    db.commit()
-    db.refresh(fy)
-
-    return fy
 
 
 @router.get("/active", response_model=FinancialYearResponse)
-def get_active_financial_year(
+def get_active_financial_year_api(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    fy = db.query(FinancialYear).filter(
-        FinancialYear.company_id == company_id,
-        FinancialYear.is_active == True
-    ).first()
-
-    if not fy:
-        raise HTTPException(404, "No active financial year found")
-
-    return fy
+    return get_active_financial_year(
+        db=db,
+        company_id=company_id
+    )
 
 
 @router.post("/{fy_id}/lock")
-def lock_financial_year(
+def lock_financial_year_api(
     fy_id: int,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    fy = db.query(FinancialYear).filter(
-        FinancialYear.id == fy_id,
-        FinancialYear.company_id == company_id
-    ).first()
-
-    if not fy:
-        raise HTTPException(404, "Financial year not found")
-
-    fy.is_locked = True
-    fy.is_active = False
-
-    db.commit()
-
-    return {"message": "Financial year locked"}
+    lock_financial_year(
+        db=db,
+        company_id=company_id,
+        fy_id=fy_id
+    )
+    return {"message": "Financial year locked successfully"}
