@@ -8,18 +8,35 @@ pwd_context = CryptContext(
     deprecated="auto"
 )
 
-# 🔐 Hash password
+# ==================================================
+# PASSWORD UTILS
+# ==================================================
+
 def hash_password(password: str) -> str:
+    """
+    Hash plain password using bcrypt
+    """
     return pwd_context.hash(password)
 
 
-# 🔍 Verify password
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify plain password against hashed password
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# 🎟️ Create JWT access token
-def create_access_token(data: dict, remember: bool = False):
+# ==================================================
+# JWT TOKEN UTILS
+# ==================================================
+
+def create_access_token(data: dict, remember: bool = False) -> str:
+    """
+    Create JWT access token
+
+    remember=True  -> long session
+    remember=False -> short session
+    """
     to_encode = data.copy()
 
     minutes = (
@@ -31,6 +48,7 @@ def create_access_token(data: dict, remember: bool = False):
     expire = datetime.utcnow() + timedelta(minutes=minutes)
 
     to_encode.update({
+        "sub": str(data.get("user_id")),
         "exp": expire,
         "iat": datetime.utcnow()
     })

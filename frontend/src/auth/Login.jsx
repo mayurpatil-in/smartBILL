@@ -10,6 +10,9 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // 🔌 Backend status
+  const [isOnline, setIsOnline] = useState(null); // null | true | false
+
 
   // ✅ Single source of truth for theme
   const [isDark, setIsDark] = useState(
@@ -28,6 +31,28 @@ export default function Login() {
   useEffect(() => {
     setDarkMode(isDark);
   }, [isDark]);
+
+  // 🔍 Check backend online/offline
+  useEffect(() => {
+    let mounted = true;
+
+    const checkStatus = async () => {
+      try {
+        await api.get("/"); // backend health
+        if (mounted) setIsOnline(true);
+      } catch {
+        if (mounted) setIsOnline(false);
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 10000); // every 10s
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const login = async () => {
     if (!email || !password) {
@@ -85,8 +110,27 @@ export default function Login() {
         {/* Accent */}
         <div className="h-1 w-16 bg-blue-600 rounded-full mx-auto mb-6" />
 
-        {/* Logo */}
+        {/* ===== ONLINE / OFFLINE STATUS ===== */}
         <div className="flex justify-center mb-2">
+          {isOnline === null && (
+            <span className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+              Checking connection…
+            </span>
+          )}
+          {isOnline === true && (
+            <span className="text-xs px-3 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+              ● Online
+            </span>
+          )}
+          {isOnline === false && (
+            <span className="text-xs px-3 py-1 rounded-full bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300">
+              ● Offline
+            </span>
+          )}
+        </div>
+
+        {/* Logo */}
+        <div className="flex justify-center mb-1">
           <img
             src="/logo2.png"
             alt="SmartBill Logo"
@@ -179,16 +223,17 @@ export default function Login() {
         {/* Login */}
         <button
           onClick={login}
-          disabled={loading}
+          disabled={loading || isOnline === false}
           className="
             w-full py-3 rounded-lg font-semibold
-            bg-blue-600 hover:bg-blue-700
-            text-white transition
-            disabled:opacity-60 disabled:cursor-not-allowed
+           bg-blue-600 hover:bg-blue-700
+           text-white transition
+           disabled:opacity-60 disabled:cursor-not-allowed
           "
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
+
 
         {/* Theme Toggle */}
         <div className="flex justify-center mt-6">

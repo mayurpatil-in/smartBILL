@@ -10,23 +10,20 @@ from app.routers.challan import router as challan_router
 from app.routers.stock import router as stock_router
 from app.routers.invoice import router as invoice_router
 from app.routers.invoice_pdf import router as invoice_pdf_router
+from app.routers.health import router as health_router
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# ✅ ADD THIS BLOCK (VERY IMPORTANT)
+# ===================== CORS =====================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://192.168.31.136:5173",
-    ],
+    allow_origins=settings.cors_origins,  # ✅ ENV BASED
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Routers
+# ===================== ROUTERS =====================
 app.include_router(auth_router)
 app.include_router(fy_router)
 app.include_router(party_router)
@@ -35,7 +32,9 @@ app.include_router(challan_router)
 app.include_router(stock_router)
 app.include_router(invoice_router)
 app.include_router(invoice_pdf_router)
+app.include_router(health_router)
 
+# ===================== ROOT =====================
 @app.get("/")
-def health():
+def root():
     return {"status": "OK"}
