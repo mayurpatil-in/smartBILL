@@ -31,12 +31,17 @@ Production-ready multi-tenant billing system built with React, FastAPI, and Post
 ### Backend Run
 ```bash
 uv run uvicorn app.main:app --reload
+
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 ### Database Update
 ```bash
 uv run python -c "from app.database.init_db import init_db; init_db()"
 
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uv run alembic init alembic
+uv run alembic revision --autogenerate -m "add user roles and company subscription"
+uv run alembic upgrade head
+
 ```
 ---
 
