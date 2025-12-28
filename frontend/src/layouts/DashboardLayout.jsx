@@ -18,7 +18,7 @@ export default function DashboardLayout() {
   }, [sidebarOpen]);
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
 
       {/* Sidebar */}
       <Sidebar
@@ -38,15 +38,17 @@ export default function DashboardLayout() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 flex flex-col">
           {/* 🔑 THIS IS WHERE Dashboard / Invoices / Party RENDER */}
-          <Outlet />
+          <div className="flex-1 p-4 md:p-6">
+            <Outlet />
+          </div>
+          
+          <Footer />
         </main>
-
-        <Footer />
       </div>
 
       {/* ⏰ Session Expiry Warning */}

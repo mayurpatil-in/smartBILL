@@ -1,11 +1,19 @@
-// src/utils/sessionTimer.js
 let listeners = [];
 let interval = null;
 
+/**
+ * 🔑 Get JWT token
+ */
 export function getToken() {
-  return localStorage.getItem("token") || sessionStorage.getItem("token");
+  return (
+    localStorage.getItem("access_token") ||
+    sessionStorage.getItem("access_token")
+  );
 }
 
+/**
+ * ⏱ Extract expiry from JWT
+ */
 export function getExpiry(token) {
   try {
     return JSON.parse(atob(token.split(".")[1])).exp * 1000;
@@ -14,13 +22,18 @@ export function getExpiry(token) {
   }
 }
 
+/**
+ * ⏳ Remaining session time (ms)
+ */
 export function getRemainingTime() {
   const token = getToken();
   if (!token) return 0;
   return getExpiry(token) - Date.now();
 }
 
-// 🔔 Subscribe UI
+/**
+ * 🔔 Subscribe UI components (countdown, warnings)
+ */
 export function subscribe(cb) {
   listeners.push(cb);
   return () => {
@@ -28,7 +41,9 @@ export function subscribe(cb) {
   };
 }
 
-// 🔁 START / RESTART TIMER
+/**
+ * ▶ START / RESTART SESSION TIMER
+ */
 export function startTimer() {
   stopTimer();
 
@@ -45,30 +60,54 @@ export function startTimer() {
   }, 1000);
 }
 
+/**
+ * ⏹ Stop timer
+ */
 export function stopTimer() {
-  if (interval) clearInterval(interval);
+  if (interval) {
+    clearInterval(interval);
+    interval = null;
+  }
 }
 
+/**
+ * 🚪 Clear auth completely
+ */
 export function clearSession() {
   stopTimer();
-  localStorage.clear();
-  sessionStorage.clear();
+  localStorage.removeItem("access_token");
+  sessionStorage.removeItem("access_token");
 }
 
-// 🔁 Refresh token + restart timer
+/**
+ * 🔁 Refresh JWT + restart timer
+ */
 export async function refreshSession() {
-  const res = await fetch(
-    `${import.meta.env.VITE_API_URL}/auth/refresh`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getToken()}`
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/auth/refresh`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
       }
+    );
+
+    if (!res.ok) throw new Error("Refresh failed");
+
+    const data = await res.json();
+
+    // 🔐 Preserve remember-me behavior
+    if (localStorage.getItem("access_token")) {
+      localStorage.setItem("access_token", data.access_token);
+    } else {
+      sessionStorage.setItem("access_token", data.access_token);
     }
-  );
 
-  const data = await res.json();
-  localStorage.setItem("token", data.access_token);
-
-  startTimer(); // 🔥 THIS WAS MISSING
+    startTimer(); // ✅ REQUIRED
+  } catch {
+    clearSession();
+    window.location.replace("/login");
+  }
 }

@@ -3,9 +3,45 @@ import { Toaster } from "react-hot-toast";
 
 import Login from "./auth/Login";
 import Dashboard from "./pages/Dashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import Invoices from "./pages/Invoices";
 import DashboardLayout from "./layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./hooks/useAuth";
+
+function AppRoutes() {
+  const { isSuperAdmin } = useAuth();
+
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Protected App */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route
+          index
+          element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
+        />
+        <Route
+          path="dashboard"
+          element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
+        />
+        <Route path="invoices" element={<Invoices />} />
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/dashboard" />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
@@ -19,28 +55,7 @@ function App() {
           `,
         }}
       />
-
-      <Routes>
-        {/* Public */}
-        <Route path="/login" element={<Login />} />
-
-        {/* Protected App */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="invoices" element={<Invoices />} />
-        </Route>
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" />} />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

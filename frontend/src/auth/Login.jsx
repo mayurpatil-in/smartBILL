@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { setDarkMode } from "../utils/theme";
 
 export default function Login() {
@@ -10,11 +10,8 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  // 🔌 Backend status
-  const [isOnline, setIsOnline] = useState(null); // null | true | false
+  const [isOnline, setIsOnline] = useState(null);
 
-
-  // ✅ Single source of truth for theme
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark")
   );
@@ -32,13 +29,13 @@ export default function Login() {
     setDarkMode(isDark);
   }, [isDark]);
 
-  // 🔍 Check backend online/offline
+  // 🔍 Backend health check
   useEffect(() => {
     let mounted = true;
 
     const checkStatus = async () => {
       try {
-        await api.get("/"); // backend health
+        await api.get("/");
         if (mounted) setIsOnline(true);
       } catch {
         if (mounted) setIsOnline(false);
@@ -46,7 +43,7 @@ export default function Login() {
     };
 
     checkStatus();
-    const interval = setInterval(checkStatus, 10000); // every 10s
+    const interval = setInterval(checkStatus, 10000);
 
     return () => {
       mounted = false;
@@ -54,9 +51,19 @@ export default function Login() {
     };
   }, []);
 
-  const login = async () => {
+  // 🔐 LOGIN HANDLER
+  const login = async (e) => {
+    e.preventDefault(); // ✅ prevent page reload
+
     if (!email || !password) {
       setError("Email and password are required");
+      return;
+    }
+
+    // Simple email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -71,74 +78,60 @@ export default function Login() {
 
       const token = res.data.access_token;
 
-      // ✅ Correct remember-me token storage
       if (remember) {
-        localStorage.setItem("token", token);
-        sessionStorage.removeItem("token");
+        localStorage.setItem("access_token", token);
+        sessionStorage.removeItem("access_token");
       } else {
-        sessionStorage.setItem("token", token);
-        localStorage.removeItem("token");
+        sessionStorage.setItem("access_token", token);
+        localStorage.removeItem("access_token");
       }
 
       localStorage.setItem("remember", remember ? "true" : "false");
 
       window.location.href = "/";
     } catch (err) {
-      setError("Invalid email or password");
+      setError(
+        err.response?.data?.detail || "Invalid email or password"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="
-        min-h-screen w-screen flex items-center justify-center
-        bg-gradient-to-br from-blue-600 to-indigo-700
-        dark:from-gray-900 dark:to-black px-4
-      "
-    >
-      {/* Card */}
-      <div
-        className="
-          w-full max-w-md
-          bg-white/90 dark:bg-gray-900/90
-          backdrop-blur rounded-2xl shadow-2xl
-          p-8 animate-fade-in
-        "
-      >
-        {/* Accent */}
+    <div className="min-h-screen w-screen flex items-center justify-center
+      bg-gradient-to-br from-blue-600 to-indigo-700
+      dark:from-gray-900 dark:to-black px-4">
+
+      <div className="w-full max-w-md bg-white/90 dark:bg-gray-900/90
+        backdrop-blur rounded-2xl shadow-2xl p-8 animate-fade-in">
+
         <div className="h-1 w-16 bg-blue-600 rounded-full mx-auto mb-6" />
 
-        {/* ===== ONLINE / OFFLINE STATUS ===== */}
+        {/* ONLINE / OFFLINE */}
         <div className="flex justify-center mb-2">
           {isOnline === null && (
-            <span className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+            <span className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-800">
               Checking connection…
             </span>
           )}
           {isOnline === true && (
-            <span className="text-xs px-3 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+            <span className="text-xs px-3 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700">
               ● Online
             </span>
           )}
           {isOnline === false && (
-            <span className="text-xs px-3 py-1 rounded-full bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300">
+            <span className="text-xs px-3 py-1 rounded-full bg-red-100 dark:bg-red-900 text-red-700">
               ● Offline
             </span>
           )}
         </div>
 
-        {/* Logo */}
         <div className="flex justify-center mb-1">
-          <img
-            src="/logo2.png"
-            alt="SmartBill Logo"
-            className="h-32 object-contain"
-          />
+          <img src="/logo2.png" alt="SmartBill Logo" className="h-32" />
         </div>
 
-        <h2 className="text-3xl font-bold text-center tracking-wide text-gray-900 dark:text-white">
+        <h2 className="text-3xl font-bold text-center">
           Smart<span className="text-blue-600">Bill</span>
         </h2>
 
@@ -151,89 +144,83 @@ export default function Login() {
         </p>
 
         {error && (
-          <p className="text-red-500 text-sm text-center mb-4">
-            {error}
-          </p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-3 rounded-lg mb-6 text-sm flex items-start gap-2 animate-fade-in">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
         )}
 
-        {/* Email */}
-        <input
-          type="email"
-          autoFocus
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (error) setError("");
-          }}
-          onKeyDown={(e) => e.key === "Enter" && login()}
-          className="
-            w-full px-4 py-3 mb-4 rounded-lg
-            border border-gray-300 dark:border-gray-700
-            bg-white dark:bg-gray-800
-            text-gray-900 dark:text-white
-            focus:ring-2 focus:ring-blue-500 outline-none
-          "
-        />
-
-        {/* Password */}
-        <div className="relative mb-3">
+        {/* ✅ FORM START */}
+        <form onSubmit={login}>
+          {/* Email */}
           <input
-            type={showPwd ? "text" : "password"}
-            placeholder="Password"
-            value={password}
+            type="email"
+            autoFocus
+            autoComplete="username"
+            placeholder="Email address"
+            value={email}
             onChange={(e) => {
-              setPassword(e.target.value);
+              setEmail(e.target.value);
               if (error) setError("");
             }}
-            onKeyDown={(e) => e.key === "Enter" && login()}
-            className="
-              w-full px-4 py-3 rounded-lg
-              border border-gray-300 dark:border-gray-700
-              bg-white dark:bg-gray-800
-              text-gray-900 dark:text-white
-              focus:ring-2 focus:ring-blue-500 outline-none
-            "
+            className="w-full px-4 py-3 mb-4 rounded-lg border border-gray-200
+              bg-white text-gray-900
+              dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
+              focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
           />
-          <button
-            type="button"
-            onClick={() => setShowPwd(!showPwd)}
-            className="absolute right-3 top-3 text-gray-500"
-          >
-            {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
 
-        {/* Remember + Forgot */}
-        <div className="flex justify-between items-center mb-5">
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          {/* Password */}
+          <div className="relative mb-3">
             <input
-              type="checkbox"
-              checked={remember}
-              onChange={() => setRemember(!remember)}
+              type={showPwd ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError("");
+              }}
+              className="w-full px-4 py-3 rounded-lg border border-gray-200
+                bg-white text-gray-900
+                dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             />
-            Remember me
-          </label>
+            <button
+              type="button"
+              onClick={() => setShowPwd(!showPwd)}
+              className="absolute right-3 top-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            >
+              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
-          <button className="text-sm text-blue-500 hover:underline">
-            Forgot password?
+          {/* Remember */}
+          <div className="flex justify-between items-center mb-5">
+            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={() => setRemember(!remember)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
+              />
+              Remember me
+            </label>
+            <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              Forgot password?
+            </a>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || isOnline === false}
+            className="w-full py-3 rounded-lg font-semibold
+              bg-blue-600 hover:bg-blue-700 text-white
+              disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Sign In"}
           </button>
-        </div>
-
-        {/* Login */}
-        <button
-          onClick={login}
-          disabled={loading || isOnline === false}
-          className="
-            w-full py-3 rounded-lg font-semibold
-           bg-blue-600 hover:bg-blue-700
-           text-white transition
-           disabled:opacity-60 disabled:cursor-not-allowed
-          "
-        >
-          {loading ? "Signing in..." : "Sign In"}
-        </button>
-
+        </form>
+        {/* ✅ FORM END */}
 
         {/* Theme Toggle */}
         <div className="flex justify-center mt-6">
@@ -282,8 +269,6 @@ export default function Login() {
             Mayur Patil
           </a>
         </p>
-
-
       </div>
     </div>
   );

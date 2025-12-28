@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
 import { setDarkMode } from "../utils/theme";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Navbar({ onMenuClick }) {
   const [open, setOpen] = useState(false);
@@ -44,11 +45,7 @@ export default function Navbar({ onMenuClick }) {
   };
 
   // 🔓 Logout
-  const logout = () => {
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    window.location.replace("/login");
-  };
+  const { logout, user } = useAuth();
 
   return (
     <header
@@ -134,7 +131,7 @@ export default function Navbar({ onMenuClick }) {
             </div>
 
             <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
-              Admin
+              {user?.name || "Admin"}
             </span>
 
             <ChevronDown

@@ -1,8 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-
 from app.database.base import Base
-from app.models.company import Company
+import enum
+
+
+class UserRole(enum.Enum):
+    SUPER_ADMIN = "SUPER_ADMIN"
+    COMPANY_ADMIN = "COMPANY_ADMIN"
+    USER = "USER"
 
 
 class User(Base):
@@ -10,16 +15,21 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # SUPER_ADMIN → company_id = NULL
     company_id = Column(
         Integer,
         ForeignKey("company.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
 
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)
+
+    # 👇 MUST MATCH POSTGRES ENUM EXACTLY
+    role = Column(Enum(UserRole, name="userrole"), nullable=False)
+
     is_active = Column(Boolean, default=True)
 
-    company = relationship(Company)
+    # 🔁 Relationship
+    company = relationship("Company", back_populates="users")

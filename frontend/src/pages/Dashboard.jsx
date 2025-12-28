@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
 import FinancialYearCard from "../components/FinancialYearCard";
 import AddFinancialYearModal from "../components/AddFinancialYearModal";
 import {
@@ -10,6 +11,7 @@ import {
 } from "../api/financialYear";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [activeFY, setActiveFY] = useState(null);
   const [allFY, setAllFY] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,37 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+       {/* 👑 ADMIN HEADER */}
+<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between
+                bg-white dark:bg-gray-800
+                p-4 md:p-6
+                rounded-2xl
+                border border-gray-100 dark:border-gray-700
+                shadow-sm">
+
+  {/* LEFT: Title + Context */}
+  <div className="flex items-start gap-4">
+    {/* Icon */}
+    <div className="flex h-12 w-12 items-center justify-center
+                    rounded-xl
+                    bg-blue-50 dark:bg-blue-900/30
+                    text-blue-600 dark:text-blue-400">
+      👑
+    </div>
+
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        {user?.companyName || "Admin Portal"}
+      </h1>
+
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Manage your company's financial year
+      </p>
+    </div>
+  </div>
+</div>
+
+
       {/* TOP CARD */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <FinancialYearCard
