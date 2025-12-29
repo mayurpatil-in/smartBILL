@@ -8,6 +8,7 @@ import Invoices from "./pages/Invoices";
 import DashboardLayout from "./layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
+import Parties from "./pages/Parties";
 
 function AppRoutes() {
   const { isSuperAdmin } = useAuth();
@@ -35,6 +36,7 @@ function AppRoutes() {
           element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
         />
         <Route path="invoices" element={<Invoices />} />
+        <Route path="parties" element={<Parties />} />
       </Route>
 
       {/* Fallback */}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -39,3 +39,50 @@ def list_parties(
         Party.company_id == company_id,
         Party.financial_year_id == fy.id
     ).all()
+
+
+@router.put("/{party_id}", response_model=PartyResponse)
+def update_party(
+    party_id: int,
+    data: PartyCreate,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    party = db.query(Party).filter(
+        Party.id == party_id,
+        Party.company_id == company_id
+    ).first()
+
+    if not party:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Party not found"
+        )
+
+    for key, value in data.dict().items():
+        setattr(party, key, value)
+
+    db.commit()
+    db.refresh(party)
+    return party
+
+
+@router.delete("/{party_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_party(
+    party_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    party = db.query(Party).filter(
+        Party.id == party_id,
+        Party.company_id == company_id
+    ).first()
+
+    if not party:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Party not found"
+        )
+
+    db.delete(party)
+    db.commit()

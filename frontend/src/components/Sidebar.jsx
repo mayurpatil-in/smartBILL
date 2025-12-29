@@ -39,7 +39,6 @@ export default function Sidebar({
           <span className="font-bold text-xl tracking-wide text-gray-900 dark:text-gray-100">
             Smart<span className="text-blue-600">Bill</span>
           </span>
-
         )}
 
         {/* Desktop collapse */}
@@ -73,13 +72,39 @@ export default function Sidebar({
 
       {/* Menu */}
       <nav className="px-3 py-4 space-y-1 flex-1 overflow-y-auto no-scrollbar">
-        <MenuLink to="/" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-        
+        <MenuLink
+          to="/"
+          icon={LayoutDashboard}
+          label="Dashboard"
+          collapsed={collapsed}
+        />
+
         {!isSuperAdmin && (
           <>
-            <MenuLink to="/invoices" icon={FileText} label="Invoices" collapsed={collapsed} />
-            <MenuLink to="/stock" icon={Package} label="Stock" collapsed={collapsed} />
-            <MenuLink to="/employees" icon={Users} label="Employees" collapsed={collapsed} />
+            <MenuLink
+              to="/parties"
+              icon={Users}
+              label="Parties"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/invoices"
+              icon={FileText}
+              label="Invoices"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/stock"
+              icon={Package}
+              label="Stock"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/employees"
+              icon={Users}
+              label="Employees"
+              collapsed={collapsed}
+            />
           </>
         )}
       </nav>
@@ -101,11 +126,9 @@ export default function Sidebar({
             size={20}
             className="transition-transform duration-200 group-hover:scale-110"
           />
-          
+
           {!collapsed && (
-            <span className="text-sm font-medium tracking-wide">
-              Logout
-            </span>
+            <span className="text-sm font-medium tracking-wide">Logout</span>
           )}
 
           {/* Tooltip (collapsed mode) */}
@@ -147,10 +170,11 @@ function MenuLink({ to, icon: IconComp, label, collapsed }) {
           ${collapsed ? "justify-center" : "gap-3"}
           px-3 py-3 rounded-xl
           transition-all duration-200 ease-out
-          ${isActive
-          ? "bg-blue-600 text-white shadow-md"
-          : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800"
-        }
+          ${
+            isActive
+              ? "bg-blue-600 text-white shadow-md"
+              : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800"
+          }
         `
       }
     >
@@ -176,9 +200,7 @@ function MenuLink({ to, icon: IconComp, label, collapsed }) {
 
       {/* Label */}
       {!collapsed && (
-        <span className="text-sm font-medium tracking-wide">
-          {label}
-        </span>
+        <span className="text-sm font-medium tracking-wide">{label}</span>
       )}
 
       {/* Tooltip (collapsed mode) */}

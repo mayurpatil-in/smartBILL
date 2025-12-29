@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
@@ -28,6 +28,7 @@ class Party(Base):
     address = Column(String, nullable=True)
     phone = Column(String(20), nullable=True)
     opening_balance = Column(Numeric(12, 2), default=0)
+    is_active = Column(Boolean, default=True)
 
     company = relationship(Company)
     financial_year = relationship(FinancialYear)

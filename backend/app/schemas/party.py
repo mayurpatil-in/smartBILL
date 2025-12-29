@@ -8,6 +8,7 @@ class PartyCreate(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     opening_balance: float = 0
+    is_active: bool = True
 
 
 class PartyResponse(PartyCreate):
