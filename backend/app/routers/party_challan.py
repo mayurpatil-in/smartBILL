@@ -322,9 +322,53 @@ def update_party_challan(
             )
             db.add(pc_item)
     
+    
     db.commit()
     db.refresh(challan)
-    return challan
+    
+    # Reload with relationships
+    challan = db.query(PartyChallan).options(
+        joinedload(PartyChallan.party),
+        joinedload(PartyChallan.items).joinedload(PartyChallanItem.item),
+        joinedload(PartyChallan.items).joinedload(PartyChallanItem.process)
+    ).filter(PartyChallan.id == challan_id).first()
+    
+    # Convert to dict to avoid serialization issues
+    return {
+        "id": challan.id,
+        "challan_number": challan.challan_number,
+        "challan_date": challan.challan_date,
+        "party_id": challan.party_id,
+        "company_id": challan.company_id,
+        "financial_year_id": challan.financial_year_id,
+        "working_days": challan.working_days,
+        "notes": challan.notes,
+        "status": challan.status,
+        "is_active": challan.is_active,
+        "party": {
+            "id": challan.party.id,
+            "name": challan.party.name
+        } if challan.party else None,
+        "items": [
+            {
+                "id": item.id,
+                "item_id": item.item_id,
+                "process_id": item.process_id,
+                "quantity_ordered": float(item.quantity_ordered),
+                "quantity_delivered": float(item.quantity_delivered),
+                "rate": float(item.rate) if item.rate else None,
+                "item": {
+                    "id": item.item.id,
+                    "name": item.item.name
+                } if item.item else None,
+                "process": {
+                    "id": item.process.id,
+                    "name": item.process.name
+                } if item.process else None
+            }
+            for item in challan.items
+        ]
+    }
 
 
 @router.delete("/{challan_id}")

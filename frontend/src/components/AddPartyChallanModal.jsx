@@ -41,7 +41,14 @@ export default function AddPartyChallanModal({
     challan_date: new Date().toISOString().split("T")[0],
     working_days: "",
     notes: "",
-    items: [{ item_id: "", process_id: "", quantity_ordered: 1, rate: "" }],
+    items: [],
+  });
+
+  const [currentItem, setCurrentItem] = useState({
+    item_id: "",
+    process_id: "",
+    quantity_ordered: "",
+    rate: "",
   });
 
   const fetchData = async () => {
@@ -103,6 +110,12 @@ export default function AddPartyChallanModal({
           rate: i.rate || "",
         })),
       });
+      setCurrentItem({
+        item_id: "",
+        process_id: "",
+        quantity_ordered: "",
+        rate: "",
+      });
     } else {
       setForm({
         challan_number: "",
@@ -110,12 +123,57 @@ export default function AddPartyChallanModal({
         challan_date: new Date().toISOString().split("T")[0],
         working_days: "",
         notes: "",
-        items: [{ item_id: "", process_id: "", quantity_ordered: 1, rate: "" }],
+        items: [],
+      });
+      setCurrentItem({
+        item_id: "",
+        process_id: "",
+        quantity_ordered: "",
+        rate: "",
       });
     }
   }, [partyChallan, open]);
 
   if (!open) return null;
+
+  const handleAddItem = () => {
+    if (!currentItem.item_id) {
+      toast.error("Please select an item");
+      return;
+    }
+    if (!currentItem.quantity_ordered || currentItem.quantity_ordered <= 0) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+
+    // Check for duplicate item with same process
+    const isDuplicate = form.items.some(
+      (item) =>
+        item.item_id === currentItem.item_id &&
+        item.process_id === currentItem.process_id
+    );
+
+    if (isDuplicate) {
+      const itemName = getItemName(currentItem.item_id);
+      const processName = currentItem.process_id
+        ? getProcessName(currentItem.process_id)
+        : "No Process";
+      toast.error(`${itemName} with ${processName} is already added`);
+      return;
+    }
+
+    setForm({
+      ...form,
+      items: [...form.items, { ...currentItem }],
+    });
+    setCurrentItem({
+      item_id: "",
+      process_id: "",
+      quantity_ordered: "",
+      rate: "",
+    });
+    toast.success("Item added successfully");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -204,6 +262,16 @@ export default function AddPartyChallanModal({
   const getPartyItems = () => {
     if (!form.party_id) return [];
     return items.filter((item) => item.party_id === Number(form.party_id));
+  };
+
+  const getItemName = (itemId) => {
+    const item = items.find((i) => i.id === Number(itemId));
+    return item ? item.name : "Unknown";
+  };
+
+  const getProcessName = (processId) => {
+    const process = processes.find((p) => p.id === Number(processId));
+    return process ? process.name : "Unknown";
   };
 
   return (
@@ -312,119 +380,162 @@ export default function AddPartyChallanModal({
 
           {/* Items Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                <Package size={16} className="text-purple-600" />
-                Items
-              </div>
-              <button
-                type="button"
-                onClick={addItemRow}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-all shadow-md"
-              >
-                <Plus size={16} />
-                Add Item
-              </button>
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+              <Package size={16} className="text-purple-600" />
+              Items
             </div>
 
-            <div className="space-y-3">
-              {form.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex gap-3 items-start p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700"
-                >
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                        Item <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={item.item_id}
-                        onChange={(e) =>
-                          updateItemRow(index, "item_id", e.target.value)
-                        }
-                        required
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
-                      >
-                        <option value="">
-                          {form.party_id ? "Select Item" : "Select Party First"}
-                        </option>
-                        {getPartyItems().map((i) => (
-                          <option key={i.id} value={i.id}>
-                            {i.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                        Process
-                      </label>
-                      <select
-                        value={item.process_id}
-                        onChange={(e) =>
-                          updateItemRow(index, "process_id", e.target.value)
-                        }
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
-                      >
-                        <option value="">Select Process</option>
-                        {processes.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                        Available Qty
-                      </label>
-                      <div className="px-3 py-2 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1.5">
-                        <Package size={14} />
-                        {item.item_id ? getAvailableQty(item.item_id) : "-"}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">
-                        Quantity <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={item.quantity_ordered}
-                        onChange={(e) =>
-                          updateItemRow(
-                            index,
-                            "quantity_ordered",
-                            e.target.value
-                          )
-                        }
-                        min="0.01"
-                        step="0.01"
-                        required
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {form.items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeItemRow(index)}
-                      className="mt-6 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
+            {/* Item Input Row */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    Select Item <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={currentItem.item_id}
+                    onChange={(e) =>
+                      setCurrentItem({
+                        ...currentItem,
+                        item_id: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                  >
+                    <option value="">
+                      {form.party_id ? "Select Item" : "Select Party First"}
+                    </option>
+                    {getPartyItems().map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    Select Process
+                  </label>
+                  <select
+                    value={currentItem.process_id}
+                    onChange={(e) =>
+                      setCurrentItem({
+                        ...currentItem,
+                        process_id: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                  >
+                    <option value="">Select Process</option>
+                    {processes.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    Available Qty
+                  </label>
+                  <div className="px-3 py-2.5 rounded-lg border-2 border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700 text-sm font-bold text-green-700 dark:text-green-400 flex items-center justify-center gap-1.5">
+                    <Package size={14} />
+                    {currentItem.item_id
+                      ? getAvailableQty(currentItem.item_id)
+                      : "-"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    Enter Qty <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={currentItem.quantity_ordered}
+                    onChange={(e) =>
+                      setCurrentItem({
+                        ...currentItem,
+                        quantity_ordered: e.target.value,
+                      })
+                    }
+                    min="1"
+                    placeholder="0"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                >
+                  <Plus size={18} />
+                  Add
+                </button>
+              </div>
             </div>
+
+            {/* Items Table */}
+            {form.items.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gradient-to-r from-gray-700 to-gray-800 text-white">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                          Item Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                          Process
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                          Quantity
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+                          Delete
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {form.items.map((item, index) => (
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium">
+                            {getItemName(item.item_id)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                            {item.process_id
+                              ? getProcessName(item.process_id)
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-white">
+                            {item.quantity_ordered}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeItemRow(index)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="sticky bottom-0 flex justify-end gap-3 pt-6 pb-4 px-6 -mx-6 -mb-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 backdrop-blur-md z-10">
             <button
               type="button"
               onClick={onClose}

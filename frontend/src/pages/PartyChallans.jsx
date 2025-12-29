@@ -17,6 +17,7 @@ import {
 import toast from "react-hot-toast";
 import { getPartyChallans, deletePartyChallan } from "../api/partyChallans";
 import AddPartyChallanModal from "../components/AddPartyChallanModal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
 
 export default function PartyChallans() {
@@ -28,6 +29,10 @@ export default function PartyChallans() {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [challansPerPage, setChallansPerPage] = useState(10);
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    open: false,
+    challan: null,
+  });
   const navigate = useNavigate();
 
   const loadChallans = async () => {
@@ -47,15 +52,14 @@ export default function PartyChallans() {
   }, []);
 
   const handleDelete = async (challan) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete party challan ${challan.challan_number}?`
-      )
-    )
-      return;
+    setDeleteConfirm({ open: true, challan });
+  };
+
+  const confirmDelete = async () => {
     try {
-      await deletePartyChallan(challan.id);
+      await deletePartyChallan(deleteConfirm.challan.id);
       toast.success("Party Challan deleted successfully");
+      setDeleteConfirm({ open: false, challan: null });
       loadChallans();
     } catch (err) {
       toast.error(
@@ -64,13 +68,15 @@ export default function PartyChallans() {
     }
   };
 
-  const filteredChallans = challans.filter((c) => {
-    const matchesSearch =
-      c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter ? c.status === statusFilter : true;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredChallans = challans
+    .filter((c) => {
+      const matchesSearch =
+        c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter ? c.status === statusFilter : true;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
 
   // Pagination
   const totalPages = Math.ceil(filteredChallans.length / challansPerPage);
@@ -323,6 +329,14 @@ export default function PartyChallans() {
           setEditingChallan(null);
         }}
         onSuccess={loadChallans}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete Party Challan"
+        message={`Are you sure you want to delete party challan ${deleteConfirm.challan?.challan_number}? This action cannot be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, challan: null })}
       />
     </div>
   );
