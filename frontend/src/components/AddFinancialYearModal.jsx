@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
 import { X, Plus, Check, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -12,6 +13,7 @@ export default function AddFinancialYear({
   onSelectFY,
   onDeleteFY,
 }) {
+  const { user } = useAuth();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,9 +41,7 @@ export default function AddFinancialYear({
     }
 
     const duplicate = allFY.some(
-      (fy) =>
-        fy.start_date === startDate &&
-        fy.end_date === endDate
+      (fy) => fy.start_date === startDate && fy.end_date === endDate
     );
 
     if (duplicate) {
@@ -62,17 +62,20 @@ export default function AddFinancialYear({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl
+      <div
+        className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl
         bg-white dark:bg-gray-900
-        border border-gray-200 dark:border-gray-800">
-
+        border border-gray-200 dark:border-gray-800"
+      >
         {/* ================= HEADER ================= */}
-        <div className="flex justify-between items-center px-6 py-4
-          bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div
+          className="flex justify-between items-center px-6 py-4
+          bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+        >
           <div>
             <p className="text-xs text-gray-500 dark:text-gray-400">Company</p>
             <p className="font-semibold text-gray-900 dark:text-white">
-              {companyName || "—"}
+              {user?.companyName || companyName || "—"}
             </p>
           </div>
 
@@ -95,9 +98,7 @@ export default function AddFinancialYear({
               {activeFY.start_date} → {activeFY.end_date}
             </p>
           ) : (
-            <p className="text-sm text-red-500">
-              No active financial year
-            </p>
+            <p className="text-sm text-red-500">No active financial year</p>
           )}
         </div>
 
@@ -195,15 +196,19 @@ export default function AddFinancialYear({
                       )}
 
                       {isActive && (
-                        <span className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800
-                          text-green-800 dark:text-green-200">
+                        <span
+                          className="text-xs px-2 py-1 rounded bg-green-200 dark:bg-green-800
+                          text-green-800 dark:text-green-200"
+                        >
                           Active
                         </span>
                       )}
 
                       {fy.is_locked && (
-                        <span className="text-xs px-2 py-1 rounded bg-gray-300 dark:bg-gray-700
-                          text-gray-700 dark:text-gray-300">
+                        <span
+                          className="text-xs px-2 py-1 rounded bg-gray-300 dark:bg-gray-700
+                          text-gray-700 dark:text-gray-300"
+                        >
                           Locked
                         </span>
                       )}

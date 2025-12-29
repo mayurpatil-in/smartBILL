@@ -1,4 +1,8 @@
+import { useAuth } from "../hooks/useAuth";
+
 export default function FinancialYearCard({ fy, loading, onAddFY }) {
+  const { user } = useAuth();
+
   if (loading) {
     return (
       <div
@@ -82,7 +86,7 @@ export default function FinancialYearCard({ fy, loading, onAddFY }) {
 
       {/* ================= COMPANY ================= */}
       <p className="text-sm mt-1 text-gray-600 dark:text-gray-400">
-        🏢 {fy.company_name}
+        🏢 {user?.companyName || fy.company_name}
       </p>
 
       {/* ================= DATE RANGE ================= */}

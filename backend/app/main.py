@@ -13,6 +13,7 @@ from app.routers.invoice_pdf import router as invoice_pdf_router
 from app.routers.health import router as health_router
 from app.routers.super_admin import router as super_admin_router
 from app.routers import admin_company, admin_users
+from app.routers.profile import router as profile_router
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -38,6 +39,7 @@ app.include_router(health_router)
 app.include_router(super_admin_router)
 app.include_router(admin_company.router)
 app.include_router(admin_users.router)
+app.include_router(profile_router)
 
 # ===================== ROOT =====================
 @app.get("/")

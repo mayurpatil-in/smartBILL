@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import { getProfile } from "../api/profile";
 import { AuthContext } from "./AuthContextType";
-import {
-  startTimer,
-  clearSession,
-  getToken,
-} from "../utils/sessionTimer";
-
+import { startTimer, clearSession, getToken } from "../utils/sessionTimer";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -34,13 +30,27 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        setUser({
+        const initialUser = {
           id: payload.user_id,
           name: payload.name ?? "User",
           companyId: payload.company_id ?? null,
           role: payload.role,
           companyName: payload.company_name ?? null,
-        });
+        };
+        setUser(initialUser);
+
+        // 🌍 Fetch fresh data from API to ensure updates persist
+        try {
+          const profileData = await getProfile();
+          setUser((prev) => ({
+            ...prev,
+            name: profileData.user.name,
+            email: profileData.user.email,
+            companyName: profileData.company?.name || prev.companyName,
+          }));
+        } catch (e) {
+          console.warn("Failed to fetch fresh profile on init", e);
+        }
 
         startTimer();
       } catch (err) {
@@ -85,6 +95,14 @@ export function AuthProvider({ children }) {
     window.location.replace("/login");
   };
 
+  // 🔄 Manual User Update (Fixes profile refresh issue)
+  const updateUser = (updates) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      return { ...prev, ...updates };
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -96,10 +114,10 @@ export function AuthProvider({ children }) {
         isUser: user?.role === "USER",
         login,
         logout,
+        updateUser,
       }}
     >
       {!loading && children}
     </AuthContext.Provider>
   );
 }
-

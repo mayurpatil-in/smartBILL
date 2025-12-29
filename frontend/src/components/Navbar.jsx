@@ -12,9 +12,11 @@ import {
 import Breadcrumbs from "./Breadcrumbs";
 import { setDarkMode } from "../utils/theme";
 import { useAuth } from "../hooks/useAuth";
+import ProfileModal from "./ProfileModal";
 
 export default function Navbar({ onMenuClick }) {
   const [open, setOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [dark, setDark] = useState(
     document.documentElement.classList.contains("dark")
   );
@@ -153,7 +155,13 @@ export default function Navbar({ onMenuClick }) {
                 animate-fade-in
               "
             >
-              <button className="dropdown-item">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setShowProfileModal(true);
+                }}
+                className="dropdown-item"
+              >
                 <User size={16} />
                 Profile
               </button>
@@ -176,6 +184,11 @@ export default function Navbar({ onMenuClick }) {
           )}
         </div>
       </div>
+
+      <ProfileModal
+        open={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </header>
   );
 }
