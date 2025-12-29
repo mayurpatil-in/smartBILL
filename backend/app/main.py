@@ -15,6 +15,7 @@ from app.routers.super_admin import router as super_admin_router
 from app.routers import admin_company, admin_users
 from app.routers.profile import router as profile_router
 from app.routers.process import router as process_router
+from app.routers.party_challan import router as party_challan_router
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -42,6 +43,7 @@ app.include_router(admin_company.router)
 app.include_router(admin_users.router)
 app.include_router(profile_router)
 app.include_router(process_router)
+app.include_router(party_challan_router)
 
 # ===================== ROOT =====================
 @app.get("/")

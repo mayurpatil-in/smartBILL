@@ -17,8 +17,13 @@ from app.models import (
     financial_year,
     party,
     item,
+    party_challan,  # Must be before delivery_challan
+    party_challan_item,
+    delivery_challan,
+    delivery_challan_item,
     invoice,
-    
+    stock_transaction,
+    process,
 )
 
 # Metadata for autogenerate

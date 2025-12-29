@@ -10,6 +10,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 import Parties from "./pages/Parties";
 import Items from "./pages/Items";
+import Challans from "./pages/Challans";
+import PartyChallans from "./pages/PartyChallans";
 
 function AppRoutes() {
   const { isSuperAdmin } = useAuth();
@@ -39,6 +41,8 @@ function AppRoutes() {
         <Route path="invoices" element={<Invoices />} />
         <Route path="parties" element={<Parties />} />
         <Route path="items" element={<Items />} />
+        <Route path="party-challans" element={<PartyChallans />} />
+        <Route path="challans" element={<Challans />} />
       </Route>
 
       {/* Fallback */}

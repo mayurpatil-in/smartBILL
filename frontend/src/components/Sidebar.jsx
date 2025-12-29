@@ -7,6 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Truck,
+  ClipboardList,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -97,6 +99,18 @@ export default function Sidebar({
               to="/items"
               icon={Package}
               label="Stock"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/party-challans"
+              icon={ClipboardList}
+              label="Party Challans"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/challans"
+              icon={Truck}
+              label="Delivery Challans"
               collapsed={collapsed}
             />
             <MenuLink

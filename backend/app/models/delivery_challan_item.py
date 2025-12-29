@@ -11,7 +11,11 @@ class DeliveryChallanItem(Base):
     id = Column(Integer, primary_key=True)
     challan_id = Column(Integer, ForeignKey("delivery_challan.id"))
     item_id = Column(Integer, ForeignKey("items.id"))
+    party_challan_item_id = Column(Integer, ForeignKey("party_challan_items.id"), nullable=True)
+    process_id = Column(Integer, ForeignKey("processes.id"), nullable=True)
     quantity = Column(Numeric(10, 2))
 
     challan = relationship("DeliveryChallan", back_populates="items")
     item = relationship(Item)
+    party_challan_item = relationship("PartyChallanItem", back_populates="delivery_challan_items")
+    process = relationship("Process")
