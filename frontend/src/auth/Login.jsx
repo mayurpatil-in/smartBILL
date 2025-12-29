@@ -90,23 +90,23 @@ export default function Login() {
 
       window.location.href = "/";
     } catch (err) {
-      setError(
-        err.response?.data?.detail || "Invalid email or password"
-      );
+      setError(err.response?.data?.detail || "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-screen flex items-center justify-center
+    <div
+      className="min-h-screen w-screen flex items-center justify-center
       bg-gradient-to-br from-blue-600 to-indigo-700
-      dark:from-gray-900 dark:to-black px-4">
-
-      <div className="w-full max-w-md bg-white/90 dark:bg-gray-900/90
-        backdrop-blur rounded-2xl shadow-2xl p-8 animate-fade-in">
-
-        <div className="h-1 w-16 bg-blue-600 rounded-full mx-auto mb-6" />
+      dark:from-gray-900 dark:to-black px-4"
+    >
+      <div
+        className="w-full max-w-md bg-white dark:bg-gray-800
+        backdrop-blur rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 animate-fade-in"
+      >
+        <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full mx-auto mb-6" />
 
         {/* ONLINE / OFFLINE */}
         <div className="flex justify-center mb-2">
@@ -131,11 +131,11 @@ export default function Login() {
           <img src="/logo2.png" alt="SmartBill Logo" className="h-32" />
         </div>
 
-        <h2 className="text-3xl font-bold text-center">
-          Smart<span className="text-blue-600">Bill</span>
+        <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
+          Smart<span className="text-blue-600 dark:text-blue-400">Bill</span>
         </h2>
 
-        <p className="text-center text-sm text-gray-500 mt-1">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-1">
           Smart billing for modern businesses
         </p>
 
@@ -205,7 +205,10 @@ export default function Login() {
               />
               Remember me
             </label>
-            <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+            <a
+              href="#"
+              className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            >
               Forgot password?
             </a>
           </div>
@@ -213,9 +216,11 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading || isOnline === false}
-            className="w-full py-3 rounded-lg font-semibold
-              bg-blue-600 hover:bg-blue-700 text-white
-              disabled:opacity-60"
+            className="w-full py-3 rounded-lg font-semibold shadow-lg
+              bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 
+              dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600
+              text-white transition-all
+              disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
@@ -253,9 +258,7 @@ export default function Login() {
               ArcNeuron.ai
             </a>{" "}
           </span>{" "}
-          · Built with{" "}
-          <span className="text-red-500">❤</span>{" "}
-          by{" "}
+          · Built with <span className="text-red-500">❤</span> by{" "}
           <a
             href="https://www.mayurpatil.in"
             target="_blank"
