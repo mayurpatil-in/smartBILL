@@ -94,7 +94,7 @@ export default function Sidebar({
               collapsed={collapsed}
             />
             <MenuLink
-              to="/stock"
+              to="/items"
               icon={Package}
               label="Stock"
               collapsed={collapsed}

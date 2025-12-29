@@ -32,12 +32,10 @@ def create_party(
 @router.get("/", response_model=list[PartyResponse])
 def list_parties(
     company_id: int = Depends(get_company_id),
-    fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
     return db.query(Party).filter(
-        Party.company_id == company_id,
-        Party.financial_year_id == fy.id
+        Party.company_id == company_id
     ).all()
 
 

@@ -3,85 +3,95 @@ import {
   Plus,
   Search,
   MoreVertical,
-  Phone,
-  MapPin,
-  Receipt,
-  Wallet,
+  Package,
+  FileText,
+  Tag,
   Edit,
   Trash2,
   Power,
-  User,
-  Users,
-  Mail,
   Building2,
-  FileText,
+  Cog,
+  Weight,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getParties, deleteParty, updateParty } from "../api/parties";
-import AddPartyModal from "../components/AddPartyModal";
+import { getItems, deleteItem, updateItem } from "../api/items";
+import { getParties } from "../api/parties";
+import AddItemModal from "../components/AddItemModal";
 
-export default function Parties() {
+export default function Items() {
+  const [items, setItems] = useState([]);
   const [parties, setParties] = useState([]);
+  const [selectedParty, setSelectedParty] = useState("");
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingParty, setEditingParty] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [partiesPerPage, setPartiesPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const loadParties = async () => {
+  const loadItems = async () => {
     try {
       setLoading(true);
-      const data = await getParties();
-      setParties(data);
+      const [itemsData, partiesData] = await Promise.all([
+        getItems(),
+        getParties(),
+      ]);
+      setItems(itemsData);
+      setParties(partiesData);
     } catch (err) {
-      console.error("Failed to load parties", err);
+      console.error("Failed to load data", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadParties();
+    loadItems();
   }, []);
 
-  const handleDelete = async (party) => {
-    if (!confirm(`Are you sure you want to delete ${party.name}?`)) return;
+  const handleToggleStatus = async (item) => {
     try {
-      await deleteParty(party.id);
-      toast.success("Party deleted successfully");
-      loadParties();
-    } catch (err) {
-      toast.error("Failed to delete party");
-    }
-  };
-
-  const handleToggleStatus = async (party) => {
-    try {
-      await updateParty(party.id, { ...party, is_active: !party.is_active });
-      toast.success(`Party ${party.is_active ? "deactivated" : "activated"}`);
-      loadParties();
+      await updateItem(item.id, { ...item, is_active: !item.is_active });
+      toast.success(`Item ${item.is_active ? "deactivated" : "activated"}`);
+      loadItems();
     } catch (err) {
       toast.error("Failed to update status");
     }
   };
 
-  const filteredParties = parties.filter((p) =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleDelete = async (item) => {
+    if (!confirm(`Are you sure you want to delete ${item.name}?`)) return;
+    try {
+      await deleteItem(item.id);
+      toast.success("Item deleted successfully");
+      loadItems();
+    } catch (err) {
+      toast.error("Failed to delete item");
+    }
+  };
+
+  const filteredItems = items.filter((i) => {
+    const matchesSearch = i.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesParty = selectedParty
+      ? i.party_id === Number(selectedParty)
+      : true;
+    return matchesSearch && matchesParty;
+  });
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredParties.length / partiesPerPage);
-  const startIndex = (currentPage - 1) * partiesPerPage;
-  const endIndex = startIndex + partiesPerPage;
-  const paginatedParties = filteredParties.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, selectedParty]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -89,85 +99,70 @@ export default function Parties() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Parties
+            Stock / Items
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Manage your customers and vendors
+            Manage your product inventory
           </p>
         </div>
         <button
           onClick={() => {
-            setEditingParty(null);
+            setEditingItem(null);
             setShowAddModal(true);
           }}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-600/20"
         >
           <Plus size={20} />
-          Add Party
+          Add Item
         </button>
-      </div>
-
-      {/* Stats/Summary Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          label="Total Parties"
-          value={parties.length}
-          icon={Users}
-          color="blue"
-        />
-        <StatCard
-          label="Total Receivables"
-          value={`₹${parties
-            .filter((p) => p.opening_balance > 0)
-            .reduce((acc, curr) => acc + Number(curr.opening_balance), 0)
-            .toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`}
-          icon={Wallet}
-          color="green"
-        />
-        <StatCard
-          label="Total Payables"
-          value={`₹${Math.abs(
-            parties
-              .filter((p) => p.opening_balance < 0)
-              .reduce((acc, curr) => acc + Number(curr.opening_balance), 0)
-          ).toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`}
-          icon={Wallet}
-          color="red"
-        />
       </div>
 
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {/* Search */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl px-4 py-2 border border-gray-100 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-3">
+          <div className="flex-1 flex items-center gap-3 w-full bg-gray-50 dark:bg-gray-900/50 rounded-xl px-4 py-2 border border-gray-100 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
             <Search className="text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search parties by name..."
+              placeholder="Search items by name..."
               className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <div className="w-full sm:w-64">
+            <select
+              value={selectedParty}
+              onChange={(e) => setSelectedParty(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+            >
+              <option value="">All Parties</option>
+              {parties
+                .filter((p) => p.is_active)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </select>
+          </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+        <div className="overflow-x-auto max-h-[calc(100vh-280px)] overflow-y-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700/95 text-gray-500 uppercase tracking-wider font-semibold sticky top-0 z-10 backdrop-blur-sm shadow-sm">
               <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
-                <th className="px-6 py-4 whitespace-nowrap">Contact</th>
-                <th className="px-6 py-4 whitespace-nowrap">GSTIN</th>
-                <th className="px-6 py-4 whitespace-nowrap">Balance</th>
+                <th className="px-6 py-4 whitespace-nowrap">Item Name</th>
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 whitespace-nowrap">Party</th>
+                <th className="px-6 py-4 whitespace-nowrap">Process</th>
+                <th className="px-6 py-4 whitespace-nowrap">P.O No</th>
+                <th className="px-6 py-4 whitespace-nowrap">Cast Wt.</th>
+                <th className="px-6 py-4 whitespace-nowrap">Scrap Wt.</th>
+                <th className="px-6 py-4 whitespace-nowrap">Rate</th>
                 <th className="px-6 py-4 text-right whitespace-nowrap">
                   Actions
                 </th>
@@ -177,32 +172,32 @@ export default function Parties() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="5"
                     className="px-6 py-8 text-center text-gray-500"
                   >
-                    Loading parties...
+                    Loading items...
                   </td>
                 </tr>
-              ) : filteredParties.length === 0 ? (
+              ) : filteredItems.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="5"
                     className="px-6 py-8 text-center text-gray-500"
                   >
-                    No parties found.
+                    No items found.
                   </td>
                 </tr>
               ) : (
-                paginatedParties.map((party) => (
-                  <PartyRow
-                    key={party.id}
-                    party={party}
+                paginatedItems.map((item) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
                     onEdit={() => {
-                      setEditingParty(party);
+                      setEditingItem(item);
                       setShowAddModal(true);
                     }}
-                    onToggleStatus={() => handleToggleStatus(party)}
-                    onDelete={() => handleDelete(party)}
+                    onDelete={() => handleDelete(item)}
+                    onToggleStatus={() => handleToggleStatus(item)}
                   />
                 ))
               )}
@@ -211,7 +206,7 @@ export default function Parties() {
         </div>
 
         {/* Pagination */}
-        {filteredParties.length > 0 && (
+        {filteredItems.length > 0 && (
           <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50 dark:bg-gray-800/50">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -221,18 +216,18 @@ export default function Parties() {
                 </span>{" "}
                 to{" "}
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {Math.min(endIndex, filteredParties.length)}
+                  {Math.min(endIndex, filteredItems.length)}
                 </span>{" "}
                 of{" "}
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {filteredParties.length}
+                  {filteredItems.length}
                 </span>{" "}
-                parties
+                items
               </span>
               <select
-                value={partiesPerPage}
+                value={itemsPerPage}
                 onChange={(e) => {
-                  setPartiesPerPage(Number(e.target.value));
+                  setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
                 className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
@@ -302,21 +297,20 @@ export default function Parties() {
         )}
       </div>
 
-      <AddPartyModal
+      <AddItemModal
         open={showAddModal}
-        action={editingParty ? "edit" : "add"}
-        party={editingParty}
+        item={editingItem}
         onClose={() => {
           setShowAddModal(false);
-          setEditingParty(null);
+          setEditingItem(null);
         }}
-        onSuccess={loadParties}
+        onSuccess={loadItems}
       />
     </div>
   );
 }
 
-function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
+function ItemRow({ item, onEdit, onDelete, onToggleStatus }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -335,44 +329,61 @@ function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
       <td className="px-6 py-4">
         <div>
           <div className="font-semibold text-gray-900 dark:text-white">
-            {party.name}
+            {item.name}
           </div>
-          {party.address && (
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              <MapPin size={12} />
-              {party.address}
+          {item.hsn_code && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+              <Tag size={12} />
+              HSN: {item.hsn_code}
             </div>
           )}
         </div>
       </td>
       <td className="px-6 py-4">
-        <div className="space-y-1">
-          {party.phone ? (
-            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-              <Phone size={14} className="text-gray-400" />
-              <span className="font-medium">{party.phone}</span>
-            </div>
-          ) : (
-            <span className="text-gray-400 dark:text-gray-500 text-xs italic">
-              No phone
-            </span>
-          )}
-          {party.email && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs">
-              <Mail size={12} className="text-gray-400" />
-              <span>{party.email}</span>
-            </div>
-          )}
-        </div>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+            item.is_active
+              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              item.is_active ? "bg-green-500" : "bg-red-500"
+            }`}
+          ></span>
+          {item.is_active ? "Active" : "Inactive"}
+        </span>
       </td>
       <td className="px-6 py-4">
-        {party.gst_number ? (
-          <div className="flex items-center gap-2">
-            <FileText size={14} className="text-gray-400" />
-            <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
-              {party.gst_number}
-            </span>
-          </div>
+        {item.party_id ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium">
+            <Building2 size={12} />
+            Linked
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs">
+            Global
+          </span>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        {item.process ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs font-medium">
+            <Cog size={12} />
+            {item.process.name}
+          </span>
+        ) : (
+          <span className="text-gray-400 dark:text-gray-500 text-xs italic">
+            No process
+          </span>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        {item.po_number ? (
+          <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
+            {item.po_number}
+          </span>
         ) : (
           <span className="text-gray-400 dark:text-gray-500 text-xs italic">
             —
@@ -380,40 +391,31 @@ function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
         )}
       </td>
       <td className="px-6 py-4">
-        <div className="font-semibold text-base">
-          <span
-            className={
-              party.opening_balance >= 0
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }
-          >
-            ₹
-            {Math.abs(Number(party.opening_balance)).toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+        <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
+          <Weight size={14} className="text-gray-400" />
+          <span className="font-medium">
+            {Number(item.casting_weight).toFixed(3)}
           </span>
-          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-            {party.opening_balance >= 0 ? "(Receivable)" : "(Payable)"}
-          </span>
+          <span className="text-xs text-gray-400">kg</span>
         </div>
       </td>
       <td className="px-6 py-4">
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-            party.is_active
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              party.is_active ? "bg-green-500" : "bg-red-500"
-            }`}
-          ></span>
-          {party.is_active ? "Active" : "Inactive"}
-        </span>
+        <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
+          <Weight size={14} className="text-gray-400" />
+          <span className="font-medium">
+            {Number(item.scrap_weight).toFixed(3)}
+          </span>
+          <span className="text-xs text-gray-400">kg</span>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="font-semibold text-gray-900 dark:text-white text-base">
+          ₹
+          {Number(item.rate).toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
       </td>
       <td className="px-6 py-4 text-right relative">
         <button
@@ -423,11 +425,10 @@ function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
           <MoreVertical size={16} />
         </button>
 
-        {/* DROPDOWN */}
         {showMenu && (
           <div
             ref={menuRef}
-            className="absolute right-8 top-8 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-10 animate-fade-in origin-top-right overflow-hidden"
+            className="absolute right-8 top-8 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-10 animate-fade-in overflow-hidden"
           >
             <button
               onClick={() => {
@@ -444,13 +445,12 @@ function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
                 onToggleStatus();
               }}
               className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 ${
-                party.is_active
+                item.is_active
                   ? "text-orange-600 dark:text-orange-400"
                   : "text-green-600 dark:text-green-400"
               }`}
             >
-              <Power size={14} />
-              {party.is_active ? "Deactivate" : "Activate"}
+              <Power size={14} /> {item.is_active ? "Deactivate" : "Activate"}
             </button>
             <hr className="border-gray-100 dark:border-gray-700" />
             <button
@@ -466,30 +466,5 @@ function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
         )}
       </td>
     </tr>
-  );
-}
-
-function StatCard({ label, value, icon: Icon, color }) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-    green:
-      "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
-    red: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colors[color]}`}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {value}
-        </h3>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-          {label}
-        </p>
-      </div>
-    </div>
   );
 }
