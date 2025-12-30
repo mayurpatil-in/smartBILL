@@ -104,42 +104,46 @@ export default function Login() {
     >
       <div
         className="w-full max-w-md bg-white dark:bg-gray-800
-        backdrop-blur rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 animate-fade-in"
+        backdrop-blur rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 animate-fade-in select-none"
       >
         <div className="h-1 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full mx-auto mb-6" />
 
         {/* ONLINE / OFFLINE */}
         <div className="flex justify-center mb-2">
           {isOnline === null && (
-            <span className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-800">
+            <span className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
               Checking connection…
             </span>
           )}
           {isOnline === true && (
-            <span className="text-xs px-3 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700">
+            <span className="text-xs px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
               ● Online
             </span>
           )}
           {isOnline === false && (
-            <span className="text-xs px-3 py-1 rounded-full bg-red-100 dark:bg-red-900 text-red-700">
+            <span className="text-xs px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
               ● Offline
             </span>
           )}
         </div>
 
         <div className="flex justify-center mb-1">
-          <img src="/logo2.png" alt="SmartBill Logo" className="h-32" />
+          <img
+            src="/logo2.png"
+            alt="SmartBill Logo"
+            className="h-32 select-none"
+          />
         </div>
 
-        <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
+        <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white select-none">
           Smart<span className="text-blue-600 dark:text-blue-400">Bill</span>
         </h2>
 
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-1 select-none">
           Smart billing for modern businesses
         </p>
 
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6 select-none">
           Login to continue
         </p>
 
