@@ -1,6 +1,6 @@
 import api from './axios';
 
-export const getChallans = async (partyId = null, status = null) => {
+export const getDeliveryChallans = async (partyId = null, status = null) => {
   const params = {};
   if (partyId) params.party_id = partyId;
   if (status) params.status = status;
@@ -9,27 +9,27 @@ export const getChallans = async (partyId = null, status = null) => {
   return response.data;
 };
 
-export const getChallan = async (id) => {
+export const getDeliveryChallan = async (id) => {
   const response = await api.get(`/challan/${id}`);
   return response.data;
 };
 
-export const createChallan = async (data) => {
+export const createDeliveryChallan = async (data) => {
   const response = await api.post('/challan/', data);
   return response.data;
 };
 
-export const updateChallan = async (id, data) => {
+export const updateDeliveryChallan = async (id, data) => {
   const response = await api.put(`/challan/${id}`, data);
   return response.data;
 };
 
-export const deleteChallan = async (id) => {
+export const deleteDeliveryChallan = async (id) => {
   const response = await api.delete(`/challan/${id}`);
   return response.data;
 };
 
-export const getNextChallanNumber = async () => {
+export const getNextDeliveryChallanNumber = async () => {
   const response = await api.get('/challan/next-number/preview');
   return response.data;
 };

@@ -171,7 +171,7 @@ export default function PartyChallans() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+        <div className="overflow-x-auto h-[calc(100vh-420px)] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700/95 text-gray-500 uppercase tracking-wider font-semibold sticky top-0 z-10 backdrop-blur-sm shadow-sm">
               <tr>

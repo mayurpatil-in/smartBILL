@@ -21,7 +21,7 @@ class DeliveryChallan(Base):
 
     challan_number = Column(String(50), unique=True, nullable=False, index=True)
     challan_date = Column(Date, default=date.today)
-    working_days = Column(Integer, nullable=True)
+    vehicle_number = Column(String(50), nullable=True)
     notes = Column(Text, nullable=True)
     status = Column(String(20), default="draft")  # draft, sent, delivered
     is_active = Column(Boolean, default=True)

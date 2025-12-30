@@ -5,6 +5,7 @@ from typing import List
 from app.database.session import get_db
 from app.models.party_challan import PartyChallan
 from app.models.party_challan_item import PartyChallanItem
+from app.models.delivery_challan_item import DeliveryChallanItem
 from app.schemas.party_challan import (
     PartyChallanCreate,
     PartyChallanResponse,
@@ -387,14 +388,22 @@ def delete_party_challan(
     
     # Check if there are linked delivery challans
     from app.models.delivery_challan import DeliveryChallan
-    linked_deliveries = db.query(DeliveryChallan).filter(
-        DeliveryChallan.party_challan_id == challan_id
-    ).count()
+    # Get all delivery challans linked to this party challan's items
+    linked_delivery_challans = db.query(DeliveryChallan).join(
+        DeliveryChallanItem,
+        DeliveryChallan.id == DeliveryChallanItem.challan_id
+    ).join(
+        PartyChallanItem,
+        DeliveryChallanItem.party_challan_item_id == PartyChallanItem.id
+    ).filter(
+        PartyChallanItem.party_challan_id == challan_id
+    ).distinct().all()
     
-    if linked_deliveries > 0:
+    if linked_delivery_challans:
+        challan_numbers = ", ".join([dc.challan_number for dc in linked_delivery_challans])
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete. {linked_deliveries} delivery challan(s) are linked to this party challan."
+            detail=f"Cannot delete Party Challan. The following Delivery Challan(s) are linked: {challan_numbers}. Please delete these delivery challans first."
         )
     
     # Delete items
@@ -467,3 +476,53 @@ def get_next_party_challan_number(
     """Get the next party challan number that will be generated"""
     next_number = generate_party_challan_number(db, company_id, fy.id)
     return {"next_challan_number": next_number}
+
+
+@router.get("/by-item/{party_id}/{item_id}")
+def get_party_challans_by_item(
+    party_id: int,
+    item_id: int,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """Get all party challans for a specific party and item with pending quantities"""
+    challans = db.query(PartyChallan).options(
+        joinedload(PartyChallan.items).joinedload(PartyChallanItem.item),
+        joinedload(PartyChallan.items).joinedload(PartyChallanItem.process)
+    ).filter(
+        PartyChallan.party_id == party_id,
+        PartyChallan.company_id == company_id,
+        PartyChallan.financial_year_id == fy.id,
+        PartyChallan.status != "cancelled",
+        PartyChallan.is_active == True
+    ).all()
+    
+    # Filter challans that have the specified item
+    result = []
+    for challan in challans:
+        challan_items = [
+            item for item in challan.items 
+            if item.item_id == item_id and item.quantity_ordered > item.quantity_delivered
+        ]
+        
+        if challan_items:
+            result.append({
+                "id": challan.id,
+                "challan_number": challan.challan_number,
+                "challan_date": challan.challan_date,
+                "items": [
+                    {
+                        "id": item.id,
+                        "item_id": item.item_id,
+                        "process_id": item.process_id,
+                        "quantity_ordered": float(item.quantity_ordered),
+                        "quantity_delivered": float(item.quantity_delivered),
+                        "pending_qty": float(item.quantity_ordered - item.quantity_delivered),
+                        "process_name": item.process.name if item.process else None
+                    }
+                    for item in challan_items
+                ]
+            })
+    
+    return result

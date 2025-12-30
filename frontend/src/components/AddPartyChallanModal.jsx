@@ -21,6 +21,7 @@ import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
 import { getProcesses } from "../api/processes";
 import { getStock } from "../api/stock";
+import { getPartyChallansByItem } from "../api/partyChallans";
 
 export default function AddPartyChallanModal({
   open,
@@ -49,7 +50,33 @@ export default function AddPartyChallanModal({
     process_id: "",
     quantity_ordered: "",
     rate: "",
+    pending_at_party: 0,
   });
+
+  const handleItemChange = async (itemId) => {
+    let pending = 0;
+    if (form.party_id && itemId) {
+      try {
+        const challans = await getPartyChallansByItem(form.party_id, itemId);
+        pending = challans.reduce(
+          (acc, challan) =>
+            acc +
+            challan.items.reduce(
+              (sum, item) => sum + Number(item.pending_qty || 0),
+              0
+            ),
+          0
+        );
+      } catch (err) {
+        console.error("Failed to fetch pending qty", err);
+      }
+    }
+    setCurrentItem((prev) => ({
+      ...prev,
+      item_id: itemId,
+      pending_at_party: pending,
+    }));
+  };
 
   const fetchData = async () => {
     try {
@@ -274,6 +301,14 @@ export default function AddPartyChallanModal({
     return process ? process.name : "Unknown";
   };
 
+  const getEffectiveQtyAtParty = (item) => {
+    const currentPending = Number(item.pending_at_party || 0);
+    const addedInForm = form.items
+      .filter((i) => i.item_id === item.item_id)
+      .reduce((sum, i) => sum + Number(i.quantity_ordered || 0), 0);
+    return currentPending + addedInForm;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden animate-scale-in max-h-[90vh] overflow-y-auto">
@@ -387,20 +422,16 @@ export default function AddPartyChallanModal({
 
             {/* Item Input Row */}
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                {/* Select Item */}
+                <div className="lg:col-span-4">
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
                     Select Item <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={currentItem.item_id}
-                    onChange={(e) =>
-                      setCurrentItem({
-                        ...currentItem,
-                        item_id: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                    onChange={(e) => handleItemChange(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
                   >
                     <option value="">
                       {form.party_id ? "Select Item" : "Select Party First"}
@@ -413,7 +444,8 @@ export default function AddPartyChallanModal({
                   </select>
                 </div>
 
-                <div>
+                {/* Select Process */}
+                <div className="lg:col-span-3">
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
                     Select Process
                   </label>
@@ -425,7 +457,7 @@ export default function AddPartyChallanModal({
                         process_id: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
                   >
                     <option value="">Select Process</option>
                     {processes.map((p) => (
@@ -436,19 +468,26 @@ export default function AddPartyChallanModal({
                   </select>
                 </div>
 
-                <div>
+                {/* Qty at Party Display */}
+                <div className="lg:col-span-2">
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    Available Qty
+                    Qty at Party
                   </label>
-                  <div className="px-3 py-2.5 rounded-lg border-2 border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700 text-sm font-bold text-green-700 dark:text-green-400 flex items-center justify-center gap-1.5">
-                    <Package size={14} />
+                  <div
+                    className={`px-3 py-2 rounded-lg border text-sm font-bold flex items-center justify-center ${
+                      currentItem.item_id
+                        ? "border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-700 text-orange-700 dark:text-orange-400"
+                        : "border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-400"
+                    }`}
+                  >
                     {currentItem.item_id
-                      ? getAvailableQty(currentItem.item_id)
+                      ? `${getEffectiveQtyAtParty(currentItem)} units`
                       : "-"}
                   </div>
                 </div>
 
-                <div>
+                {/* Enter Qty */}
+                <div className="lg:col-span-2">
                   <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
                     Enter Qty <span className="text-red-500">*</span>
                   </label>
@@ -463,18 +502,20 @@ export default function AddPartyChallanModal({
                     }
                     min="1"
                     placeholder="0"
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none h-[38px]"
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddItem}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
-                >
-                  <Plus size={18} />
-                  Add
-                </button>
+                {/* Add Button */}
+                <div className="lg:col-span-1">
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg h-[38px]"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
               </div>
             </div>
 

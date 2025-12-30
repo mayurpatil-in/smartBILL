@@ -38,3 +38,8 @@ export const getNextPartyChallanNumber = async () => {
   const response = await api.get('/party-challan/next-number/preview');
   return response.data;
 };
+
+export const getPartyChallansByItem = async (partyId, itemId) => {
+  const response = await api.get(`/party-challan/by-item/${partyId}/${itemId}`);
+  return response.data;
+};

@@ -11,10 +11,12 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
+  Truck,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getChallans, deleteChallan } from "../api/challans";
-import AddChallanModal from "../components/AddChallanModal";
+import { getDeliveryChallans, deleteDeliveryChallan } from "../api/challans";
+import AddDeliveryChallanModal from "../components/AddDeliveryChallanModal";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function Challans() {
   const [challans, setChallans] = useState([]);
@@ -25,11 +27,15 @@ export default function Challans() {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [challansPerPage, setChallansPerPage] = useState(10);
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    open: false,
+    challan: null,
+  });
 
   const loadChallans = async () => {
     try {
       setLoading(true);
-      const data = await getChallans();
+      const data = await getDeliveryChallans();
       setChallans(data);
     } catch (err) {
       console.error("Failed to load challans", err);
@@ -43,28 +49,31 @@ export default function Challans() {
   }, []);
 
   const handleDelete = async (challan) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete challan ${challan.challan_number}?`
-      )
-    )
-      return;
+    setDeleteConfirm({ open: true, challan });
+  };
+
+  const confirmDelete = async () => {
     try {
-      await deleteChallan(challan.id);
-      toast.success("Challan deleted successfully");
+      await deleteDeliveryChallan(deleteConfirm.challan.id);
+      toast.success("Delivery Challan deleted successfully");
+      setDeleteConfirm({ open: false, challan: null });
       loadChallans();
     } catch (err) {
-      toast.error("Failed to delete challan");
+      toast.error(
+        err.response?.data?.detail || "Failed to delete delivery challan"
+      );
     }
   };
 
-  const filteredChallans = challans.filter((c) => {
-    const matchesSearch =
-      c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter ? c.status === statusFilter : true;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredChallans = challans
+    .filter((c) => {
+      const matchesSearch =
+        c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter ? c.status === statusFilter : true;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
 
   // Pagination logic
   const totalPages = Math.ceil(filteredChallans.length / challansPerPage);
@@ -144,13 +153,14 @@ export default function Challans() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+        <div className="overflow-x-auto h-[calc(100vh-420px)] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700/95 text-gray-500 uppercase tracking-wider font-semibold sticky top-0 z-10 backdrop-blur-sm shadow-sm">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Challan No.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Date</th>
                 <th className="px-6 py-4 whitespace-nowrap">Party</th>
+                <th className="px-6 py-4 whitespace-nowrap">Vehicle No.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Items</th>
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
                 <th className="px-6 py-4 text-right whitespace-nowrap">
@@ -162,7 +172,7 @@ export default function Challans() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="7"
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     Loading challans...
@@ -171,7 +181,7 @@ export default function Challans() {
               ) : paginatedChallans.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="7"
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     No challans found.
@@ -287,14 +297,22 @@ export default function Challans() {
         )}
       </div>
 
-      <AddChallanModal
+      <AddDeliveryChallanModal
         open={showAddModal}
-        challan={editingChallan}
+        deliveryChallan={editingChallan}
         onClose={() => {
           setShowAddModal(false);
           setEditingChallan(null);
         }}
         onSuccess={loadChallans}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Delete Delivery Challan"
+        message={`Are you sure you want to delete delivery challan ${deleteConfirm.challan?.challan_number}? This action cannot be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, challan: null })}
       />
     </div>
   );
@@ -340,8 +358,28 @@ function ChallanRow({ challan, onEdit, onDelete, getStatusColor }) {
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+          <Truck size={14} className="text-gray-400" />
+          <span className="capitalize">{challan.vehicle_number || "-"}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
           <Package size={14} className="text-gray-400" />
-          <span>{challan.items?.length || 0} items</span>
+          <span>
+            {challan.items?.length || 0} items
+            <span className="text-gray-400 text-xs ml-1">
+              (
+              {challan.items?.reduce(
+                (sum, item) =>
+                  sum +
+                  Number(item.ok_qty || 0) +
+                  Number(item.cr_qty || 0) +
+                  Number(item.mr_qty || 0),
+                0
+              )}{" "}
+              units)
+            </span>
+          </span>
         </div>
       </td>
       <td className="px-6 py-4">
