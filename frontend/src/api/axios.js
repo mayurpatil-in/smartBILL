@@ -1,8 +1,11 @@
 import axios from "axios";
 import { getToken, clearSession } from "../utils/sessionTimer";
 
+// 🚀 Dynamic Base URL (Works on LAN/WiFi)
+const baseURL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: baseURL,
   headers: {
     "Content-Type": "application/json",
   },

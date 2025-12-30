@@ -35,3 +35,9 @@ pydantic
 # Optional (Recommended for Production)
 # ===============================
 httpx
+
+# ===============================
+# PDF Generation
+# ===============================
+playwright
+jinja2

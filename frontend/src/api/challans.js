@@ -33,3 +33,10 @@ export const getNextDeliveryChallanNumber = async () => {
   const response = await api.get('/challan/next-number/preview');
   return response.data;
 };
+
+export const printDeliveryChallan = async (id) => {
+  const response = await api.get(`/challan/${id}/print`, {
+    responseType: 'blob',
+  });
+  return response.data;
+};

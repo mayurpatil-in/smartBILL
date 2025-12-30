@@ -1,4 +1,10 @@
+import sys
+import asyncio
 from fastapi import FastAPI
+
+# Windows Proactor Loop Logic for Playwright
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
@@ -20,9 +26,12 @@ from app.routers.party_challan import router as party_challan_router
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # ===================== CORS =====================
+print(f"DEBUG CORS: {settings.cors_origins} TYPE: {type(settings.cors_origins)}")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,  # ✅ ENV BASED
+    # allow_origins=settings.cors_origins,  # ✅ ENV BASED
+    # allow_origins=["*"], # DEBUG FORCE
+    allow_origin_regex=".*", # 🔓 Allow ALL origins matching regex (Nuclear Option)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

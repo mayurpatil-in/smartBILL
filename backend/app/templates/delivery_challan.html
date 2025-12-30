@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Delivery Challan</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .company-name {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+        text-transform: uppercase;
+      }
+      .company-details {
+        font-size: 12px;
+        margin-top: 5px;
+      }
+      .title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        text-decoration: underline;
+        margin: 20px 0;
+        text-transform: uppercase;
+      }
+      .info-grid {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .party-info,
+      .challan-info {
+        width: 48%;
+      }
+      .label {
+        font-weight: bold;
+        display: inline-block;
+        width: 80px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      .text-right {
+        text-align: right;
+      }
+      .text-center {
+        text-align: center;
+      }
+      .footer {
+        margin-top: 50px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .signature-box {
+        text-align: center;
+        width: 30%;
+      }
+      .signature-line {
+        border-top: 1px solid #000;
+        margin-top: 40px;
+        padding-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1 class="company-name">{{ company.name }}</h1>
+      <div class="company-details">
+        {% if company.address %}{{ company.address }}<br />{% endif %} {% if
+        company.phone %}Phone: {{ company.phone }}{% endif %} {% if
+        company.email %} | Email: {{ company.email }}{% endif %} {% if
+        company.gst_number %}<br />GSTIN: {{ company.gst_number }}{% endif %}
+      </div>
+    </div>
+
+    <div class="title">DELIVERY CHALLAN</div>
+
+    <div class="info-grid">
+      <div class="party-info">
+        <strong>To:</strong><br />
+        <span style="font-size: 16px; font-weight: bold">{{ party.name }}</span
+        ><br />
+        {% if party.address %}{{ party.address }}<br />{% endif %} {% if
+        party.gst_number %}GSTIN: {{ party.gst_number }}{% endif %}
+      </div>
+      <div class="challan-info">
+        <div>
+          <span class="label">Challan No:</span>
+          <strong>{{ challan.challan_number }}</strong>
+        </div>
+        <div><span class="label">Date:</span> {{ challan.challan_date }}</div>
+        <div>
+          <span class="label">Vehicle No:</span> {{ challan.vehicle_number or
+          'N/A' }}
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="text-center" style="width: 50px">Sr. No</th>
+          <th>Item Description</th>
+          <th>Process</th>
+          <th>Ref. Challan</th>
+          <th class="text-right" style="width: 100px">Quantity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-center">{{ loop.index }}</td>
+          <td>
+            {{ item.party_challan_item.item.name }} {% if
+            item.party_challan_item.item.code %}
+            <br /><small>Code: {{ item.party_challan_item.item.code }}</small>
+            {% endif %}
+          </td>
+          <td>{{ item.process.name if item.process else '-' }}</td>
+          <td>{{ item.party_challan_item.party_challan.challan_number }}</td>
+          <td class="text-right">
+            {{ item.quantity }}
+            <!--
+                    {% if item.ok_qty or item.cr_qty or item.mr_qty %}
+                    <br><small style="font-size: 10px;">
+                    OK:{{ item.ok_qty }} | CR:{{ item.cr_qty }} | MR:{{ item.mr_qty }}
+                    </small>
+                    {% endif %}
+                    -->
+          </td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td colspan="4" class="text-right">
+            <strong>Total Quantity</strong>
+          </td>
+          <td class="text-right"><strong>{{ total_qty }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <div class="signature-box">
+        Receiver's Signature
+        <div class="signature-line" style="margin-top: 60px"></div>
+      </div>
+      <div class="signature-box">
+        For {{ company.name }}
+        <div class="signature-line" style="margin-top: 60px">
+          Authorised Signatory
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

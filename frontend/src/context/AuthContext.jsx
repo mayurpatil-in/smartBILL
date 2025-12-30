@@ -54,7 +54,7 @@ export function AuthProvider({ children }) {
 
         startTimer();
       } catch (err) {
-        console.error("Invalid token", err);
+        console.error("AuthContext: Invalid token or init error", err);
         clearSession();
         setUser(null);
       } finally {

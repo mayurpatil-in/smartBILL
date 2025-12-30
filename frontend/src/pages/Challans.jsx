@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Fragment, Suspense, lazy } from "react";
 import {
   Plus,
   Search,
@@ -12,11 +12,19 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
+  Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getDeliveryChallans, deleteDeliveryChallan } from "../api/challans";
+import {
+  getDeliveryChallans,
+  deleteDeliveryChallan,
+  printDeliveryChallan,
+} from "../api/challans";
 import AddDeliveryChallanModal from "../components/AddDeliveryChallanModal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import LoadingSpinner from "../components/LoadingSpinner";
+
+const PdfPreviewModal = lazy(() => import("../components/PdfPreviewModal"));
 
 export default function Challans() {
   const [challans, setChallans] = useState([]);
@@ -31,6 +39,10 @@ export default function Challans() {
     open: false,
     challan: null,
   });
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewTitle, setPreviewTitle] = useState("");
 
   const loadChallans = async () => {
     try {
@@ -62,6 +74,36 @@ export default function Challans() {
       toast.error(
         err.response?.data?.detail || "Failed to delete delivery challan"
       );
+    }
+  };
+
+  const handlePrint = async (challan) => {
+    let toastId;
+    try {
+      toastId = toast.loading("Generating PDF...");
+      const blob = await printDeliveryChallan(challan.id);
+      const url = window.URL.createObjectURL(blob);
+
+      setPreviewUrl(url);
+      setPreviewTitle(`Challan #${challan.challan_number}`);
+      setPreviewOpen(true);
+
+      toast.success("PDF generated", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      let msg = err.message;
+      if (msg === "Network Error") {
+        msg = "Network Error (Check AdBlocker/Extensions?)";
+      }
+      toast.error(`Failed: ${msg}`, { id: toastId });
+    }
+  };
+
+  const handleClosePreview = () => {
+    setPreviewOpen(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
   };
 
@@ -197,6 +239,7 @@ export default function Challans() {
                       setShowAddModal(true);
                     }}
                     onDelete={() => handleDelete(challan)}
+                    onPrint={() => handlePrint(challan)}
                     getStatusColor={getStatusColor}
                   />
                 ))
@@ -259,7 +302,7 @@ export default function Challans() {
                     return false;
                   })
                   .map((page, index, array) => (
-                    <>
+                    <Fragment key={page}>
                       {index > 0 && array[index - 1] !== page - 1 && (
                         <span
                           key={`ellipsis-${page}`}
@@ -279,7 +322,7 @@ export default function Challans() {
                       >
                         {page}
                       </button>
-                    </>
+                    </Fragment>
                   ))}
               </div>
               <button
@@ -314,11 +357,24 @@ export default function Challans() {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirm({ open: false, challan: null })}
       />
+
+      <Suspense
+        fallback={
+          <LoadingSpinner fullScreen={false} text="Loading PDF Engine..." />
+        }
+      >
+        <PdfPreviewModal
+          isOpen={previewOpen}
+          onClose={handleClosePreview}
+          pdfUrl={previewUrl}
+          title={previewTitle}
+        />
+      </Suspense>
     </div>
   );
 }
 
-function ChallanRow({ challan, onEdit, onDelete, getStatusColor }) {
+function ChallanRow({ challan, onEdit, onDelete, onPrint, getStatusColor }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -413,6 +469,16 @@ function ChallanRow({ challan, onEdit, onDelete, getStatusColor }) {
             ref={menuRef}
             className="absolute right-8 top-8 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-10 animate-fade-in overflow-hidden"
           >
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                onPrint();
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Printer size={14} /> Print
+            </button>
+            <hr className="border-gray-100 dark:border-gray-700" />
             <button
               onClick={() => {
                 setShowMenu(false);

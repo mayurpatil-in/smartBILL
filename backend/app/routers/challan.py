@@ -313,3 +313,63 @@ def delete_challan(
     db.commit()
     
     return {"message": "Delivery Challan deleted successfully"}
+
+
+# ===============================
+# PDF Generation
+# ===============================
+from fastapi.responses import Response
+from jinja2 import Environment, FileSystemLoader
+from app.services.pdf_service import generate_pdf
+from app.models.company import Company
+import os
+
+# Set up Jinja2
+templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+env = Environment(loader=FileSystemLoader(templates_dir))
+
+@router.get("/{challan_id}/print")
+async def print_challan(
+    challan_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    # Fetch challan
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.party),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
+    ).filter(
+        DeliveryChallan.id == challan_id,
+        DeliveryChallan.company_id == company_id
+    ).first()
+    
+    if not challan:
+        raise HTTPException(status_code=404, detail="Delivery Challan not found")
+    
+    # Fetch company
+    company = db.query(Company).filter(Company.id == company_id).first()
+    
+    # Calculate Total Qty
+    total_qty = sum(float(item.quantity) for item in challan.items)
+    
+    # Render Template
+    template = env.get_template("delivery_challan.html")
+    html = template.render(
+        challan=challan,
+        company=company,
+        party=challan.party,
+        items=challan.items,
+        total_qty=total_qty
+    )
+    
+    # Generate PDF
+    pdf_content = await generate_pdf(html)
+    
+    # Return PDF
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
+    )

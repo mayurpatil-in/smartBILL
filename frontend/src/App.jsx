@@ -1,53 +1,59 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-import Login from "./auth/Login";
-import Dashboard from "./pages/Dashboard";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import Invoices from "./pages/Invoices";
+import LoadingSpinner from "./components/LoadingSpinner";
 import DashboardLayout from "./layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
-import Parties from "./pages/Parties";
-import Items from "./pages/Items";
-import Challans from "./pages/Challans";
-import PartyChallans from "./pages/PartyChallans";
+
+// 💤 Lazy Load Pages
+const Login = lazy(() => import("./auth/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
+const Invoices = lazy(() => import("./pages/Invoices"));
+const Parties = lazy(() => import("./pages/Parties"));
+const Items = lazy(() => import("./pages/Items"));
+const Challans = lazy(() => import("./pages/Challans"));
+const PartyChallans = lazy(() => import("./pages/PartyChallans"));
 
 function AppRoutes() {
   const { isSuperAdmin } = useAuth();
 
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/login" element={<Login />} />
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Public */}
+        <Route path="/login" element={<Login />} />
 
-      {/* Protected App */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
+        {/* Protected App */}
         <Route
-          index
-          element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
-        />
-        <Route
-          path="dashboard"
-          element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
-        />
-        <Route path="invoices" element={<Invoices />} />
-        <Route path="parties" element={<Parties />} />
-        <Route path="items" element={<Items />} />
-        <Route path="party-challans" element={<PartyChallans />} />
-        <Route path="challans" element={<Challans />} />
-      </Route>
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route
+            index
+            element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
+          />
+          <Route
+            path="dashboard"
+            element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
+          />
+          <Route path="invoices" element={<Invoices />} />
+          <Route path="parties" element={<Parties />} />
+          <Route path="items" element={<Items />} />
+          <Route path="party-challans" element={<PartyChallans />} />
+          <Route path="challans" element={<Challans />} />
+        </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/dashboard" />} />
+      </Routes>
+    </Suspense>
   );
 }
 
