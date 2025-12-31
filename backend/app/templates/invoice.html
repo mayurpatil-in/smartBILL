@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Invoice</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .company-name {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+        text-transform: uppercase;
+      }
+      .company-details {
+        font-size: 12px;
+        margin-top: 5px;
+      }
+      .title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        text-decoration: underline;
+        margin: 20px 0;
+        text-transform: uppercase;
+      }
+      .info-grid {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .party-info,
+      .invoice-info {
+        width: 48%;
+      }
+      .label {
+        font-weight: bold;
+        display: inline-block;
+        width: 100px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      .text-right {
+        text-align: right;
+      }
+      .text-center {
+        text-align: center;
+      }
+      .totals-section {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 40px;
+      }
+      .totals-table {
+        width: 40%;
+        border-collapse: collapse;
+      }
+      .totals-table td {
+        border: none;
+        padding: 5px 0;
+      }
+      .grand-total {
+        font-size: 16px;
+        font-weight: bold;
+        border-top: 2px solid #333 !important;
+        margin-top: 10px;
+        padding-top: 10px !important;
+      }
+      .footer {
+        margin-top: 50px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .signature-box {
+        text-align: center;
+        width: 30%;
+      }
+      .signature-line {
+        border-top: 1px solid #000;
+        margin-top: 40px;
+        padding-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Company Header -->
+    <div class="header">
+      <h1 class="company-name">{{ company.name }}</h1>
+      <div class="company-details">
+        {% if company.address %}{{ company.address }}<br />{% endif %} 
+        {% if company.phone %}Phone: {{ company.phone }}{% endif %} 
+        {% if company.email %} | Email: {{ company.email }}{% endif %} 
+        {% if company.gst_number %}<br />GSTIN: {{ company.gst_number }}{% endif %}
+      </div>
+    </div>
+
+    <div class="title">TAX INVOICE</div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+      <div class="party-info">
+        <strong>Bill To:</strong><br />
+        <span style="font-size: 16px; font-weight: bold">{{ party.name }}</span><br />
+        {% if party.address %}{{ party.address }}<br />{% endif %} 
+        {% if party.gst_number %}GSTIN: {{ party.gst_number }}<br />{% endif %}
+        {% if party.phone %}Phone: {{ party.phone }}{% endif %}
+      </div>
+      <div class="invoice-info">
+        <div>
+          <span class="label">Invoice No:</span>
+          <strong>{{ invoice.id }}</strong>
+        </div>
+        <div><span class="label">Date:</span> {{ invoice.invoice_date }}</div>
+        <div>
+          <span class="label">Financial Year:</span> 
+          {{ invoice.financial_year.start_date.year }}-{{ invoice.financial_year.end_date.year }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table>
+      <thead>
+        <tr>
+          <th class="text-center" style="width: 50px">Sr. No</th>
+          <th>Item Description</th>
+          <th class="text-right" style="width: 80px">Qty</th>
+          <th class="text-right" style="width: 100px">Rate</th>
+          <th class="text-right" style="width: 120px">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-center">{{ loop.index }}</td>
+          <td>{{ item.item.name }}</td>
+          <td class="text-right">{{ item.quantity }}</td>
+          <td class="text-right">{{ item.rate }}</td>
+          <td class="text-right">{{ item.amount }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="totals-section">
+      <table class="totals-table">
+        <tr>
+          <td>Subtotal:</td>
+          <td class="text-right">{{ invoice.subtotal }}</td>
+        </tr>
+        <tr>
+          <td>CGST (9%):</td>
+          <td class="text-right">{{ (invoice.gst_amount / 2) | round(2) }}</td>
+        </tr>
+        <tr>
+          <td>SGST (9%):</td>
+          <td class="text-right">{{ (invoice.gst_amount / 2) | round(2) }}</td>
+        </tr>
+        <tr class="grand-total">
+          <td>Grand Total:</td>
+          <td class="text-right">₹ {{ invoice.grand_total }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="signature-box" style="visibility: hidden;">
+        <!-- Placeholder -->
+      </div>
+      <div class="signature-box">
+        For {{ company.name }}
+        <div class="signature-line" style="margin-top: 60px">
+          Authorised Signatory
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

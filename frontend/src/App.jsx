@@ -16,6 +16,7 @@ const Parties = lazy(() => import("./pages/Parties"));
 const Items = lazy(() => import("./pages/Items"));
 const Challans = lazy(() => import("./pages/Challans"));
 const PartyChallans = lazy(() => import("./pages/PartyChallans"));
+const Employees = lazy(() => import("./pages/Employees"));
 
 function AppRoutes() {
   const { isSuperAdmin } = useAuth();
@@ -48,6 +49,7 @@ function AppRoutes() {
           <Route path="items" element={<Items />} />
           <Route path="party-challans" element={<PartyChallans />} />
           <Route path="challans" element={<Challans />} />
+          <Route path="employees" element={<Employees />} />
         </Route>
 
         {/* Fallback */}

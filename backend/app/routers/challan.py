@@ -18,6 +18,15 @@ router = APIRouter(prefix="/challan", tags=["Delivery Challan"])
 
 def generate_challan_number(db: Session, company_id: int, fy_id: int) -> str:
     """Generate next challan number for the company and financial year"""
+    # Get all challan numbers for this company/FY
+    # We use a robust way: Get the highest number currently in use
+    # We filter by company/FY because usually challan numbers reset per FY
+    # BUT if the DB constraint is global (unique challan_number), we must ensure global uniqueness OR fix the constraint
+    # Let's assume we want per-FY sequence (DC-2324-001) or just simple DC-001. 
+    # Current logic: DC-001.
+    
+    # Query by Company and FY to generate sequential numbers for each FY
+    # Now that we have a composite unique constraint (company_id, fy_id, number), this is safe
     last_challan = (
         db.query(DeliveryChallan)
         .filter(
@@ -29,9 +38,10 @@ def generate_challan_number(db: Session, company_id: int, fy_id: int) -> str:
     )
     
     if last_challan and last_challan.challan_number:
-        # Extract number from format like "DC-001"
         try:
-            last_num = int(last_challan.challan_number.split("-")[1])
+            # Extract number from format like "DC-001"
+            parts = last_challan.challan_number.split("-")
+            last_num = int(parts[-1])
             next_num = last_num + 1
         except:
             next_num = 1

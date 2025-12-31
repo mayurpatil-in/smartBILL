@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Download, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
+import toast from "react-hot-toast";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -77,27 +78,33 @@ export default function PdfPreviewModal({
           ref={containerRef}
           className="flex-1 bg-gray-100 dark:bg-gray-900 p-6 overflow-y-auto flex justify-center"
         >
-          {ready && pdfUrl && (
-            <Document
-              file={pdfUrl}
-              onLoadSuccess={onDocumentLoadSuccess}
-              loading={
-                <div className="text-gray-500 animate-pulse">
-                  Loading PDF...
-                </div>
-              }
-              error={<div className="text-red-500">Failed to load PDF.</div>}
-              className="shadow-lg"
-            >
-              <Page
-                pageNumber={pageNumber}
-                width={containerWidth ? Math.min(containerWidth, 800) : 600}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-                className="rounded-lg overflow-hidden bg-white"
-              />
-            </Document>
-          )}
+          {ready &&
+            (pdfUrl ? (
+              <Document
+                file={pdfUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+                loading={
+                  <div className="text-gray-500 animate-pulse">
+                    Loading PDF...
+                  </div>
+                }
+                error={<div className="text-red-500">Failed to load PDF.</div>}
+                className="shadow-lg"
+              >
+                <Page
+                  pageNumber={pageNumber}
+                  width={containerWidth ? Math.min(containerWidth, 800) : 600}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  className="rounded-lg overflow-hidden bg-white"
+                />
+              </Document>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-3 animate-pulse">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <p>Generating PDF...</p>
+              </div>
+            ))}
         </div>
 
         {/* Pagination & Footer */}
@@ -125,15 +132,41 @@ export default function PdfPreviewModal({
 
           {/* Actions */}
           <div className="flex items-center gap-3 order-1 sm:order-2 w-full sm:w-auto justify-end">
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              onClick={() => {
+                const toastId = toast.loading("Preparing print...");
+                const iframe = document.createElement("iframe");
+                // Position off-screen but keep dimensions to ensure rendering
+                iframe.style.position = "fixed";
+                iframe.style.left = "-10000px";
+                iframe.style.top = "0";
+                iframe.style.width = "1000px";
+                iframe.style.height = "1000px";
+                iframe.style.border = "0";
+                iframe.src = pdfUrl;
+                document.body.appendChild(iframe);
+
+                iframe.onload = () => {
+                  // PDF Viewer needs time to initialize
+                  setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    toast.dismiss(toastId);
+
+                    // Cleanup
+                    setTimeout(() => {
+                      if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                      }
+                    }, 60000);
+                  }, 2000); // 2 second delay for rendering
+                };
+              }}
               className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition flex items-center gap-2"
             >
               <Printer size={18} />
-              Open / Print
-            </a>
+              Print
+            </button>
             <a
               href={pdfUrl}
               download={fileName}

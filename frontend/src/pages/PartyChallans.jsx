@@ -13,6 +13,9 @@ import {
   ChevronRight,
   TrendingUp,
   Truck,
+  CheckCircle,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getPartyChallans, deletePartyChallan } from "../api/partyChallans";
@@ -138,6 +141,28 @@ export default function PartyChallans() {
           <Plus size={20} />
           Create Party Challan
         </button>
+      </div>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          label="Total Open"
+          value={challans.filter((c) => c.status === "open").length}
+          icon={Clock}
+          color="blue"
+        />
+        <StatCard
+          label="Total Partial"
+          value={challans.filter((c) => c.status === "partial").length}
+          icon={TrendingUp}
+          color="yellow"
+        />
+        <StatCard
+          label="Total Completed"
+          value={challans.filter((c) => c.status === "completed").length}
+          icon={CheckCircle}
+          color="green"
+        />
       </div>
 
       {/* Content */}
@@ -473,5 +498,32 @@ function PartyChallanRow({
         )}
       </td>
     </tr>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color }) {
+  const colors = {
+    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
+    green:
+      "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
+    yellow:
+      "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400",
+    red: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+      <div className={`p-3 rounded-xl ${colors[color] || colors.blue}`}>
+        <Icon size={22} />
+      </div>
+      <div>
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {value}
+        </h3>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+          {label}
+        </p>
+      </div>
+    </div>
   );
 }

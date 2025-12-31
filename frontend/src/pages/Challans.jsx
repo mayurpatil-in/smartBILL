@@ -78,19 +78,24 @@ export default function Challans() {
   };
 
   const handlePrint = async (challan) => {
+    // Open modal immediately with loading state
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(`Challan #${challan.challan_number}`);
+
     let toastId;
     try {
       toastId = toast.loading("Generating PDF...");
       const blob = await printDeliveryChallan(challan.id);
-      const url = window.URL.createObjectURL(blob);
-
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
       setPreviewUrl(url);
-      setPreviewTitle(`Challan #${challan.challan_number}`);
-      setPreviewOpen(true);
-
       toast.success("PDF generated", { id: toastId });
     } catch (err) {
       console.error(err);
+      setPreviewOpen(false); // Close modal on error
+
       let msg = err.message;
       if (msg === "Network Error") {
         msg = "Network Error (Check AdBlocker/Extensions?)";

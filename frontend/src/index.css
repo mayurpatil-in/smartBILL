@@ -106,3 +106,13 @@
 .dark * {
   scrollbar-color: #475569 transparent;
 }
+
+/* Dark mode overrides for native inputs */
+.dark ::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+.dark ::-webkit-search-cancel-button {
+  filter: invert(1);
+}
