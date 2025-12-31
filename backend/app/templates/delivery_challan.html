@@ -4,175 +4,277 @@
     <meta charset="utf-8" />
     <title>Delivery Challan</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
       body {
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        color: #333;
+        font-family: 'Inter', sans-serif;
+        color: #1f2937;
         margin: 0;
-        padding: 20px;
+        padding: 0;
+        line-height: 1.4;
+        background-color: #fff;
       }
+
+      .page-half {
+        height: 135mm; /* Slightly reduced to fit with margin */
+        padding: 10mm;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid #111827;
+        margin: 5mm;
+      }
+
       .header {
-        text-align: center;
-        margin-bottom: 30px;
-      }
-      .company-name {
-        font-size: 24px;
-        font-weight: bold;
-        margin: 0;
-        text-transform: uppercase;
-      }
-      .company-details {
-        font-size: 12px;
-        margin-top: 5px;
-      }
-      .title {
-        text-align: center;
-        font-size: 18px;
-        font-weight: bold;
-        text-decoration: underline;
-        margin: 20px 0;
-        text-transform: uppercase;
-      }
-      .info-grid {
         display: flex;
         justify-content: space-between;
         margin-bottom: 20px;
+        align-items: flex-start;
       }
-      .party-info,
-      .challan-info {
-        width: 48%;
+
+      .company-info {
+        max-width: 60%;
       }
-      .label {
-        font-weight: bold;
-        display: inline-block;
-        width: 80px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 30px;
-      }
-      th,
-      td {
-        border: 1px solid #000;
-        padding: 8px;
-        text-align: left;
-      }
-      th {
-        background-color: #f0f0f0;
-        font-weight: bold;
+
+      .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
         text-transform: uppercase;
-        font-size: 12px;
+        letter-spacing: -0.5px;
       }
-      .text-right {
+
+      .company-details {
+        font-size: 11px;
+        color: #4b5563;
+        margin-top: 4px;
+      }
+
+      .challan-header {
         text-align: right;
       }
-      .text-center {
-        text-align: center;
+
+      .title {
+        font-size: 16px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #111827;
+        margin: 0 0 5px 0;
+        letter-spacing: 1px;
       }
-      .footer {
-        margin-top: 50px;
+
+      .challan-meta {
+        font-size: 11px;
+        color: #374151;
+      }
+
+      .challan-meta strong {
+        color: #111827;
+      }
+
+      .recipient-box {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 20px;
+        font-size: 11px;
         display: flex;
         justify-content: space-between;
       }
-      .signature-box {
+
+      .to-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #6b7280;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+
+      .party-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #111827;
+      }
+
+      .vehicle-info {
+         text-align: right;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+        margin-bottom: auto; /* Push footer down */
+      }
+
+      th {
+        background-color: #f1f5f9;
+        color: #1e293b;
+        font-weight: 700;
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 2px solid #e2e8f0;
+        text-transform: uppercase;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+      }
+
+      td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+      }
+
+      .text-right { text-align: right; }
+      .text-center { text-align: center; }
+
+      .footer-section {
+        margin-top: auto;
+      }
+
+      .terms {
+        font-size: 8px;
+        color: #94a3b8;
+        margin-bottom: 10px;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 4px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        font-size: 11px;
+      }
+
+      .signature-block {
         text-align: center;
-        width: 30%;
+        width: 150px;
       }
-      .signature-line {
-        border-top: 1px solid #000;
-        margin-top: 40px;
-        padding-top: 5px;
+
+      .sign-line {
+        border-top: 1px solid #cbd5e1;
+        margin-bottom: 4px;
+        padding-top: 4px;
       }
+      
+      .designation {
+        font-size: 9px;
+        color: #64748b;
+        font-weight: 500;
+      }
+
     </style>
   </head>
   <body>
-    <div class="header">
-      <h1 class="company-name">{{ company.name }}</h1>
-      <div class="company-details">
-        {% if company.address %}{{ company.address }}<br />{% endif %} {% if
-        company.phone %}Phone: {{ company.phone }}{% endif %} {% if
-        company.email %} | Email: {{ company.email }}{% endif %} {% if
-        company.gst_number %}<br />GSTIN: {{ company.gst_number }}{% endif %}
+    <div class="page-half">
+      <!-- Header -->
+      <div class="header">
+        <div class="company-info">
+          <h1 class="company-name">{{ company.name }}</h1>
+          <div class="company-details">
+            {% if company.address %}{{ company.address }}<br>{% endif %}
+            {% if company.phone %}Phone: {{ company.phone }} | {% endif %}
+            {% if company.email %}Email: {{ company.email }}{% endif %}
+            {% if company.gst_number %}<br>GSTIN: <strong>{{ company.gst_number }}</strong>{% endif %}
+          </div>
+        </div>
+        <div class="challan-header">
+          <div class="title">Delivery Challan</div>
+          <div class="challan-meta">
+            No: <strong style="font-size: 14px;">{{ challan.challan_number }}</strong><br>
+            Date: <strong>{{ challan.challan_date }}</strong>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="title">DELIVERY CHALLAN</div>
-
-    <div class="info-grid">
-      <div class="party-info">
-        <strong>To:</strong><br />
-        <span style="font-size: 16px; font-weight: bold">{{ party.name }}</span
-        ><br />
-        {% if party.address %}{{ party.address }}<br />{% endif %} {% if
-        party.gst_number %}GSTIN: {{ party.gst_number }}{% endif %}
-      </div>
-      <div class="challan-info">
+      <!-- Recipient & Vehicle -->
+      <div class="recipient-box">
         <div>
-          <span class="label">Challan No:</span>
-          <strong>{{ challan.challan_number }}</strong>
+            <div class="to-label">Billed To</div>
+            <div class="party-name">{{ party.name }}</div>
+            {% if party.address %}{{ party.address }}<br>{% endif %}
+            {% if party.gst_number %}GSTIN: {{ party.gst_number }}{% endif %}
         </div>
-        <div><span class="label">Date:</span> {{ challan.challan_date }}</div>
-        <div>
-          <span class="label">Vehicle No:</span> {{ challan.vehicle_number or
-          'N/A' }}
+        <div class="vehicle-info">
+             <div class="to-label">Transport Mode</div>
+             <div>Vehicle No: <strong>{{ challan.vehicle_number or 'N/A' }}</strong></div>
         </div>
       </div>
-    </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th class="text-center" style="width: 50px">Sr. No</th>
-          <th>Item Description</th>
-          <th>Process</th>
-          <th>Ref. Challan</th>
-          <th class="text-right" style="width: 100px">Quantity</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-        <tr>
-          <td class="text-center">{{ loop.index }}</td>
-          <td>
-            {{ item.party_challan_item.item.name }} {% if
-            item.party_challan_item.item.code %}
-            <br /><small>Code: {{ item.party_challan_item.item.code }}</small>
-            {% endif %}
-          </td>
-          <td>{{ item.process.name if item.process else '-' }}</td>
-          <td>{{ item.party_challan_item.party_challan.challan_number }}</td>
-          <td class="text-right">
-            {{ item.quantity }}
-            <!--
-                    {% if item.ok_qty or item.cr_qty or item.mr_qty %}
-                    <br><small style="font-size: 10px;">
-                    OK:{{ item.ok_qty }} | CR:{{ item.cr_qty }} | MR:{{ item.mr_qty }}
-                    </small>
-                    {% endif %}
-                    -->
-          </td>
-        </tr>
-        {% endfor %}
-        <tr>
-          <td colspan="4" class="text-right">
-            <strong>Total Quantity</strong>
-          </td>
-          <td class="text-right"><strong>{{ total_qty }}</strong></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="footer">
-      <div class="signature-box">
-        Receiver's Signature
-        <div class="signature-line" style="margin-top: 60px"></div>
+      <!-- Items Table -->
+      <div style="flex-grow: 1;">
+        <table>
+            <thead>
+            <tr>
+                <th class="text-center" width="40">#</th>
+                <th>Item Description</th>
+                <th>Process</th>
+                <th>Ref. Challan</th>
+                <th class="text-right" width="80">Quantity</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td>
+                <span style="font-weight: 600; color: #0f172a;">{{ item.party_challan_item.item.name }}</span>
+                {% if item.party_challan_item.item.code %}
+                <br><span style="color: #64748b; font-size: 9px;">Code: {{ item.party_challan_item.item.code }}</span>
+                {% endif %}
+                
+                <div style="font-size: 9px; margin-top: 2px; color: #475569; font-family: monospace;">
+                    OK:<strong style="color: #0f172a;">{{ item.ok_qty }}</strong> <span style="color:#e2e8f0">|</span>
+                    CR:<strong style="color: #0f172a;">{{ item.cr_qty }}</strong> <span style="color:#e2e8f0">|</span>
+                    MR:<strong style="color: #0f172a;">{{ item.mr_qty }}</strong>
+                </div>
+                </td>
+                <td>{{ item.process.name if item.process else '-' }}</td>
+                <td>{{ item.party_challan_item.party_challan.challan_number }}</td>
+                <td class="text-right font-medium"><strong style="font-size: 11px;">{{ item.quantity }}</strong></td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="4" class="text-right" style="padding-top: 10px; border-bottom: none; background-color: transparent;">
+                    <span class="to-label">Total Quantity</span>
+                </td>
+                <td class="text-right" style="padding-top: 10px; border-bottom: none; background-color: transparent;">
+                    <strong style="font-size: 12px;">{{ total_qty }}</strong>
+                </td>
+            </tr>
+            </tbody>
+        </table>
       </div>
-      <div class="signature-box">
-        For {{ company.name }}
-        <div class="signature-line" style="margin-top: 60px">
-          Authorised Signatory
-        </div>
+
+      <!-- Footer / Signatures -->
+      <div class="footer-section">
+          <div class="terms">
+            Declaration: We declare that this delivery challan shows the actual price of the goods described and that all particulars are true and correct.
+          </div>
+          <div class="footer">
+            <div class="signature-block">
+            <div class="sign-line"></div>
+            Receiver's Signature
+            </div>
+            <div class="signature-block">
+            <div style="margin-bottom: 25px; font-size: 9px; color: #64748b;">For <strong>{{ company.name }}</strong></div>
+            <div class="sign-line"></div>
+            <div class="designation">Authorised Signatory</div>
+            </div>
+          </div>
       </div>
     </div>
   </body>

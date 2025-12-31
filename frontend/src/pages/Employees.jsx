@@ -5,7 +5,7 @@ import {
   Search,
   Filter,
   Briefcase,
-  DollarSign,
+  IndianRupee,
   Calendar,
   MoreVertical,
   Edit,
@@ -163,7 +163,7 @@ export default function Employees() {
           { id: "list", label: "All Employees", icon: Users },
           { id: "attendance", label: "Attendance", icon: Calendar },
           { id: "report", label: "Report", icon: FileText },
-          { id: "payroll", label: "Payroll", icon: DollarSign },
+          { id: "payroll", label: "Payroll", icon: IndianRupee },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -207,7 +207,7 @@ export default function Employees() {
                   return acc + (type === "daily" ? salary * 26 : salary);
                 }, 0)
                 .toLocaleString("en-IN")}`}
-              icon={DollarSign}
+              icon={IndianRupee}
               color="purple"
             />
           </div>
