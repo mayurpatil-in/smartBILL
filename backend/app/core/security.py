@@ -46,3 +46,22 @@ def create_access_token(*, data: dict, remember: bool = False) -> str:
         algorithm=settings.JWT_ALGORITHM
     )
 
+
+# ==================================================
+# URL SIGNING UTILS (HMAC)
+# ==================================================
+import hmac
+import hashlib
+
+def create_url_signature(data: str) -> str:
+    """Generate HMAC signature for public URLs"""
+    return hmac.new(
+        settings.JWT_SECRET_KEY.encode(),
+        data.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+def verify_url_signature(data: str, signature: str) -> bool:
+    """Verify the signature matches data"""
+    expected = create_url_signature(data)
+    return hmac.compare_digest(expected, signature)

@@ -92,7 +92,7 @@ def refresh_token(token: str = Depends(oauth2_scheme)):
         new_token = create_access_token(
             data={
                 "user_id": payload["user_id"],
-                "name": payload.get("name"),       # ✅ ADDED
+                "name": payload.get("name"),
                 "company_id": payload.get("company_id"),
                 "role": payload["role"],
                 "company_name": payload.get("company_name"),
@@ -106,3 +106,4 @@ def refresh_token(token: str = Depends(oauth2_scheme)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
+

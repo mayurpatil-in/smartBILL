@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from decimal import Decimal
@@ -16,22 +16,15 @@ from app.utils.stock import get_current_stock
 router = APIRouter(prefix="/challan", tags=["Delivery Challan"])
 
 
-def generate_challan_number(db: Session, company_id: int, fy_id: int) -> str:
-    """Generate next challan number for the company and financial year"""
-    # Get all challan numbers for this company/FY
-    # We use a robust way: Get the highest number currently in use
-    # We filter by company/FY because usually challan numbers reset per FY
-    # BUT if the DB constraint is global (unique challan_number), we must ensure global uniqueness OR fix the constraint
-    # Let's assume we want per-FY sequence (DC-2324-001) or just simple DC-001. 
-    # Current logic: DC-001.
-    
-    # Query by Company and FY to generate sequential numbers for each FY
-    # Now that we have a composite unique constraint (company_id, fy_id, number), this is safe
+def generate_challan_number(db: Session, company_id: int, fy_id: int, party_id: int) -> str:
+    """Generate next challan number for the company, financial year, and party"""
+    # Get all challan numbers for this company/FY/Party
     last_challan = (
         db.query(DeliveryChallan)
         .filter(
             DeliveryChallan.company_id == company_id,
-            DeliveryChallan.financial_year_id == fy_id
+            DeliveryChallan.financial_year_id == fy_id,
+            DeliveryChallan.party_id == party_id
         )
         .order_by(DeliveryChallan.id.desc())
         .first()
@@ -58,8 +51,8 @@ def create_challan(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
-    # Generate challan number
-    challan_number = generate_challan_number(db, company_id, fy.id)
+    # Generate challan number (Party Wise)
+    challan_number = generate_challan_number(db, company_id, fy.id, data.party_id)
     
     challan = DeliveryChallan(
         company_id=company_id,
@@ -264,12 +257,13 @@ def list_challans(
 
 @router.get("/next-number/preview")
 def get_next_challan_number(
+    party_id: int,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
     """Get the next challan number that will be generated"""
-    next_number = generate_challan_number(db, company_id, fy.id)
+    next_number = generate_challan_number(db, company_id, fy.id, party_id)
     return {"next_challan_number": next_number}
 
 
@@ -341,6 +335,7 @@ env = Environment(loader=FileSystemLoader(templates_dir))
 @router.get("/{challan_id}/print")
 async def print_challan(
     challan_id: int,
+    request: Request,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -363,6 +358,38 @@ async def print_challan(
     
     # Calculate Total Qty
     total_qty = sum(float(item.quantity) for item in challan.items)
+
+    # Generate QR Code
+    import qrcode
+    import io
+    import base64
+
+    # Generate Public Download URL
+    # FIX: If running on localhost, replace with LAN IP so phone can access it
+    import socket
+    from app.core.security import create_url_signature
+    
+    base_url = str(request.base_url)
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        try:
+            lan_ip = socket.gethostbyname(socket.gethostname())
+            base_url = base_url.replace("localhost", lan_ip).replace("127.0.0.1", lan_ip)
+        except:
+            pass
+            
+    # Sign the ID to prevent IDOR
+    signature = create_url_signature(str(challan_id))
+    download_url = f"{base_url}public/challan/{challan_id}/download?token={signature}"
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(download_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
     
     # Render Template
     template = env.get_template("delivery_challan.html")
@@ -371,7 +398,8 @@ async def print_challan(
         company=company,
         party=challan.party,
         items=challan.items,
-        total_qty=total_qty
+        total_qty=total_qty,
+        qr_code=qr_code_b64
     )
     
     # Generate PDF

@@ -110,6 +110,7 @@ export function AuthProvider({ children }) {
         loading,
         isAuthenticated: !!user,
         isSuperAdmin: user?.role === "SUPER_ADMIN",
+        isCompanyAdmin: user?.role === "COMPANY_ADMIN",
         isAdmin: user?.role === "ADMIN",
         isUser: user?.role === "USER",
         login,

@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Download, Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  X,
+  Download,
+  Printer,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Minus,
+} from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import toast from "react-hot-toast";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -21,11 +29,13 @@ export default function PdfPreviewModal({
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [scale, setScale] = useState(1.0);
   const containerRef = useRef(null);
 
   // Reset page on new file
   useEffect(() => {
     setPageNumber(1);
+    setScale(1.0);
   }, [pdfUrl]);
 
   // Adjust width on resize
@@ -93,7 +103,10 @@ export default function PdfPreviewModal({
               >
                 <Page
                   pageNumber={pageNumber}
-                  width={containerWidth ? Math.min(containerWidth, 800) : 600}
+                  width={
+                    (containerWidth ? Math.min(containerWidth, 800) : 600) *
+                    scale
+                  }
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
                   className="rounded-lg overflow-hidden bg-white"
@@ -128,6 +141,30 @@ export default function PdfPreviewModal({
             >
               <ChevronRight size={20} />
             </button>
+
+            {/* Divider */}
+            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-2" />
+
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setScale((s) => Math.max(0.5, s - 0.25))}
+                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                title="Zoom Out"
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-12 text-center">
+                {Math.round(scale * 100)}%
+              </span>
+              <button
+                onClick={() => setScale((s) => Math.min(2.5, s + 0.25))}
+                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                title="Zoom In"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Actions */}

@@ -5,6 +5,11 @@ export const getEmployees = async () => {
   return response.data;
 };
 
+export const getNextEmployeeId = async () => {
+  const response = await api.get('/employees/next-id');
+  return response.data;
+};
+
 export const createEmployee = async (data) => {
   const response = await api.post('/employees/', data);
   return response.data;

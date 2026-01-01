@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import extract, and_
+from sqlalchemy import extract, and_, func
 from typing import List, Optional
 from datetime import date
 from calendar import monthrange
@@ -42,6 +42,13 @@ def get_employees(
         User.role == UserRole.USER
     ).all()
     return users
+
+@router.get("/next-id")
+def get_next_employee_id(
+    db: Session = Depends(get_db)
+):
+    max_id = db.query(func.max(User.id)).scalar() or 0
+    return {"next_id": max_id + 1}
 
 @router.post("/", response_model=UserResponse)
 def create_employee(

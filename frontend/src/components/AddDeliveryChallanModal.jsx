@@ -58,21 +58,28 @@ export default function AddDeliveryChallanModal({
 
   const fetchData = async () => {
     try {
-      const [partiesData, itemsData, challanNumberData] = await Promise.all([
+      const [partiesData, itemsData] = await Promise.all([
         getParties(),
         getItems(),
-        deliveryChallan
-          ? Promise.resolve({ next_challan_number: "" })
-          : getNextDeliveryChallanNumber(),
       ]);
       setParties(partiesData.filter((p) => p.is_active) || []);
       setItems(itemsData.filter((i) => i.is_active) || []);
-
-      if (!deliveryChallan) {
-        setNextChallanNumber(challanNumberData.next_challan_number);
-      }
     } catch (err) {
       console.error("Failed to load data", err);
+    }
+  };
+
+  const handlePartyChange = async (partyId) => {
+    setForm({ ...form, party_id: partyId });
+    if (partyId) {
+      try {
+        const data = await getNextDeliveryChallanNumber(partyId);
+        setNextChallanNumber(data.next_challan_number);
+      } catch (err) {
+        console.error("Failed to fetch next number", err);
+      }
+    } else {
+      setNextChallanNumber("");
     }
   };
 
@@ -103,6 +110,7 @@ export default function AddDeliveryChallanModal({
           process_name: i.process?.name || "-",
         })),
       });
+      // If editing, we don't fetch next number, we show current
     } else {
       setForm({
         party_id: "",
@@ -111,6 +119,7 @@ export default function AddDeliveryChallanModal({
         notes: "",
         items: [],
       });
+      setNextChallanNumber(""); // Reset when opening fresh
       setCurrentItem({
         item_id: "",
         party_challan_id: "",
@@ -397,9 +406,7 @@ export default function AddDeliveryChallanModal({
                 </label>
                 <select
                   value={form.party_id}
-                  onChange={(e) =>
-                    setForm({ ...form, party_id: e.target.value })
-                  }
+                  onChange={(e) => handlePartyChange(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 >

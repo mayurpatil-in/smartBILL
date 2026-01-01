@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Party Stock Ledger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --secondary: #6B7280;
+            --border: #E5E7EB;
+            --bg-table-head: #F9FAFB;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+        }
+
+        @page {
+            margin: 15mm 15mm 20mm 15mm;
+            size: A4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+            border: 2px solid var(--border);
+            min-height: 95vh;
+            box-sizing: border-box;
+        }
+
+        /* --- Header --- */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .company-info {
+            max-width: 60%;
+        }
+
+        .company-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        .company-details {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .report-meta {
+            text-align: right;
+        }
+
+        .report-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .meta-grid {
+            margin-top: 8px;
+            text-align: right;
+            font-size: 10px;
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--text-main);
+            margin-left: 4px;
+        }
+
+        /* --- QR Code --- */
+        .qr-wrapper {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .qr-code {
+            width: 70px;
+            height: 70px;
+            border: 1px solid var(--border);
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        /* --- Filters Summary --- */
+        .filters-summary {
+            background-color: #F3F4F6;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid var(--border);
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-item span:first-child {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .filter-item span:last-child {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* --- Table --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--bg-table-head);
+            color: var(--text-muted);
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 10px 12px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        td {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            font-size: 10px;
+            color: var(--text-main);
+        }
+
+        tr:nth-child(even) {
+            background-color: #F9FAFB;
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        .numeric {
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+
+        .balance-cell {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .negative-balance {
+            color: #DC2626; /* Red for negative if logic existed, just illustrative */
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+            font-size: 9px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header-container">
+        <div class="company-info">
+            <div class="company-name">{{ company.name }}</div>
+            <div class="company-details">
+                {% if company.address %}{{ company.address }}<br>{% endif %}
+                {% if company.city %}{{ company.city }}, {% endif %}
+                {% if company.state %}{{ company.state }} - {{ company.pincode }}<br>{% endif %}
+                {% if company.gst_number %}<strong>GSTIN:</strong> {{ company.gst_number }}<br>{% endif %}
+                {% if company.phone %}<strong>Phone:</strong> {{ company.phone }}{% endif %}
+                {% if company.email %} | <strong>Email:</strong> {{ company.email }}{% endif %}
+            </div>
+        </div>
+
+        <div class="report-meta">
+            <div class="report-title">Stock Ledger</div>
+            <div class="meta-grid">
+                <div><span class="meta-label">Generated on:</span> <span class="meta-value">{{ generation_date }}</span></div>
+                {% if qr_code %}
+                <div class="qr-wrapper">
+                    <img src="data:image/png;base64,{{ qr_code }}" class="qr-code">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="filters-summary">
+        <div class="filter-item">
+            <span>Financial Year</span>
+            <span>{{ financial_year }}</span>
+        </div>
+        <div class="filter-item">
+            <span>Selected Party</span>
+            <span>
+                {% if party_name %}
+                    {{ party_name }}
+                {% else %}
+                    All Parties (Consolidated)
+                {% endif %}
+            </span>
+        </div>
+        <div class="filter-item" style="text-align: right;">
+            <span>Report Status</span>
+            <span>Active</span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%">Party Name</th>
+                <th style="width: 25%">Item Name</th>
+                <th class="text-right" style="width: 12%">Opening Bal.</th>
+                <th class="text-right" style="width: 12%">Total Inward</th>
+                <th class="text-right" style="width: 12%">Total Outward</th>
+                <th class="text-right" style="width: 14%">Closing Bal.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ledger_data %}
+            <tr>
+                <td style="font-weight: 500;">{{ row.party }}</td>
+                <td style="color: #4B5563;">{{ row.item }}</td>
+                <td class="text-right numeric" style="color: #6B7280;">{{ row.opening }}</td>
+                <td class="text-right numeric" style="color: #2563EB;">{{ row.in }}</td>
+                <td class="text-right numeric" style="color: #059669;">{{ row.out }}</td>
+                <td class="text-right numeric balance-cell">{{ row.balance }}</td>
+            </tr>
+            {% endfor %}
+
+            {% if not ledger_data %}
+            <tr>
+                <td colspan="6" class="empty-state">
+                    No transactions found for the selected period.
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div>Generated by SmartBILL ERP</div>
+        <div>Page <span class="page-number"></span></div>
+    </div>
+
+</body>
+</html>

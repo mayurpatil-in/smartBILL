@@ -21,6 +21,7 @@ export default function EmployeeAttendance() {
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isMarked, setIsMarked] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -51,6 +52,7 @@ export default function EmployeeAttendance() {
         };
       });
       setAttendance(attendanceMap);
+      setIsMarked(daily.length > 0);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load attendance data");
@@ -86,6 +88,7 @@ export default function EmployeeAttendance() {
       }));
 
       await markAttendance(records);
+      setIsMarked(true);
       toast.success("Attendance saved successfully");
     } catch (err) {
       toast.error("Failed to save attendance");
@@ -103,8 +106,17 @@ export default function EmployeeAttendance() {
             <Calendar size={24} />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-3">
               Daily Attendance
+              {isMarked ? (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                  Saved
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                  Not Marked
+                </span>
+              )}
             </h3>
             <p className="text-sm text-gray-500">
               Mark attendance for {format(new Date(date), "MMMM d, yyyy")}

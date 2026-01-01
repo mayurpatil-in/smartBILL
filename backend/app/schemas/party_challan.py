@@ -36,6 +36,7 @@ class PartyChallanCreate(BaseModel):
 
 class PartyChallanUpdate(BaseModel):
     party_id: Optional[int] = None
+    challan_number: Optional[str] = None
     challan_date: Optional[date] = None
     working_days: Optional[int] = None
     notes: Optional[str] = None

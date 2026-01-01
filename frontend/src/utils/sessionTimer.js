@@ -84,8 +84,10 @@ export function clearSession() {
  */
 export async function refreshSession() {
   try {
+    const baseURL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+    
     const res = await fetch(
-      `${import.meta.env.VITE_API_URL}/auth/refresh`,
+      `${baseURL}/auth/refresh`,
       {
         method: "POST",
         headers: {

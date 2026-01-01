@@ -29,8 +29,10 @@ export const deleteDeliveryChallan = async (id) => {
   return response.data;
 };
 
-export const getNextDeliveryChallanNumber = async () => {
-  const response = await api.get('/challan/next-number/preview');
+export const getNextDeliveryChallanNumber = async (partyId = null) => {
+  const params = {};
+  if (partyId) params.party_id = partyId;
+  const response = await api.get('/challan/next-number/preview', { params });
   return response.data;
 };
 

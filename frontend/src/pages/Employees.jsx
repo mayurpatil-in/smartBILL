@@ -158,7 +158,7 @@ export default function Employees() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 no-scrollbar">
         {[
           { id: "list", label: "All Employees", icon: Users },
           { id: "attendance", label: "Attendance", icon: Calendar },
@@ -438,7 +438,7 @@ function PayrollView({ employees }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Month:</span>
           <select
@@ -473,107 +473,109 @@ function PayrollView({ employees }) {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Employee
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Base Salary
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Attendance
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                OT + Bonus
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Advances
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Net Pay
-              </th>
-              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Slip
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {loading ? (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
               <tr>
-                <td colSpan="7" className="py-8 text-center text-gray-500">
-                  Calculating...
-                </td>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Employee
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Base Salary
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Attendance
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  OT + Bonus
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Advances
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Net Pay
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Slip
+                </th>
               </tr>
-            ) : (
-              employees
-                .filter((emp) => emp.is_active)
-                .map((emp) => {
-                  const slip = salaries[emp.id];
-                  return (
-                    <tr
-                      key={emp.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                        {emp.name}
-                        <div className="text-xs text-gray-500 font-normal">
-                          {emp.employee_profile?.designation}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                        ₹{emp.employee_profile?.base_salary}
-                        <div className="text-xs text-gray-400 capitalize">
-                          {emp.employee_profile?.salary_type}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                        {slip?.present_days || 0} / {slip?.total_days || 30}{" "}
-                        Days
-                      </td>
-                      <td className="px-6 py-4 text-green-600">
-                        {slip ? (
-                          <div className="flex flex-col text-xs">
-                            <span>OT: ₹{slip.total_overtime_pay}</span>
-                            <span>Bonus: ₹{slip.total_bonus}</span>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                    Calculating...
+                  </td>
+                </tr>
+              ) : (
+                employees
+                  .filter((emp) => emp.is_active)
+                  .map((emp) => {
+                    const slip = salaries[emp.id];
+                    return (
+                      <tr
+                        key={emp.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                          {emp.name}
+                          <div className="text-xs text-gray-500 font-normal">
+                            {emp.employee_profile?.designation}
                           </div>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-red-600">
-                            {slip ? `-₹${slip.total_advances_deducted}` : "-"}
-                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                          ₹{emp.employee_profile?.base_salary}
+                          <div className="text-xs text-gray-400 capitalize">
+                            {emp.employee_profile?.salary_type}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                          {slip?.present_days || 0} / {slip?.total_days || 30}{" "}
+                          Days
+                        </td>
+                        <td className="px-6 py-4 text-green-600">
+                          {slip ? (
+                            <div className="flex flex-col text-xs">
+                              <span>OT: ₹{slip.total_overtime_pay}</span>
+                              <span>Bonus: ₹{slip.total_bonus}</span>
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-red-600">
+                              {slip ? `-₹${slip.total_advances_deducted}` : "-"}
+                            </span>
+                            <button
+                              onClick={() => setSelectedEmpForAdvance(emp)}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              Manage
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white text-lg">
+                          {slip ? `₹${slip.final_payable}` : "-"}
+                        </td>
+                        <td className="px-6 py-4 text-right">
                           <button
-                            onClick={() => setSelectedEmpForAdvance(emp)}
-                            className="text-xs text-blue-600 hover:underline"
+                            onClick={() => slip && handlePreviewSlip(slip, emp)}
+                            disabled={!slip}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Preview Slip"
                           >
-                            Manage
+                            <FileText size={18} />
                           </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-bold text-gray-900 dark:text-white text-lg">
-                        {slip ? `₹${slip.final_payable}` : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => slip && handlePreviewSlip(slip, emp)}
-                          disabled={!slip}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Preview Slip"
-                        >
-                          <FileText size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-            )}
-          </tbody>
-        </table>
+                        </td>
+                      </tr>
+                    );
+                  })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <SalaryAdvanceModal

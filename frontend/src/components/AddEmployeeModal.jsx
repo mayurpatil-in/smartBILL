@@ -18,6 +18,7 @@ import {
   createEmployee,
   updateEmployee,
   uploadDocument,
+  getNextEmployeeId,
 } from "../api/employees";
 import toast from "react-hot-toast";
 
@@ -30,6 +31,7 @@ export default function AddEmployeeModal({
   const [activeTab, setActiveTab] = useState("personal");
   const [uploading, setUploading] = useState(false);
   const [pendingDocs, setPendingDocs] = useState({});
+  const [nextId, setNextId] = useState("");
 
   const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
@@ -85,6 +87,10 @@ export default function AddEmployeeModal({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (open && !employee) {
+      // Fetch next ID
+      getNextEmployeeId().then((data) => setNextId(data.next_id));
+    }
     if (employee) {
       setFormData({
         name: employee.name,
@@ -133,6 +139,49 @@ export default function AddEmployeeModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (!formData.name.trim()) return toast.error("Name is required");
+    if (!formData.profile.address?.trim())
+      return toast.error("Address is required");
+    if (!formData.profile.designation?.trim())
+      return toast.error("Designation is required");
+
+    // Phone validation (10 digits)
+    const phoneRegex = /^\d{10}$/;
+    if (
+      !formData.profile.phone ||
+      !phoneRegex.test(formData.profile.phone.replace(/\D/g, ""))
+    ) {
+      return toast.error("Valid 10-digit Phone Number is required");
+    }
+
+    // PAN Validation (if provided)
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (
+      formData.profile.pan_number &&
+      !panRegex.test(formData.profile.pan_number.toUpperCase())
+    ) {
+      return toast.error("Invalid PAN Card Number format");
+    }
+
+    // Aadhar Validation (if provided) - 12 digits
+    const aadharRegex = /^\d{12}$/;
+    if (
+      formData.profile.aadhar_number &&
+      !aadharRegex.test(formData.profile.aadhar_number.replace(/\s/g, ""))
+    ) {
+      return toast.error("Aadhar Number must be 12 digits");
+    }
+
+    // Salary Validation
+    if (
+      formData.profile.base_salary === "" ||
+      parseFloat(formData.profile.base_salary) < 0
+    ) {
+      return toast.error("Base Salary is required and cannot be negative");
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -187,25 +236,39 @@ export default function AddEmployeeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-scale-in flex flex-col">
-        <div className="flex-none flex items-center justify-between px-8 py-5 border-b border-gray-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md z-10">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {employee ? "Edit Employee" : "Add New Employee"}
-          </h2>
+        <div className="flex-none flex items-center justify-between px-4 py-4 md:px-8 md:py-5 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 backdrop-blur-md z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+              <User size={20} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {employee ? "Edit Employee" : "Add New Employee"}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {employee
+                  ? `Employee ID: #${employee.id}`
+                  : nextId
+                  ? `Employee Id: ${nextId}`
+                  : "Create a new employee record"}
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            className="p-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded-full transition-all"
           >
-            <X size={24} />
+            <X size={20} className="text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
           <form
             id="employee-form"
             onSubmit={handleSubmit}
             className="space-y-6"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 items-start">
               {/* Basic Info Card */}
               <div className="space-y-5 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
@@ -310,7 +373,7 @@ export default function AddEmployeeModal({
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Address
+                    Address <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <MapPin
@@ -318,6 +381,7 @@ export default function AddEmployeeModal({
                       size={18}
                     />
                     <input
+                      required
                       type="text"
                       value={formData.profile.address}
                       onChange={(e) =>
@@ -405,7 +469,7 @@ export default function AddEmployeeModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Designation
+                        Designation <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <Briefcase
@@ -413,6 +477,7 @@ export default function AddEmployeeModal({
                           size={18}
                         />
                         <input
+                          required
                           type="text"
                           value={formData.profile.designation}
                           onChange={(e) =>

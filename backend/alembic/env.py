@@ -24,6 +24,11 @@ from app.models import (
     invoice,
     stock_transaction,
     process,
+    audit_log,
+    employee_profile,
+    attendance,
+    salary_advance,
+    invoice_item,
 )
 
 # Metadata for autogenerate

@@ -1,4 +1,4 @@
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, CheckCircle, Info } from "lucide-react";
 
 export default function ConfirmDialog({
   open,
@@ -6,17 +6,53 @@ export default function ConfirmDialog({
   message,
   onConfirm,
   onCancel,
+  confirmLabel = "Confirm",
+  type = "danger", // danger, success, info
 }) {
   if (!open) return null;
+
+  const styles = {
+    danger: {
+      headerBg:
+        "bg-gradient-to-r from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800",
+      iconBg: "bg-gradient-to-br from-red-600 to-orange-600",
+      icon: AlertTriangle,
+      buttonBg:
+        "bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-red-600/30",
+    },
+    success: {
+      headerBg:
+        "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800",
+      iconBg: "bg-gradient-to-br from-green-600 to-emerald-600",
+      icon: CheckCircle,
+      buttonBg:
+        "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-green-600/30",
+    },
+    info: {
+      headerBg:
+        "bg-gradient-to-r from-blue-50 to-sky-50 dark:from-gray-900 dark:to-gray-800",
+      iconBg: "bg-gradient-to-br from-blue-600 to-sky-600",
+      icon: Info,
+      buttonBg:
+        "bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 shadow-blue-600/30",
+    },
+  };
+
+  const currentStyle = styles[type] || styles.danger;
+  const Icon = currentStyle.icon;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-in">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
+        <div
+          className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 ${currentStyle.headerBg}`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg">
-              <AlertTriangle size={20} className="text-white" />
+            <div
+              className={`w-10 h-10 rounded-xl ${currentStyle.iconBg} flex items-center justify-center shadow-lg`}
+            >
+              <Icon size={20} className="text-white" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               {title || "Confirm Action"}
@@ -47,9 +83,9 @@ export default function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl font-semibold shadow-lg shadow-red-600/30 hover:shadow-xl hover:shadow-red-600/40 transition-all"
+            className={`px-6 py-2.5 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${currentStyle.buttonBg}`}
           >
-            Delete
+            {confirmLabel}
           </button>
         </div>
       </div>

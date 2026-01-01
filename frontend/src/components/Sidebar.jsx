@@ -19,61 +19,61 @@ export default function Sidebar({
   onClose,
   onToggleCollapse,
 }) {
-  const { logout, isSuperAdmin } = useAuth();
+  const { logout, isSuperAdmin, user } = useAuth();
 
   return (
     <aside
       className={`
-        fixed md:static z-40 h-screen
+        fixed md:relative z-40 h-screen
         ${collapsed ? "w-20" : "w-64"}
-        bg-white dark:bg-gray-900
+        bg-white dark:bg-gray-800
         border-r border-gray-200 dark:border-gray-700
-        transform transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)]
+        transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)]
         ${open ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0
         flex flex-col
-        overflow-x-hidden
+        ${collapsed ? "overflow-visible" : "overflow-y-auto"}
       `}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 h-20 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        {!collapsed && (
-          <span className="font-bold text-xl tracking-wide text-gray-900 dark:text-gray-100">
-            Smart<span className="text-blue-600">Bill</span>
-          </span>
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col justify-center px-5 h-24 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="flex items-center justify-between">
+          {!collapsed && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                S
+              </div>
+              <span className="font-bold text-xl text-gray-900 dark:text-gray-100">
+                Smart<span className="text-blue-600">Bill</span>
+              </span>
+            </div>
+          )}
+
+          {/* Desktop collapse */}
+          <button
+            onClick={onToggleCollapse}
+            className="hidden md:flex w-8 h-8 rounded-full items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+          >
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+
+          {/* Mobile close */}
+          <button onClick={onClose} className="md:hidden">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Company badge */}
+        {!collapsed && user?.companyName && (
+          <div className="mt-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 text-xs font-semibold truncate text-gray-600 dark:text-gray-300 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
+            <span className="truncate">{user.companyName}</span>
+          </div>
         )}
-
-        {/* Desktop collapse */}
-        <button
-          onClick={onToggleCollapse}
-          className="
-            hidden md:flex items-center justify-center
-            w-8 h-8 rounded-lg
-            text-gray-500 hover:text-gray-900
-            dark:text-gray-400 dark:hover:text-white
-            hover:bg-gray-100 dark:hover:bg-gray-800
-            transition
-          "
-          aria-label="Toggle sidebar"
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-
-        {/* Mobile close */}
-        <button
-          onClick={onClose}
-          className="
-            md:hidden text-gray-600 dark:text-gray-300
-            hover:text-gray-900 dark:hover:text-white
-          "
-          aria-label="Close sidebar"
-        >
-          <X size={20} />
-        </button>
       </div>
 
-      {/* Menu */}
-      <nav className="px-3 py-4 space-y-1 flex-1 overflow-y-auto no-scrollbar">
+      {/* ================= MENU ================= */}
+      <nav className="px-3 py-4 space-y-1 flex-1">
         <MenuLink
           to="/"
           icon={LayoutDashboard}
@@ -119,61 +119,42 @@ export default function Sidebar({
               label="Employees"
               collapsed={collapsed}
             />
+            <MenuLink
+              to="/reports"
+              icon={FileText}
+              label="Reports"
+              collapsed={collapsed}
+            />
           </>
         )}
       </nav>
 
-      {/* Footer / Logout */}
+      {/* ================= LOGOUT ================= */}
       <div className="p-3 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={logout}
           className={`
-            w-full group relative flex items-center
+            group relative w-full flex items-center
             ${collapsed ? "justify-center" : "gap-3"}
             px-3 py-3 rounded-xl
-            text-red-600 dark:text-red-400 
-            hover:bg-red-50 dark:hover:bg-red-900/10
-            transition-all duration-200
+            text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10
           `}
         >
-          <LogOut
-            size={20}
-            className="transition-transform duration-200 group-hover:scale-110"
-          />
+          <LogOut size={20} />
 
-          {!collapsed && (
-            <span className="text-sm font-medium tracking-wide">Logout</span>
-          )}
+          {!collapsed && <span className="text-sm font-medium">Logout</span>}
 
-          {/* Tooltip (collapsed mode) */}
-          {collapsed && (
-            <div
-              className="
-                absolute left-full ml-3 px-3 py-1.5
-                rounded-md text-xs font-medium
-                bg-gray-900 text-white
-                opacity-0 group-hover:opacity-100
-                pointer-events-none
-                whitespace-nowrap
-                shadow-lg
-                transition-all duration-200
-              "
-            >
-              Logout
-            </div>
-          )}
+          {/* Tooltip */}
+          {collapsed && <Tooltip label="Logout" />}
         </button>
       </div>
     </aside>
   );
 }
 
-/* ========================= */
-/* MENU LINK COMPONENT */
-/* ========================= */
+/* ================= MENU LINK ================= */
 
-// eslint-disable-next-line no-unused-vars
-function MenuLink({ to, icon: IconComp, label, collapsed }) {
+function MenuLink({ to, icon: Icon, label, collapsed }) {
   return (
     <NavLink
       to={to}
@@ -182,58 +163,44 @@ function MenuLink({ to, icon: IconComp, label, collapsed }) {
         `
           group relative flex items-center
           ${collapsed ? "justify-center" : "gap-3"}
-          px-3 py-3 rounded-xl
-          transition-all duration-200 ease-out
+          px-3 py-2.5 mx-1 rounded-xl
+          transition-all duration-200
           ${
             isActive
-              ? "bg-blue-600 text-white shadow-md"
-              : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800"
+              ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow"
+              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
           }
         `
       }
     >
-      {/* Active accent bar */}
-      <span
-        className={`
-          absolute left-0 top-1/2 -translate-y-1/2
-          h-6 w-1 rounded-r-full
-          bg-blue-500
-          transition-opacity
-          ${collapsed ? "hidden" : ""}
-        `}
-      />
+      <Icon size={20} className="group-hover:scale-110 transition" />
 
-      {/* Icon */}
-      <IconComp
-        size={20}
-        className="
-          transition-transform duration-200
-          group-hover:scale-110
-        "
-      />
+      {!collapsed && <span className="text-sm font-medium">{label}</span>}
 
-      {/* Label */}
-      {!collapsed && (
-        <span className="text-sm font-medium tracking-wide">{label}</span>
-      )}
-
-      {/* Tooltip (collapsed mode) */}
-      {collapsed && (
-        <div
-          className="
-            absolute left-full ml-3 px-3 py-1.5
-            rounded-md text-xs font-medium
-            bg-gray-900 text-white
-            opacity-0 group-hover:opacity-100
-            pointer-events-none
-            whitespace-nowrap
-            shadow-lg
-            transition-all duration-200
-          "
-        >
-          {label}
-        </div>
-      )}
+      {collapsed && <Tooltip label={label} />}
     </NavLink>
+  );
+}
+
+/* ================= TOOLTIP ================= */
+
+function Tooltip({ label }) {
+  return (
+    <div
+      className="
+        fixed left-[5.5rem]
+        px-3 py-1.5
+        rounded-md text-xs font-medium
+        bg-gray-900 text-white
+        opacity-0 group-hover:opacity-100
+        pointer-events-none
+        whitespace-nowrap
+        shadow-lg
+        transition-all duration-200
+        z-[9999]
+      "
+    >
+      {label}
+    </div>
   );
 }

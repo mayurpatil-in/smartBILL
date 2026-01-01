@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     # ================= TOKEN EXPIRY =================
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60        # 1 hour
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60       # 1 hour
     ACCESS_TOKEN_REMEMBER_MINUTES: int = 10080   # 7 days
 
     # ✅ REQUIRED FOR PYDANTIC v2

@@ -53,7 +53,7 @@ from app.routers.profile import router as profile_router
 from app.routers.process import router as process_router
 from app.routers.party_challan import router as party_challan_router
 from app.routers.employees import router as employees_router
-
+from app.routers.reports import router as reports_router
 
 
 # ===================== ROUTERS =====================
@@ -69,10 +69,20 @@ app.include_router(health_router)
 app.include_router(super_admin_router)
 app.include_router(admin_company.router)
 app.include_router(admin_users.router)
+
+
 app.include_router(profile_router)
 app.include_router(process_router)
 app.include_router(party_challan_router)
 app.include_router(employees_router)
+app.include_router(employees_router)
+app.include_router(reports_router)
+
+from app.routers.public_challan import router as public_challan_router
+from app.routers.public_reports import router as public_reports_router
+
+app.include_router(public_challan_router)
+app.include_router(public_reports_router)
 
 # ===================== ROOT =====================
 @app.get("/")

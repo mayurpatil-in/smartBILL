@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Date, String, ForeignKey, Boolean, Text, DateTime
+from sqlalchemy import Column, Integer, Date, String, ForeignKey, Boolean, Text, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import date
@@ -19,7 +19,7 @@ class DeliveryChallan(Base):
     party_id = Column(Integer, ForeignKey("party.id"), nullable=False)
     party_challan_id = Column(Integer, ForeignKey("party_challan.id"), nullable=True)  # Optional link
 
-    challan_number = Column(String(50), unique=True, nullable=False, index=True)
+    challan_number = Column(String(50), nullable=False, index=True)
     challan_date = Column(Date, default=date.today)
     vehicle_number = Column(String(50), nullable=True)
     notes = Column(Text, nullable=True)
@@ -33,3 +33,7 @@ class DeliveryChallan(Base):
     party = relationship(Party)
     party_challan = relationship("PartyChallan", back_populates="delivery_challans")
     items = relationship("DeliveryChallanItem", back_populates="challan")
+
+    __table_args__ = (
+        UniqueConstraint('company_id', 'financial_year_id', 'party_id', 'challan_number', name='uix_delivery_company_fy_party_challan_number'),
+    )

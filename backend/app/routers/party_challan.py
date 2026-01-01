@@ -293,6 +293,24 @@ def update_party_challan(
     # Update basic fields
     if data.party_id is not None:
         challan.party_id = data.party_id
+    
+    if data.challan_number is not None and data.challan_number != challan.challan_number:
+        # Check for duplicates using the new Party-Wise constraint
+        existing = db.query(PartyChallan).filter(
+            PartyChallan.challan_number == data.challan_number,
+            PartyChallan.party_id == (data.party_id or challan.party_id),
+            PartyChallan.company_id == company_id,
+            PartyChallan.financial_year_id == challan.financial_year_id,
+            PartyChallan.id != challan_id
+        ).first()
+        
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Challan number '{data.challan_number}' already exists for this party"
+            )
+        challan.challan_number = data.challan_number
+
     if data.challan_date is not None:
         challan.challan_date = data.challan_date
     if data.working_days is not None:
@@ -493,8 +511,10 @@ def get_party_challans_by_item(
     ).filter(
         PartyChallan.party_id == party_id,
         PartyChallan.company_id == company_id,
-        PartyChallan.financial_year_id == fy.id,
+        # Allow challans from previous FY if they are not completed
+        # PartyChallan.financial_year_id == fy.id, 
         PartyChallan.status != "cancelled",
+        PartyChallan.status != "completed",
         PartyChallan.is_active == True
     ).all()
     

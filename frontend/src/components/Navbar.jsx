@@ -53,7 +53,7 @@ export default function Navbar({ onMenuClick }) {
     <header
       className="
         sticky top-0 z-30
-        bg-white dark:bg-gray-900/95
+        bg-white dark:bg-gray-800/95
         backdrop-blur
         border-b border-gray-200 dark:border-gray-700
         px-6 py-4
@@ -148,7 +148,7 @@ export default function Navbar({ onMenuClick }) {
             <div
               className="
                 absolute right-0 mt-2 w-48 z-50
-                bg-white dark:bg-gray-900
+                bg-white dark:bg-gray-800
                 border border-gray-200 dark:border-gray-700
                 rounded-xl shadow-xl
                 py-1 text-sm

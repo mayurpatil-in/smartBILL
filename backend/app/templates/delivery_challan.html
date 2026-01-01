@@ -179,6 +179,7 @@
     </style>
   </head>
   <body>
+    {% macro render_challan(copy_label) %}
     <div class="page-half">
       <!-- Header -->
       <div class="header">
@@ -193,9 +194,17 @@
         </div>
         <div class="challan-header">
           <div class="title">Delivery Challan</div>
-          <div class="challan-meta">
-            No: <strong style="font-size: 14px;">{{ challan.challan_number }}</strong><br>
-            Date: <strong>{{ challan.challan_date }}</strong>
+          {% if copy_label %}
+          <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 2px;">({{ copy_label }})</div>
+          {% endif %}
+          <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+             {% if qr_code %}
+             <img src="data:image/png;base64,{{ qr_code }}" style="width: 50px; height: 50px;" />
+             {% endif %}
+             <div class="challan-meta">
+                No: <strong style="font-size: 14px;">{{ challan.challan_number }}</strong><br>
+                Date: <strong>{{ challan.challan_date.strftime('%d-%m-%Y') }}</strong>
+             </div>
           </div>
         </div>
       </div>
@@ -243,7 +252,17 @@
                 </div>
                 </td>
                 <td>{{ item.process.name if item.process else '-' }}</td>
-                <td>{{ item.party_challan_item.party_challan.challan_number }}</td>
+                <td>
+                  <div style="font-weight: 600; color: #1e293b;">
+                    {{ item.party_challan_item.party_challan.challan_number }}
+                  </div>
+                  <div style="font-size: 9px; color: #64748b; margin-top: 2px;">
+                    Date: {{ item.party_challan_item.party_challan.challan_date.strftime('%d-%m-%Y') }}
+                  </div>
+                  <div style="font-size: 9px; color: #64748b;">
+                    Qty: <strong style="color: #475569;">{{ item.party_challan_item.quantity_ordered }}</strong>
+                  </div>
+                </td>
                 <td class="text-right font-medium"><strong style="font-size: 11px;">{{ item.quantity }}</strong></td>
             </tr>
             {% endfor %}
@@ -277,5 +296,15 @@
           </div>
       </div>
     </div>
+    {% endmacro %}
+
+    <!-- Render Original -->
+    {{ render_challan("Original Copy") }}
+
+    <!-- Dashed Separator -->
+    <div style="border-top: 2px dashed #e5e7eb; margin: 0 10px;"></div>
+
+    <!-- Render Duplicate -->
+    {{ render_challan("Duplicate Copy") }}
   </body>
 </html>

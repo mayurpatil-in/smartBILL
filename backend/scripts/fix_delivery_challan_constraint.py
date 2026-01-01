@@ -1,0 +1,58 @@
+
+import os
+import sys
+
+# Add backend directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from sqlalchemy import text
+from app.database.session import SessionLocal
+
+def fix_delivery_challan_constraints():
+    db = SessionLocal()
+    try:
+        print("Starting Delivery Challan constraint fix (Party Wise)...")
+        
+        # 1. Drop existing unique constraint (Company + FY + Number)
+        try:
+            print("Attempting to drop constraint 'uix_company_fy_challan_number'...")
+            # Note: This is the name defined in the model previously
+            db.execute(text("ALTER TABLE delivery_challan DROP CONSTRAINT uix_company_fy_challan_number"))
+            db.commit()
+            print("Dropped constraint 'uix_company_fy_challan_number'")
+        except Exception as e:
+            db.rollback()
+            print(f"Constraint 'uix_company_fy_challan_number' might not exist: {e}")
+            
+        # Also try dropping 'delivery_challan_challan_number_key' just in case
+        try:
+            db.execute(text("ALTER TABLE delivery_challan DROP CONSTRAINT delivery_challan_challan_number_key"))
+            db.commit()
+            print("Dropped constraint 'delivery_challan_challan_number_key'")
+        except Exception as e:
+            db.rollback()
+            print(f"Constraint 'delivery_challan_challan_number_key' might not exist: {e}")
+
+        # 2. Add the NEW composite unique constraint (WITH party_id)
+        try:
+            print("Adding composite unique constraint 'uix_delivery_company_fy_party_challan_number'...")
+            db.execute(text("""
+                ALTER TABLE delivery_challan 
+                ADD CONSTRAINT uix_delivery_company_fy_party_challan_number 
+                UNIQUE (company_id, financial_year_id, party_id, challan_number)
+            """))
+            db.commit()
+            print("Added composite unique constraint (Party Scoped)")
+        except Exception as e:
+            db.rollback()
+            print(f"Failed to add composite constraint: {e}")
+
+        print("Delivery Challan Constraint fix completed successfully!")
+        
+    except Exception as e:
+        print(f"Error during migration: {e}")
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    fix_delivery_challan_constraints()
