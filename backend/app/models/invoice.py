@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Numeric, Date, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, Numeric, Date, Boolean, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from datetime import date
 
@@ -19,13 +19,18 @@ class Invoice(Base):
     party_id = Column(Integer, ForeignKey("party.id"), nullable=False)
     challan_id = Column(Integer, ForeignKey("delivery_challan.id"), nullable=True)
 
+    invoice_number = Column(String(50), nullable=False, unique=True, index=True)
+    
     invoice_date = Column(Date, default=date.today)
+    due_date = Column(Date, nullable=True)
 
     subtotal = Column(Numeric(12, 2))
     gst_amount = Column(Numeric(12, 2))
     grand_total = Column(Numeric(12, 2))
 
-    is_locked = Column(Boolean, default=True)
+    status = Column(String(20), default="DRAFT")
+    is_locked = Column(Boolean, default=False)
+    notes = Column(Text, nullable=True)
 
     company = relationship(Company)
     financial_year = relationship(FinancialYear)

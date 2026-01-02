@@ -12,6 +12,7 @@ const Login = lazy(() => import("./auth/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const Invoices = lazy(() => import("./pages/Invoices"));
+const InvoiceForm = lazy(() => import("./pages/InvoiceForm"));
 const Parties = lazy(() => import("./pages/Parties"));
 const Items = lazy(() => import("./pages/Items"));
 const Challans = lazy(() => import("./pages/Challans"));
@@ -46,6 +47,8 @@ function AppRoutes() {
             element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
           />
           <Route path="invoices" element={<Invoices />} />
+          <Route path="invoices/new" element={<InvoiceForm />} />
+          <Route path="invoices/:id/edit" element={<InvoiceForm />} />
           <Route path="parties" element={<Parties />} />
           <Route path="items" element={<Items />} />
           <Route path="party-challans" element={<PartyChallans />} />

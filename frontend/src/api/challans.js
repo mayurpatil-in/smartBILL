@@ -36,6 +36,16 @@ export const getNextDeliveryChallanNumber = async (partyId = null) => {
   return response.data;
 };
 
+export const getPendingChallanItems = async (partyId) => {
+  const response = await api.get(`/challan/pending-items/${partyId}`);
+  return response.data;
+};
+
+export const getChallanStats = async () => {
+  const response = await api.get('/challan/stats');
+  return response.data;
+};
+
 export const printDeliveryChallan = async (id) => {
   const response = await api.get(`/challan/${id}/print`, {
     responseType: 'blob',

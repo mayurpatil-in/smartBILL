@@ -62,7 +62,7 @@ def create_challan(
         challan_date=data.challan_date,
         vehicle_number=data.vehicle_number,
         notes=data.notes,
-        status=data.status or "draft"
+        status=data.status or "sent"
     )
 
     db.add(challan)
@@ -255,6 +255,29 @@ def list_challans(
     return response_data
 
 
+@router.get("/stats")
+def get_challan_stats(
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """Get statistics for delivery challans"""
+    base_query = db.query(DeliveryChallan).filter(
+        DeliveryChallan.company_id == company_id,
+        DeliveryChallan.financial_year_id == fy.id
+    )
+    
+    total = base_query.count()
+    sent = base_query.filter(DeliveryChallan.status == "sent").count()
+    delivered = base_query.filter(DeliveryChallan.status == "delivered").count()
+    
+    return {
+        "total": total,
+        "sent": sent,
+        "delivered": delivered
+    }
+
+
 @router.get("/next-number/preview")
 def get_next_challan_number(
     party_id: int,
@@ -265,6 +288,49 @@ def get_next_challan_number(
     """Get the next challan number that will be generated"""
     next_number = generate_challan_number(db, company_id, fy.id, party_id)
     return {"next_challan_number": next_number}
+
+
+@router.get("/pending-items/{party_id}")
+def get_pending_challan_items(
+    party_id: int,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """Get all delivery challan items that are not yet billed"""
+    challans = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item)
+    ).filter(
+        DeliveryChallan.company_id == company_id,
+        DeliveryChallan.financial_year_id == fy.id,
+        DeliveryChallan.party_id == party_id,
+        DeliveryChallan.status.notin_(["BILLED", "delivered"])
+    ).all()
+    
+    pending_items = []
+    for challan in challans:
+        for item in challan.items:
+             rate = 0
+             item_obj = None
+             if item.party_challan_item and item.party_challan_item.item:
+                 item_obj = item.party_challan_item.item
+                 rate = item_obj.rate
+             
+             pending_items.append({
+                 "challan_id": challan.id,
+                 "challan_number": challan.challan_number,
+                 "challan_date": challan.challan_date,
+                 "item_id": item_obj.id if item_obj else None,
+                 "item_name": item_obj.name if item_obj else "Unknown",
+                 "delivery_challan_item_id": item.id,
+                 "ok_qty": float(item.ok_qty),
+                 "cr_qty": float(item.cr_qty),
+                 "mr_qty": float(item.mr_qty),
+                 "quantity": float(item.quantity),
+                 "rate": float(rate) if rate else 0.0
+             })
+             
+    return pending_items
 
 
 @router.delete("/{challan_id}")

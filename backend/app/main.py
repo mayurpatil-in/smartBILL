@@ -84,6 +84,9 @@ from app.routers.public_reports import router as public_reports_router
 app.include_router(public_challan_router)
 app.include_router(public_reports_router)
 
+from app.routers.invoice import public_router as public_invoice_router
+app.include_router(public_invoice_router)
+
 # ===================== ROOT =====================
 @app.get("/")
 def root():

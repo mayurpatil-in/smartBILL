@@ -13,12 +13,16 @@ import {
   ChevronRight,
   Truck,
   Printer,
+  BarChart3,
+  Send,
+  CheckCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getDeliveryChallans,
   deleteDeliveryChallan,
   printDeliveryChallan,
+  getChallanStats,
 } from "../api/challans";
 import AddDeliveryChallanModal from "../components/AddDeliveryChallanModal";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -35,6 +39,7 @@ export default function Challans() {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [challansPerPage, setChallansPerPage] = useState(10);
+  const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0 });
   const [deleteConfirm, setDeleteConfirm] = useState({
     open: false,
     challan: null,
@@ -47,8 +52,12 @@ export default function Challans() {
   const loadChallans = async () => {
     try {
       setLoading(true);
-      const data = await getDeliveryChallans();
+      const [data, statsData] = await Promise.all([
+        getDeliveryChallans(),
+        getChallanStats(),
+      ]);
       setChallans(data);
+      setStats(statsData);
     } catch (err) {
       console.error("Failed to load challans", err);
     } finally {
@@ -168,6 +177,51 @@ export default function Challans() {
           <Plus size={20} />
           Create Challan
         </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Total Challans
+            </p>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {stats.total}
+            </h3>
+          </div>
+          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400">
+            <BarChart3 size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Sent
+            </p>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {stats.sent}
+            </h3>
+          </div>
+          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <Send size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Delivered
+            </p>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {stats.delivered}
+            </h3>
+          </div>
+          <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
+            <CheckCircle size={24} />
+          </div>
+        </div>
       </div>
 
       {/* Content */}

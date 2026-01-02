@@ -32,7 +32,7 @@ class ChallanCreate(BaseModel):
     challan_date: Optional[date] = None
     vehicle_number: Optional[str] = None
     notes: Optional[str] = None
-    status: Optional[str] = "draft"
+    status: Optional[str] = "sent"
     items: List[ChallanItemCreate]
 
 
