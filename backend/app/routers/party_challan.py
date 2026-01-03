@@ -5,7 +5,9 @@ from typing import List
 from app.database.session import get_db
 from app.models.party_challan import PartyChallan
 from app.models.party_challan_item import PartyChallanItem
+from app.models.party_challan_item import PartyChallanItem
 from app.models.delivery_challan_item import DeliveryChallanItem
+from app.models.stock_transaction import StockTransaction
 from app.schemas.party_challan import (
     PartyChallanCreate,
     PartyChallanResponse,
@@ -101,6 +103,18 @@ def create_party_challan(
             rate=item.rate
         )
         db.add(pc_item)
+        
+        # Create Stock Transaction (OUT)
+        stock_tx = StockTransaction(
+            company_id=company_id,
+            financial_year_id=fy.id,
+            item_id=item.item_id,
+            quantity=item.quantity_ordered,
+            transaction_type="IN",
+            reference_type="PARTY_CHALLAN",
+            reference_id=party_challan.id
+        )
+        db.add(stock_tx)
 
     db.commit()
     db.refresh(party_challan)
@@ -324,7 +338,13 @@ def update_party_challan(
     
     # Update items if provided
     if data.items is not None:
-        # Delete existing items
+        # 1. Delete Stock Transactions for this challan (Restore Stock conceptually, but we are overwriting)
+        db.query(StockTransaction).filter(
+            StockTransaction.reference_type == "PARTY_CHALLAN",
+            StockTransaction.reference_id == challan_id
+        ).delete()
+        
+        # 2. Delete existing items
         db.query(PartyChallanItem).filter(
             PartyChallanItem.party_challan_id == challan_id
         ).delete()
@@ -340,6 +360,20 @@ def update_party_challan(
                 rate=item.rate
             )
             db.add(pc_item)
+            
+            # Create Stock Transaction (OUT)
+            stock_tx = StockTransaction(
+                company_id=company_id,
+                # Note: Using challan's FY, assuming edits don't move FY or using active FY?
+                # Ideally usage active FY or challan's FY. Let's use challan.financial_year_id to be safe/consistent.
+                financial_year_id=challan.financial_year_id,
+                item_id=item.item_id,
+                quantity=item.quantity_ordered,
+                transaction_type="IN",
+                reference_type="PARTY_CHALLAN",
+                reference_id=challan.id
+            )
+            db.add(stock_tx)
     
     
     db.commit()
@@ -423,6 +457,12 @@ def delete_party_challan(
             status_code=400,
             detail=f"Cannot delete Party Challan. The following Delivery Challan(s) are linked: {challan_numbers}. Please delete these delivery challans first."
         )
+    
+    # Delete Stock Transactions
+    db.query(StockTransaction).filter(
+        StockTransaction.reference_type == "PARTY_CHALLAN",
+        StockTransaction.reference_id == challan_id
+    ).delete()
     
     # Delete items
     db.query(PartyChallanItem).filter(

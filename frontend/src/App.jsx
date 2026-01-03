@@ -19,6 +19,7 @@ const Challans = lazy(() => import("./pages/Challans"));
 const PartyChallans = lazy(() => import("./pages/PartyChallans"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Reports = lazy(() => import("./pages/Reports"));
+const Payments = lazy(() => import("./pages/PaymentList"));
 
 function AppRoutes() {
   const { isSuperAdmin } = useAuth();
@@ -55,6 +56,7 @@ function AppRoutes() {
           <Route path="challans" element={<Challans />} />
           <Route path="employees" element={<Employees />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="payments" element={<Payments />} />
         </Route>
 
         {/* Fallback */}

@@ -9,3 +9,8 @@ class Base(DeclarativeBase):
         server_default=func.now(),
         onupdate=func.now()
     )
+
+# Impofrom app.models.invoice import Invoice
+from app.models.invoice_item import InvoiceItem
+from app.models.payment import Payment
+from app.models.payment_allocation import PaymentAllocation

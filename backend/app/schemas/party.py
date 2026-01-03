@@ -13,6 +13,8 @@ class PartyCreate(BaseModel):
 
 class PartyResponse(PartyCreate):
     id: int
+    current_balance: float = 0
+    total_received: float = 0
 
     class Config:
         from_attributes = True

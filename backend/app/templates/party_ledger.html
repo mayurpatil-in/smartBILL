@@ -105,13 +105,14 @@
 
         /* --- Filters Summary --- */
         .filters-summary {
-            background-color: #F3F4F6;
-            border-radius: 6px;
-            padding: 12px 16px;
+            background-color: #F8FAFC;
+            border-radius: 8px;
+            padding: 16px;
             margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
             border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 Columns */
+            gap: 16px;
         }
 
         .filter-item {
@@ -124,11 +125,12 @@
             letter-spacing: 0.05em;
             color: var(--text-muted);
             font-weight: 600;
-            margin-bottom: 2px;
+            margin-bottom: 4px; /* More space */
         }
         .filter-item span:last-child {
-            font-size: 12px;
+            font-size: 13px; /* Slightly larger */
             font-weight: 600;
+            color: var(--text-main);
         }
 
         /* --- Table --- */
@@ -237,7 +239,7 @@
             <span>Financial Year</span>
             <span>{{ financial_year }}</span>
         </div>
-        <div class="filter-item">
+        <div class="filter-item" style="grid-column: span 2;">
             <span>Selected Party</span>
             <span>
                 {% if party_name %}
@@ -247,9 +249,10 @@
                 {% endif %}
             </span>
         </div>
-        <div class="filter-item" style="text-align: right;">
-            <span>Report Status</span>
-            <span>Active</span>
+        <!-- Status removed, adding Dates -->
+        <div class="filter-item">
+            <span>Period</span>
+            <span>{{ start_date.strftime('%d-%m-%Y') }} to {{ end_date.strftime('%d-%m-%Y') }}</span>
         </div>
     </div>
 
@@ -257,7 +260,6 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 25%">Party Name</th>
                 <th style="width: 25%">Item Name</th>
                 <th class="text-right" style="width: 12%">Opening Bal.</th>
                 <th class="text-right" style="width: 12%">Total Inward</th>
@@ -268,7 +270,6 @@
         <tbody>
             {% for row in ledger_data %}
             <tr>
-                <td style="font-weight: 500;">{{ row.party }}</td>
                 <td style="color: #4B5563;">{{ row.item }}</td>
                 <td class="text-right numeric" style="color: #6B7280;">{{ row.opening }}</td>
                 <td class="text-right numeric" style="color: #2563EB;">{{ row.in }}</td>
@@ -279,7 +280,7 @@
 
             {% if not ledger_data %}
             <tr>
-                <td colspan="6" class="empty-state">
+                <td colspan="5" class="empty-state">
                     No transactions found for the selected period.
                 </td>
             </tr>

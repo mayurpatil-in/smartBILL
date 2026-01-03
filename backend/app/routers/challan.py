@@ -115,7 +115,7 @@ def create_challan(
             financial_year_id=fy.id,
             item_id=pc_item.item_id,
             quantity=item_data.quantity,
-            transaction_type="IN",  # Changed from OUT to IN
+            transaction_type="OUT",  # User Feedback: Delivery Challan is OUT (Sending back)
             reference_type="DELIVERY_CHALLAN",
             reference_id=challan.id
         )

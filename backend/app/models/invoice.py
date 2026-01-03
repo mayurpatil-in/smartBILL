@@ -27,6 +27,9 @@ class Invoice(Base):
     subtotal = Column(Numeric(12, 2))
     gst_amount = Column(Numeric(12, 2))
     grand_total = Column(Numeric(12, 2))
+    
+    paid_amount = Column(Numeric(12, 2), default=0.00)
+    payment_status = Column(String(20), default="PENDING") # PENDING, PARTIAL, PAID
 
     status = Column(String(20), default="DRAFT")
     is_locked = Column(Boolean, default=False)

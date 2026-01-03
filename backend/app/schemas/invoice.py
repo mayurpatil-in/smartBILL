@@ -81,6 +81,9 @@ class InvoiceResponse(BaseModel):
     gst_amount: float
     grand_total: float
     
+    paid_amount: Optional[float] = 0
+    payment_status: Optional[str] = None
+    
     items: List[InvoiceItemResponse]
 
     class Config:

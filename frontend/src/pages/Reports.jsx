@@ -13,7 +13,17 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
-import { getJobWorkReport, getStockLedgerPDF } from "../api/reports";
+import {
+  getJobWorkReport,
+  getStockLedgerPDF,
+  getPartyStatement,
+  getPartyStatementPDF,
+  getStockLedger,
+  getTrueStockLedgerPDF,
+  recalculateStock,
+} from "../api/reports";
+import { getParties } from "../api/parties";
+import { getItems } from "../api/items";
 import PdfPreviewModal from "../components/PdfPreviewModal";
 
 export default function Reports() {
@@ -25,12 +35,69 @@ export default function Reports() {
   const [filterStatus, setFilterStatus] = useState("all"); // all, pending, completed
 
   // Tab State
-  const [activeTab, setActiveTab] = useState("jobwork"); // jobwork, ledger
-  const [selectedParty, setSelectedParty] = useState("");
+  const [activeTab, setActiveTab] = useState("jobwork"); // jobwork, ledger, statement, stock
+  const [selectedJobWorkParty, setSelectedJobWorkParty] = useState("");
+  const [selectedJobWorkItem, setSelectedJobWorkItem] = useState("");
+  const [selectedStatementPartyId, setSelectedStatementPartyId] = useState("");
+
+  // Statement State
+  const [parties, setParties] = useState([]);
+  const [statementData, setStatementData] = useState([]);
+  const [statementLoading, setStatementLoading] = useState(false);
+
+  // Stock Ledger State
+  const [items, setItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState("");
+  const [stockLedgerData, setStockLedgerData] = useState([]);
+  const [stockLedgerLoading, setStockLedgerLoading] = useState(false);
+
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth(); // 0-11 (Jan=0, Apr=3)
+    const currentYear = today.getFullYear();
+
+    // If Jan(0), Feb(1), Mar(2) -> FY End is Mar 31 of Current Year
+    // Else -> FY End is Mar 31 of Next Year
+    const endYear = currentMonth < 3 ? currentYear : currentYear + 1;
+
+    return {
+      start_date: today.toISOString().split("T")[0], // Start: Today
+      end_date: new Date(endYear, 2, 31).toISOString().split("T")[0], // End: March 31 (Month is 0-indexed, so 2=March)
+    };
+  });
 
   useEffect(() => {
     fetchReport();
+    loadParties();
+    loadItems();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "statement" && selectedStatementPartyId) {
+      fetchStatement();
+    }
+    if (activeTab === "stock" && selectedItem) {
+      fetchStockLedger();
+    }
+  }, [activeTab, selectedStatementPartyId, selectedItem, dateRange]);
+
+  const loadParties = async () => {
+    try {
+      const res = await getParties();
+      setParties(res);
+    } catch (err) {
+      console.error("Failed to load parties");
+    }
+  };
+
+  const loadItems = async () => {
+    try {
+      const res = await getItems();
+      setItems(res);
+    } catch (err) {
+      console.error("Failed to load items");
+    }
+  };
 
   const fetchReport = async () => {
     try {
@@ -44,30 +111,59 @@ export default function Reports() {
     }
   };
 
-  const handlePrintPDF = async () => {
+  const fetchStatement = async () => {
+    if (!selectedStatementPartyId) return;
+    try {
+      setStatementLoading(true);
+      const res = await getPartyStatement({
+        party_id: selectedStatementPartyId,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
+      setStatementData(res);
+    } catch (err) {
+      toast.error("Failed to load statement");
+    } finally {
+      setStatementLoading(false);
+    }
+  };
+
+  const fetchStockLedger = async () => {
+    if (!selectedItem) return;
+    try {
+      setStockLedgerLoading(true);
+      const res = await getStockLedger({
+        item_id: selectedItem,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
+      setStockLedgerData(res);
+    } catch (err) {
+      toast.error("Failed to load stock ledger");
+    } finally {
+      setStockLedgerLoading(false);
+    }
+  };
+
+  const handlePrintStatement = async () => {
+    if (!selectedStatementPartyId) return;
     try {
       setPdfLoading(true);
-      const loadingToast = toast.loading("Generating PDF...");
+      const loadingToast = toast.loading("Generating Statement PDF...");
 
-      let partyId = null;
-      if (selectedParty) {
-        // Find party_id from data
-        const partyRecord = data.find((p) => p.party_name === selectedParty);
-        if (partyRecord) {
-          partyId = partyRecord.party_id;
-        }
-      }
+      const blob = await getPartyStatementPDF({
+        party_id: selectedStatementPartyId,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
 
-      const blob = await getStockLedgerPDF(partyId);
-
-      // Create blob URL for preview
       const url = window.URL.createObjectURL(
         new Blob([blob], { type: "application/pdf" })
       );
 
       setPreviewDoc({
         url: url,
-        title: `Stock_Ledger_${selectedParty || "All"}`,
+        title: `Statement_${selectedStatementPartyId}`,
       });
 
       toast.dismiss(loadingToast);
@@ -77,6 +173,105 @@ export default function Reports() {
       toast.error("Failed to generate PDF");
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+  const handlePrintJobWorkPDF = async () => {
+    try {
+      setPdfLoading(true);
+      const loadingToast = toast.loading("Generating Job Work PDF...");
+
+      let partyId = null;
+      if (selectedJobWorkParty) {
+        // Find party_id from data
+        const partyRecord = data.find(
+          (p) => p.party_name === selectedJobWorkParty
+        );
+        if (partyRecord) {
+          partyId = partyRecord.party_id;
+        }
+      }
+
+      const blob = await getStockLedgerPDF(
+        partyId,
+        dateRange.start_date,
+        dateRange.end_date
+      );
+
+      // Create blob URL for preview
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+
+      setPreviewDoc({
+        url: url,
+        title: `Job_Work_${selectedJobWorkParty || "All"}`,
+      });
+
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to generate PDF");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handlePrintStockLedger = async () => {
+    if (!selectedItem) {
+      toast.error("Please select an item first");
+      return;
+    }
+    try {
+      setPdfLoading(true);
+      const loadingToast = toast.loading("Generating Stock Ledger PDF...");
+
+      const blob = await getTrueStockLedgerPDF({
+        item_id: selectedItem,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
+
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+
+      setPreviewDoc({
+        url: url,
+        title: `Stock_Ledger_${selectedItem}`, // ideally item name
+      });
+
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to generate PDF");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleRecalculateStock = async () => {
+    if (
+      !confirm(
+        "Are you sure? This will wipe and rebuild the entire Stock Ledger from original documents. Use this only to fix data discrepancies."
+      )
+    )
+      return;
+    try {
+      const loadingToast = toast.loading("Recalculating Stock...");
+      await recalculateStock();
+      toast.success("Stock Ledger has been successfully rebuilt!");
+      toast.dismiss(loadingToast);
+      // Refresh if an item is selected
+      if (activeTab === "stock" && selectedItem) {
+        fetchStockLedger();
+      }
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to recalculate stock");
     }
   };
 
@@ -103,9 +298,23 @@ export default function Reports() {
   // --- LEDGER AGGREGATION ---
   const availableParties = [...new Set(data.map((i) => i.party_name))];
 
+  /* --- LEDGER AGGREGATION (Fixed for Date-Wise Opening) --- */
   const ledgerData = useMemo(() => {
+    // 1. We need ALL data that matches the Party filter (ignore date filter for raw fetching)
+    // The `data` prop contains everything.
+
+    // Parse Dates once
+    const startDate = new Date(dateRange.start_date);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(dateRange.end_date);
+    endDate.setHours(23, 59, 59, 999);
+
     const rawMap = data
-      .filter((i) => !selectedParty || i.party_name === selectedParty)
+      .filter((i) => {
+        // Only filter by Party here. Time filtering happens inside reduce.
+        return !selectedJobWorkParty || i.party_name === selectedJobWorkParty;
+      })
       .reduce((acc, row) => {
         const key = `${row.party_name}-${row.item_name}`;
         if (!acc[key]) {
@@ -119,12 +328,57 @@ export default function Reports() {
           };
         }
 
-        if (row.is_opening_balance) {
-          // Backlog items contribute to Opening Balance
+        const rowDate = new Date(row.date);
+
+        // Logic:
+        // 1. Before Start Date -> Add to Opening Balance & Total Balance
+        // 2. In Range -> Add to In/Out & Total Balance
+        // 3. After End Date -> Ignore
+
+        if (rowDate < startDate) {
+          // Past transaction: It contributes to Opening Stock with its PENDING quantity.
+          // If a job came in Jan 3 and is still pending, on Jan 4 it is Opening Stock.
+          // Wait, if it was Completed on Jan 3, pending is 0. So it adds 0. Correct.
+          // Note: date-wise filtering assumes we are tracking movements.
+          // "Job Work" report is a list of Jobs.
+          // If a Job started Jan 1 (In 100) and ended Jan 2 (Out 100), Pending is 0.
+          // On Jan 4, Opening is 0. Correct.
+          // If Job started Jan 3 (In 100), Out 0. Pending 100.
+          // On Jan 4, Opening is 100. Correct.
+          // What if Job started Jan 3 (In 100), Out 50 on Jan 3. Pending 50.
+          // "row" represents the Job (Challan Item). It has one date (Challan Date).
+          // It doesn't have split dates for In vs Out.
+          // The assumption here is "Out" happens roughly same time or we track net pending.
+          // The row has "pending_qty". This is the CURRENT pending quantity as of NOW.
+          // CRITICAL FLAW: "pending_qty" is static based on DB state, not historical state.
+          // However, for this Report (Job Work Register), users usually want "What is pending from old jobs?"
+          // So, "Opening Balance" = Sum of Pending Qty of all jobs created BEFORE Start Date.
+          // "Inward" = Sum of In Qty of jobs created DURING Date Range.
+          // "Outward" = Sum of Out Qty of jobs created DURING Date Range.
+          // "Balance" = Total Pending.
+
+          // Issue: If a Job was created Jan 3, and Outward happened Jan 5.
+          // The row date is Jan 3.
+          // If Select Jan 4-Jan 6.
+          // Row is BEFORE start date.
+          // It adds to Opening.
+          // But Outward happened in range!
+          // Since we only have "Challan Date", we cannot split the In/Out timeline accurately without a full transaction ledger.
+          // BUT, for "Job Work Stock" summary, the user usually wants:
+          // Opening = Pending Jobs from before.
+          // Inward = New Jobs coming in.
+          // Outward = Deliveries made against *these new jobs* OR *total deliveries in period*?
+          // Since "row" aggregates "out_qty" (total delivered), we can't see WHEN delivery happened.
+          // LIMITATION: We can only attribute "Outward" to the Challan Date with this dataset.
+          // UnFixable accurately without fetching `StockTransaction` or `DeliveryChallan` separately.
+          // However, strictly answering user request:
+          // "Select Date 4-1-2026 show opening 50" (from Jan 3 job).
+          // My proposed logic below does exactly this based on available data.
+
           acc[key].opening += row.pending_qty;
           acc[key].balance += row.pending_qty;
-        } else {
-          // Current FY items contribute to In/Out
+        } else if (rowDate <= endDate) {
+          // It's in the current period.
           acc[key].in += row.in_qty;
           acc[key].out += row.out_qty;
           acc[key].balance += row.pending_qty;
@@ -132,8 +386,11 @@ export default function Reports() {
 
         return acc;
       }, {});
-    return Object.values(rawMap);
-  }, [data, selectedParty]);
+
+    return Object.values(rawMap).filter(
+      (r) => r.opening !== 0 || r.in !== 0 || r.out !== 0
+    );
+  }, [data, selectedJobWorkParty, dateRange]);
 
   const exportToExcel = () => {
     const exportData = filteredData.map((item) => ({
@@ -194,15 +451,41 @@ export default function Reports() {
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             }`}
           >
-            Party Stock Ledger
+            Job Work Stock
             {activeTab === "ledger" && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("statement")}
+            className={`pb-3 text-sm font-medium transition-all relative ${
+              activeTab === "statement"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            Financial Statement
+            {activeTab === "statement" && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("stock")}
+            className={`pb-3 text-sm font-medium transition-all relative ${
+              activeTab === "stock"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            Stock Ledger
+            {activeTab === "stock" && (
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
             )}
           </button>
         </div>
       </div>
 
-      {activeTab === "jobwork" ? (
+      {activeTab === "jobwork" && (
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -432,8 +715,135 @@ export default function Reports() {
             </div>
           </div>
         </>
-      ) : (
-        /* Stock Ledger View */
+      )}
+
+      {activeTab === "statement" && (
+        /* Financial Statement */
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-500">
+                Select Party
+              </label>
+              <select
+                value={selectedStatementPartyId}
+                onChange={(e) => setSelectedStatementPartyId(e.target.value)}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
+              >
+                <option value="">-- Select Party --</option>
+                {parties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-500">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.start_date}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, start_date: e.target.value })
+                }
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-500">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.end_date}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, end_date: e.target.value })
+                }
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              />
+            </div>
+            {selectedStatementPartyId && (
+              <button
+                onClick={handlePrintStatement}
+                disabled={pdfLoading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap mb-0.5"
+              >
+                <Printer size={18} />
+                {pdfLoading ? "Generating..." : "Print Statement"}
+              </button>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                <tr>
+                  <th className="px-6 py-4 font-semibold text-gray-500">
+                    Date
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500">Ref</th>
+                  <th className="px-6 py-4 font-semibold text-gray-500">
+                    Description
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    Debit
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    Credit
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    Balance
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {statementLoading ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-gray-500">Loading Statement...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : statementData.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-8 text-gray-500">
+                      No transactions found
+                    </td>
+                  </tr>
+                ) : (
+                  statementData.map((row, i) => (
+                    <tr
+                      key={i}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <td className="px-6 py-4">{row.date}</td>
+                      <td className="px-6 py-4 font-mono text-xs">{row.ref}</td>
+                      <td className="px-6 py-4">{row.description}</td>
+                      <td className="px-6 py-4 text-right font-medium text-red-600">
+                        {row.debit ? `₹${row.debit.toFixed(2)}` : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-green-600">
+                        {row.credit ? `₹${row.credit.toFixed(2)}` : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold">
+                        ₹{row.balance.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "ledger" && (
+        /* Job Work Stock View */
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="w-full md:w-auto">
@@ -441,8 +851,8 @@ export default function Reports() {
                 Select Party for Ledger
               </label>
               <select
-                value={selectedParty}
-                onChange={(e) => setSelectedParty(e.target.value)}
+                value={selectedJobWorkParty}
+                onChange={(e) => setSelectedJobWorkParty(e.target.value)}
                 className="w-full md:w-96 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
               >
                 <option value="">All Parties</option>
@@ -454,8 +864,37 @@ export default function Reports() {
               </select>
             </div>
 
+            <div className="flex gap-4 w-full md:w-auto">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={dateRange.start_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, start_date: e.target.value })
+                  }
+                  className="w-full md:w-40 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={dateRange.end_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, end_date: e.target.value })
+                  }
+                  className="w-full md:w-40 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
             <button
-              onClick={handlePrintPDF}
+              onClick={handlePrintJobWorkPDF}
               disabled={pdfLoading}
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap mt-6 md:mt-0"
             >
@@ -467,8 +906,8 @@ export default function Reports() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="p-6 border-b border-gray-100 dark:border-gray-700">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                {selectedParty
-                  ? `${selectedParty} - Stock Summary`
+                {selectedJobWorkParty
+                  ? `${selectedJobWorkParty} - Stock Summary`
                   : "All Parties Stock Summary"}
               </h3>
             </div>
@@ -545,6 +984,153 @@ export default function Reports() {
         </div>
       )}
 
+      {activeTab === "stock" && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-500">
+                Select Item
+              </label>
+              <select
+                value={selectedItem}
+                onChange={(e) => setSelectedItem(e.target.value)}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
+              >
+                <option value="">-- Select Item --</option>
+                {items.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-500">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.start_date}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, start_date: e.target.value })
+                }
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-500">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.end_date}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, end_date: e.target.value })
+                }
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              />
+            </div>
+
+            {selectedItem && (
+              <button
+                onClick={handlePrintStockLedger}
+                disabled={pdfLoading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap mb-0.5"
+              >
+                <Printer size={18} />
+                {pdfLoading ? "Generating..." : "Print Ledger"}
+              </button>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                <tr>
+                  <th className="px-6 py-4 font-semibold text-gray-500">
+                    Date
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500">
+                    Type
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500">Ref</th>
+                  <th className="px-6 py-4 font-semibold text-gray-500">
+                    Description
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500">
+                    Party
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    In Qty
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    Out Qty
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    Balance
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {stockLedgerLoading ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-gray-500">Loading Stock Ledger...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : stockLedgerData.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-8 text-gray-500">
+                      No records found
+                    </td>
+                  </tr>
+                ) : (
+                  stockLedgerData.map((row, i) => (
+                    <tr
+                      key={i}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <td className="px-6 py-4">{row.date}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            row.type === "IN"
+                              ? "bg-blue-100 text-blue-700"
+                              : row.type === "OUT"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {row.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs">{row.ref}</td>
+                      <td className="px-6 py-4">{row.description}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        {row.party_name || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-blue-600">
+                        {row.in_qty ? row.in_qty : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-green-600">
+                        {row.out_qty ? row.out_qty : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold">
+                        {row.balance}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {/* PDF Preview Modal */}
       <PdfPreviewModal
         isOpen={!!previewDoc}

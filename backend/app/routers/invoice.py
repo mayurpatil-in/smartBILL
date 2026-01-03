@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from sqlalchemy import or_
+from typing import List, Optional
 from datetime import date
 import io
 import base64
@@ -151,6 +152,28 @@ def get_invoice_stats(
     return stats
 
 
+    return stats
+
+
+@router.get("/pending", response_model=List[InvoiceResponse])
+def get_pending_invoices(
+    party_id: Optional[int] = None,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Invoice).filter(
+        Invoice.company_id == company_id,
+        Invoice.status != "CANCELLED",
+        or_(Invoice.payment_status != "PAID", Invoice.payment_status == None)
+    )
+    
+    if party_id:
+        query = query.filter(Invoice.party_id == party_id)
+        
+    return query.order_by(Invoice.invoice_date.asc()).all()
+
+
 @router.post("/", response_model=InvoiceResponse)
 def create_invoice(
     data: InvoiceCreate,
@@ -192,17 +215,18 @@ def create_invoice(
         )
         db.add(invoice_item)
         
-        # Stock Transaction (OUT) for Direct Invoice
-        stock_tx = StockTransaction(
-            company_id=company_id,
-            financial_year_id=fy.id,
-            item_id=item.item_id,
-            quantity=item.quantity,
-            transaction_type="OUT",
-            reference_type="INVOICE",
-            reference_id=invoice.id
-        )
-        db.add(stock_tx)
+        # Stock Transaction (OUT) for Direct Invoice (Only if not from Challan)
+        if not item.delivery_challan_item_id:
+            stock_tx = StockTransaction(
+                company_id=company_id,
+                financial_year_id=fy.id,
+                item_id=item.item_id,
+                quantity=item.quantity,
+                transaction_type="OUT",
+                reference_type="INVOICE",
+                reference_id=invoice.id
+            )
+            db.add(stock_tx)
         
     gst_amount, grand_total = calculate_gst(subtotal)
     
@@ -277,17 +301,18 @@ def update_invoice(
     # 1. Revert Stock for Old Items
     old_items = db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).all()
     for item in old_items:
-        # Revert Stock (IN)
-        stock_tx = StockTransaction(
-            company_id=company_id,
-            financial_year_id=fy.id,
-            item_id=item.item_id,
-            quantity=item.quantity,
-            transaction_type="IN", # Reverse the OUT
-            reference_type="INV_UPD_REVERT",
-            reference_id=invoice.id
-        )
-        db.add(stock_tx)
+        # Revert Stock (IN) - Only if it was a Direct Invoice item (not from Challan)
+        if not item.delivery_challan_item_id:
+            stock_tx = StockTransaction(
+                company_id=company_id,
+                financial_year_id=fy.id,
+                item_id=item.item_id,
+                quantity=item.quantity,
+                transaction_type="IN", # Reverse the OUT
+                reference_type="INV_UPD_REVERT",
+                reference_id=invoice.id
+            )
+            db.add(stock_tx)
 
     # 1.5 Revert Linked Challan Status to "sent" (Release them first)
     old_challan_item_ids = [item.delivery_challan_item_id for item in old_items if item.delivery_challan_item_id]
@@ -330,17 +355,18 @@ def update_invoice(
         )
         db.add(invoice_item)
         
-        # New Stock Transaction (OUT)
-        stock_tx = StockTransaction(
-            company_id=company_id,
-            financial_year_id=fy.id,
-            item_id=item.item_id,
-            quantity=item.quantity,
-            transaction_type="OUT",
-            reference_type="INVOICE",
-            reference_id=invoice.id
-        )
-        db.add(stock_tx)
+        # New Stock Transaction (OUT) - Only if not from Challan
+        if not item.delivery_challan_item_id:
+            stock_tx = StockTransaction(
+                company_id=company_id,
+                financial_year_id=fy.id,
+                item_id=item.item_id,
+                quantity=item.quantity,
+                transaction_type="OUT",
+                reference_type="INVOICE",
+                reference_id=invoice.id
+            )
+            db.add(stock_tx)
 
     # 5. Recalculate Totals
     gst_amount, grand_total = calculate_gst(subtotal)
@@ -456,6 +482,7 @@ def create_invoice_from_challan(
         invoice_item = InvoiceItem(
             invoice_id=invoice.id,
             item_id=item.item_id,
+            delivery_challan_item_id=item.id, # Link to source challan item
             quantity=item.quantity,
             rate=item.item.rate,
             amount=amount

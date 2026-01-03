@@ -116,10 +116,9 @@ export default function Parties() {
           color="blue"
         />
         <StatCard
-          label="Total Receivables"
+          label="Total Collected"
           value={`₹${parties
-            .filter((p) => p.opening_balance > 0)
-            .reduce((acc, curr) => acc + Number(curr.opening_balance), 0)
+            .reduce((acc, curr) => acc + (Number(curr.total_received) || 0), 0)
             .toLocaleString("en-IN", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -128,15 +127,13 @@ export default function Parties() {
           color="green"
         />
         <StatCard
-          label="Total Payables"
-          value={`₹${Math.abs(
-            parties
-              .filter((p) => p.opening_balance < 0)
-              .reduce((acc, curr) => acc + Number(curr.opening_balance), 0)
-          ).toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`}
+          label="Total Outstanding"
+          value={`₹${parties
+            .reduce((acc, curr) => acc + (Number(curr.current_balance) || 0), 0)
+            .toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
           icon={Wallet}
           color="red"
         />
@@ -166,7 +163,8 @@ export default function Parties() {
                 <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
                 <th className="px-6 py-4 whitespace-nowrap">Contact</th>
                 <th className="px-6 py-4 whitespace-nowrap">GSTIN</th>
-                <th className="px-6 py-4 whitespace-nowrap">Balance</th>
+                <th className="px-6 py-4 whitespace-nowrap">Collected</th>
+                <th className="px-6 py-4 whitespace-nowrap">Outstanding</th>
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
                 <th className="px-6 py-4 text-right whitespace-nowrap">
                   Actions
@@ -380,22 +378,31 @@ function PartyRow({ party, onEdit, onToggleStatus, onDelete }) {
         )}
       </td>
       <td className="px-6 py-4">
+        <div className="font-semibold text-sm text-green-600 dark:text-green-400">
+          ₹
+          {(Number(party.total_received) || 0).toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
+      </td>
+      <td className="px-6 py-4">
         <div className="font-semibold text-base">
           <span
             className={
-              party.opening_balance >= 0
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
+              party.current_balance >= 0
+                ? "text-red-600 dark:text-red-400"
+                : "text-green-600 dark:text-green-400"
             }
           >
             ₹
-            {Math.abs(Number(party.opening_balance)).toLocaleString("en-IN", {
+            {Math.abs(Number(party.current_balance)).toLocaleString("en-IN", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-            {party.opening_balance >= 0 ? "(Receivable)" : "(Payable)"}
+            {party.current_balance >= 0 ? "(Receivable)" : "(Payable)"}
           </span>
         </div>
       </td>
