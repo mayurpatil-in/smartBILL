@@ -55,7 +55,13 @@ export const getTrueStockLedgerPDF = async (params = {}) => {
     });
     return response.data;
 };
+
 export const recalculateStock = async () => {
     const response = await api.post('/reports/recalculate-stock');
     return response.data;
+};
+
+export const getDashboardStats = async () => {
+  const response = await api.get('/reports/dashboard-stats');
+  return response.data;
 };

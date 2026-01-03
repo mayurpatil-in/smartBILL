@@ -1004,3 +1004,104 @@ async def get_stock_ledger_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@router.get("/dashboard-stats")
+def get_dashboard_stats(
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns aggregated stats for the dashboard:
+    1. Total Revenue (Payments Received)
+    2. Total Receivables (Unpaid Invoices)
+    3. Total Payables (Unpaid Expenses/Purchases - Placeholder if not fully implemented)
+    4. Monthly Sales Trend (Last 6 months)
+    5. Recent Invoices (Top 5)
+    """
+    from app.models.payment import Payment
+    from sqlalchemy import func, extract
+    import calendar
+
+    # 1. Total Revenue (Payments Received in this FY)
+    total_revenue = db.query(func.sum(Payment.amount)).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == "RECEIVED"
+    ).scalar() or 0.0
+
+    # 2. Total Receivables (Pending Invoice Amounts)
+    # We sum (Grand Total - Paid Amount) for all OPEN/PARTIAL invoices
+    # Note: Using a direct calculation might be accurate enough
+    receivables = db.query(func.sum(Invoice.grand_total - Invoice.paid_amount)).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status.in_(["BILLED", "PARTIAL", "OPEN"]) # Exclude PAID and CANCELLED
+    ).scalar() or 0.0
+
+    # 3. Total Payables (Placeholder logic for now, or based on Expenses if they existed)
+    # For now, let's treat it as 0 or mocked, as Expense module isn't fully detailed in context
+    # Use Payments MADE (PAID) as "Total Expenses" for now to show something useful
+    total_expenses = db.query(func.sum(Payment.amount)).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == "PAID"
+    ).scalar() or 0.0
+    
+    # 4. Monthly Sales Trend (Last 6 Months within FY)
+    # Group by Month
+    sales_data = db.query(
+        extract('month', Invoice.invoice_date).label('month'),
+        func.sum(Invoice.grand_total).label('total')
+    ).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status != "CANCELLED"
+    ).group_by(extract('month', Invoice.invoice_date)).all()
+
+    # Format for Frontend (Ensure all months are present or just return what we have)
+    # Map month number to Name
+    sales_map = {row.month: float(row.total) for row in sales_data}
+    
+    chart_data = []
+    # Simple approach: Show all 12 months of FY or just relevant ones. 
+    # Let's show the months of the active FY (Sorted)
+    # Assuming FY starts in April (Indian FY) or Jan. 
+    # We'll just sort the data we found.
+    
+    for m in range(1, 13):
+        if m in sales_map:
+            chart_data.append({
+                "name": calendar.month_abbr[m],
+                "sales": sales_map[m]
+            })
+    
+    # Sort chart data by month index relative to FY start if possible, 
+    # but for now, simple calendar order or let frontend handle it. 
+    # Let's just return what we query.
+
+    # 5. Recent Invoices
+    recent_invoices = db.query(Invoice).options(joinedload(Invoice.party)).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id
+    ).order_by(Invoice.created_at.desc()).limit(5).all()
+
+    recent_data = []
+    for inv in recent_invoices:
+        recent_data.append({
+            "id": inv.id,
+            "invoice_number": inv.invoice_number,
+            "party_name": inv.party.name if inv.party else "Unknown",
+            "date": inv.invoice_date,
+            "amount": float(inv.grand_total),
+            "status": inv.status
+        })
+
+    return {
+        "revenue": float(total_revenue),
+        "receivables": float(receivables),
+        "expenses": float(total_expenses),
+        "net_income": float(total_revenue) - float(total_expenses),
+        "sales_trend": chart_data,
+        "recent_activity": recent_data
+    }

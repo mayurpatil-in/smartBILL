@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
 import { setDarkMode } from "../utils/theme";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import ProfileModal from "./ProfileModal";
 
 export default function Navbar({ onMenuClick }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [dark, setDark] = useState(
@@ -166,7 +168,13 @@ export default function Navbar({ onMenuClick }) {
                 Profile
               </button>
 
-              <button className="dropdown-item">
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/settings");
+                }}
+              >
                 <Settings size={16} />
                 Settings
               </button>

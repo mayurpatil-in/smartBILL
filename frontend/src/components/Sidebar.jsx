@@ -10,6 +10,7 @@ import {
   Truck,
   ClipboardList,
   WalletCards,
+  Settings,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -130,6 +131,12 @@ export default function Sidebar({
               to="/reports"
               icon={FileText}
               label="Reports"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/settings"
+              icon={Settings}
+              label="Settings"
               collapsed={collapsed}
             />
           </>
