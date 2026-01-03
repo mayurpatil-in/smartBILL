@@ -55,6 +55,7 @@ from app.routers.party_challan import router as party_challan_router
 from app.routers.employees import router as employees_router
 from app.routers.reports import router as reports_router
 from app.routers.payment import router as payment_router
+from app.routers.expense import router as expense_router
 
 
 # ===================== ROUTERS =====================
@@ -66,6 +67,7 @@ app.include_router(challan_router)
 app.include_router(stock_router)
 app.include_router(invoice_router)
 app.include_router(payment_router)
+app.include_router(expense_router)
 app.include_router(invoice_pdf_router)
 app.include_router(health_router)
 app.include_router(super_admin_router)

@@ -1020,6 +1020,7 @@ def get_dashboard_stats(
     5. Recent Invoices (Top 5)
     """
     from app.models.payment import Payment
+    from app.models.expense import Expense
     from sqlalchemy import func, extract
     import calendar
 
@@ -1039,14 +1040,25 @@ def get_dashboard_stats(
         Invoice.status.in_(["BILLED", "PARTIAL", "OPEN"]) # Exclude PAID and CANCELLED
     ).scalar() or 0.0
 
-    # 3. Total Payables (Placeholder logic for now, or based on Expenses if they existed)
-    # For now, let's treat it as 0 or mocked, as Expense module isn't fully detailed in context
-    # Use Payments MADE (PAID) as "Total Expenses" for now to show something useful
-    total_expenses = db.query(func.sum(Payment.amount)).filter(
+    # 3. Total Payables / Outflow
+    # A. Vendor Payments (Purchase Bills mainly)
+    payments_made = float(db.query(func.sum(Payment.amount)).filter(
         Payment.company_id == company_id,
         Payment.financial_year_id == fy.id,
         Payment.payment_type == "PAID"
-    ).scalar() or 0.0
+    ).scalar() or 0.0)
+    
+    # B. Operational Expenses (Rent, Salary, etc form Expense Module)
+    # Only count PAID expenses for cash flow, or all for accrual? usually PAID for simple dash
+    # Our Expense model defaults status='PAID' for standard expenses
+    operational_expenses = float(db.query(func.sum(Expense.amount)).filter(
+        Expense.company_id == company_id,
+        Expense.financial_year_id == fy.id,
+        Expense.status == "PAID"
+    ).scalar() or 0.0)
+
+    # Total Money Out
+    total_expenses = payments_made + operational_expenses
     
     # 4. Monthly Sales Trend (Last 6 Months within FY)
     # Group by Month

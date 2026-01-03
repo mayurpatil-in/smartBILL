@@ -10,7 +10,9 @@ class Base(DeclarativeBase):
         onupdate=func.now()
     )
 
-# Impofrom app.models.invoice import Invoice
+# Imports for Base.metadata to catch them
+from app.models.invoice import Invoice
 from app.models.invoice_item import InvoiceItem
 from app.models.payment import Payment
 from app.models.payment_allocation import PaymentAllocation
+from app.models.expense import Expense

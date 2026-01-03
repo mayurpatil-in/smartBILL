@@ -21,7 +21,9 @@
     "react-hot-toast": "^2.6.0",
     "react-pdf": "^10.2.0",
     "react-router-dom": "^7.11.0",
+    "react-to-print": "^3.2.0",
     "recharts": "^3.6.0",
+    "to-words": "^4.9.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

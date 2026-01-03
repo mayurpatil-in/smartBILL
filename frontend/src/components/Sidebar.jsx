@@ -10,6 +10,7 @@ import {
   Truck,
   ClipboardList,
   WalletCards,
+  Wallet,
   Settings,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -92,18 +93,6 @@ export default function Sidebar({
               collapsed={collapsed}
             />
             <MenuLink
-              to="/invoices"
-              icon={FileText}
-              label="Invoices"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/payments"
-              icon={WalletCards}
-              label="Payments"
-              collapsed={collapsed}
-            />
-            <MenuLink
               to="/items"
               icon={Package}
               label="Stock"
@@ -121,6 +110,25 @@ export default function Sidebar({
               label="Delivery Challans"
               collapsed={collapsed}
             />
+            <MenuLink
+              to="/invoices"
+              icon={FileText}
+              label="Invoices"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/payments"
+              icon={WalletCards}
+              label="Payments"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/expenses"
+              icon={Wallet}
+              label="Expenses"
+              collapsed={collapsed}
+            />
+
             <MenuLink
               to="/employees"
               icon={Users}
