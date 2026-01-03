@@ -136,7 +136,8 @@ export default function InvoiceForm() {
     if (formData.party_id) {
       const fetchPending = async () => {
         try {
-          const data = await getPendingChallanItems(formData.party_id);
+          // Pass current Invoice ID (id) to include its items in the list
+          const data = await getPendingChallanItems(formData.party_id, id);
           setPendingItems(data);
         } catch (error) {
           console.error("Failed to load pending items", error);

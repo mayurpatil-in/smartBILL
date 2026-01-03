@@ -61,10 +61,10 @@
         .party-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; color: #111827; }
 
         /* TABLE */
-        .table-container { flex-grow: 1; }
-        table.main-table { width: 100%; border-collapse: collapse; }
-        .main-table th { background: #f3f4f6; padding: 8px 6px; text-align: center; font-weight: 600; font-size: 10px; border-bottom: 1px solid #e5e7eb; color: #374151; white-space: nowrap; }
-        .main-table td { padding: 12px 6px; border-bottom: 1px solid #f3f4f6; vertical-align: top; font-size: 11px; }
+        .table-container { flex-grow: 1; margin-top: 10px; }
+        table.main-table { width: 100%; border-collapse: collapse; border: 1px solid #1f2937; }
+        .main-table th { background: #e5e7eb; padding: 6px; text-align: center; font-weight: 700; font-size: 10px; border: 1px solid #1f2937; color: #000; white-space: nowrap; }
+        .main-table td { padding: 6px; border: 1px solid #1f2937; vertical-align: middle; font-size: 11px; color: #000; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
         
@@ -180,9 +180,9 @@
             <tbody>
                 {% for grouper, list in items|sort(attribute='item.name')|groupby('item.name') %}
                 <!-- Item Header Row -->
-                <tr style="background-color: #f9fafb;">
-                    <td colspan="11" style="text-align: left; padding: 8px; font-weight: 700; border-bottom: 1px solid #e5e7eb;">
-                        {{ grouper }}
+                <tr style="background-color: #e5e7eb;">
+                    <td colspan="11" style="text-align: left; padding: 6px; font-weight: 700; border: 1px solid #1f2937; color: #000;">
+                        Product Group: {{ grouper }}
                     </td>
                 </tr>
                 

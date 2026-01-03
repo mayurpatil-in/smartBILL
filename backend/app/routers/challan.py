@@ -291,44 +291,58 @@ def get_next_challan_number(
 
 
 @router.get("/pending-items/{party_id}")
+@router.get("/pending-items/{party_id}")
 def get_pending_challan_items(
     party_id: int,
+    invoice_id: int = None,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
     """Get all delivery challan items that are not yet billed"""
-    challans = db.query(DeliveryChallan).options(
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item)
+    from app.models.invoice_item import InvoiceItem
+
+    # Subquery: IDs of billed items (excluding current invoice if provided)
+    query = db.query(InvoiceItem.delivery_challan_item_id).filter(
+        InvoiceItem.delivery_challan_item_id != None
+    )
+    if invoice_id:
+        query = query.filter(InvoiceItem.invoice_id != invoice_id)
+        
+    billed_item_ids = query
+
+    # Query Items directly
+    items = db.query(DeliveryChallanItem).join(DeliveryChallan).options(
+        joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
+        joinedload(DeliveryChallanItem.process)
     ).filter(
         DeliveryChallan.company_id == company_id,
         DeliveryChallan.financial_year_id == fy.id,
         DeliveryChallan.party_id == party_id,
-        DeliveryChallan.status.notin_(["BILLED", "delivered"])
+        DeliveryChallanItem.id.notin_(billed_item_ids)
     ).all()
     
     pending_items = []
-    for challan in challans:
-        for item in challan.items:
-             rate = 0
-             item_obj = None
-             if item.party_challan_item and item.party_challan_item.item:
-                 item_obj = item.party_challan_item.item
-                 rate = item_obj.rate
-             
-             pending_items.append({
-                 "challan_id": challan.id,
-                 "challan_number": challan.challan_number,
-                 "challan_date": challan.challan_date,
-                 "item_id": item_obj.id if item_obj else None,
-                 "item_name": item_obj.name if item_obj else "Unknown",
-                 "delivery_challan_item_id": item.id,
-                 "ok_qty": float(item.ok_qty),
-                 "cr_qty": float(item.cr_qty),
-                 "mr_qty": float(item.mr_qty),
-                 "quantity": float(item.quantity),
-                 "rate": float(rate) if rate else 0.0
-             })
+    for item in items:
+         rate = 0
+         item_obj = None
+         if item.party_challan_item and item.party_challan_item.item:
+             item_obj = item.party_challan_item.item
+             rate = item_obj.rate
+         
+         pending_items.append({
+             "challan_id": item.challan_id,
+             "challan_number": item.challan.challan_number,
+             "challan_date": item.challan.challan_date,
+             "item_id": item_obj.id if item_obj else None,
+             "item_name": item_obj.name if item_obj else "Unknown",
+             "delivery_challan_item_id": item.id,
+             "ok_qty": float(item.ok_qty),
+             "cr_qty": float(item.cr_qty),
+             "mr_qty": float(item.mr_qty),
+             "quantity": float(item.quantity),
+             "rate": float(rate) if rate else 0.0
+         })
              
     return pending_items
 

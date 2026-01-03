@@ -36,8 +36,10 @@ export const getNextDeliveryChallanNumber = async (partyId = null) => {
   return response.data;
 };
 
-export const getPendingChallanItems = async (partyId) => {
-  const response = await api.get(`/challan/pending-items/${partyId}`);
+export const getPendingChallanItems = async (partyId, invoiceId = null) => {
+  const params = {};
+  if (invoiceId) params.invoice_id = invoiceId;
+  const response = await api.get(`/challan/pending-items/${partyId}`, { params });
   return response.data;
 };
 

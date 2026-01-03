@@ -59,7 +59,7 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
     
     if last_invoice and last_invoice.invoice_number:
         try:
-            # Expected format "24-25/001"
+            # Expected format "INV/24-25/001"
             if "/" in last_invoice.invoice_number:
                 parts = last_invoice.invoice_number.split("/")
                 last_num = int(parts[-1])
@@ -72,7 +72,7 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
     else:
         next_num = 1
         
-    return f"{fy_prefix}/{next_num:03d}"
+    return f"INV/{fy_prefix}/{next_num:03d}"
 
 
 @router.get("/next-number")
@@ -284,11 +284,25 @@ def update_invoice(
             item_id=item.item_id,
             quantity=item.quantity,
             transaction_type="IN", # Reverse the OUT
-            reference_type="INVOICE_UPDATE_REVERT",
-            reference_id=invoice.id,
-            notes=f"Revert stock for invoice update {invoice.invoice_number}"
+            reference_type="INV_UPD_REVERT",
+            reference_id=invoice.id
         )
         db.add(stock_tx)
+
+    # 1.5 Revert Linked Challan Status to "sent" (Release them first)
+    old_challan_item_ids = [item.delivery_challan_item_id for item in old_items if item.delivery_challan_item_id]
+    if old_challan_item_ids:
+        # Find unique Challan IDs
+        old_challan_ids_tuples = db.query(DeliveryChallan.id).join(DeliveryChallanItem).filter(
+            DeliveryChallanItem.id.in_(old_challan_item_ids)
+        ).distinct().all()
+        
+        old_challan_ids = [c[0] for c in old_challan_ids_tuples]
+        
+        if old_challan_ids:
+             db.query(DeliveryChallan).filter(
+                DeliveryChallan.id.in_(old_challan_ids)
+            ).update({DeliveryChallan.status: "sent"}, synchronize_session=False)
 
     # 2. Delete Old Items
     db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).delete()
