@@ -232,6 +232,8 @@ export default function Challans() {
             <Search className="text-gray-400" size={20} />
             <input
               type="text"
+              name="delivery_challan_search"
+              id="delivery_challan_search"
               placeholder="Search by challan number or party..."
               className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
               value={searchTerm}
@@ -241,6 +243,8 @@ export default function Challans() {
 
           <div className="w-full sm:w-48">
             <select
+              name="delivery_status_filter"
+              id="delivery_status_filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
@@ -327,6 +331,8 @@ export default function Challans() {
                 challans
               </span>
               <select
+                name="delivery_challans_per_page"
+                id="delivery_challans_per_page"
                 value={challansPerPage}
                 onChange={(e) => {
                   setChallansPerPage(Number(e.target.value));

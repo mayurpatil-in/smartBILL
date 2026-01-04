@@ -222,6 +222,8 @@ export default function Employees() {
                 />
                 <input
                   type="text"
+                  name="employee_search"
+                  id="employee_search"
                   placeholder="Search employees..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -442,6 +444,8 @@ function PayrollView({ employees }) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Month:</span>
           <select
+            name="payroll_month"
+            id="payroll_month"
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value))}
             className="border rounded-lg px-2 py-1 bg-white dark:bg-gray-900 dark:border-gray-700"
@@ -459,6 +463,8 @@ function PayrollView({ employees }) {
           <span className="text-sm font-medium">Year:</span>
           <input
             type="number"
+            name="payroll_year"
+            id="payroll_year"
             value={year}
             onChange={(e) => setYear(parseInt(e.target.value))}
             className="border rounded-lg px-2 py-1 w-20 bg-white dark:bg-gray-900 dark:border-gray-700"

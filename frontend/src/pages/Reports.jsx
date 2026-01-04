@@ -563,6 +563,8 @@ export default function Reports() {
               />
               <input
                 type="text"
+                name="report_search"
+                id="report_search"
                 placeholder="Search party, item or challan..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -726,6 +728,8 @@ export default function Reports() {
                 Select Party
               </label>
               <select
+                name="statement_party_id"
+                id="statement_party_id"
                 value={selectedStatementPartyId}
                 onChange={(e) => setSelectedStatementPartyId(e.target.value)}
                 className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
@@ -744,6 +748,8 @@ export default function Reports() {
               </label>
               <input
                 type="date"
+                name="statement_start_date"
+                id="statement_start_date"
                 value={dateRange.start_date}
                 onChange={(e) =>
                   setDateRange({ ...dateRange, start_date: e.target.value })
@@ -758,6 +764,8 @@ export default function Reports() {
               </label>
               <input
                 type="date"
+                name="statement_end_date"
+                id="statement_end_date"
                 value={dateRange.end_date}
                 onChange={(e) =>
                   setDateRange({ ...dateRange, end_date: e.target.value })
@@ -851,6 +859,8 @@ export default function Reports() {
                 Select Party for Ledger
               </label>
               <select
+                name="jobwork_ledger_party"
+                id="jobwork_ledger_party"
                 value={selectedJobWorkParty}
                 onChange={(e) => setSelectedJobWorkParty(e.target.value)}
                 className="w-full md:w-96 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
@@ -871,6 +881,8 @@ export default function Reports() {
                 </label>
                 <input
                   type="date"
+                  name="jobwork_start_date"
+                  id="jobwork_start_date"
                   value={dateRange.start_date}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, start_date: e.target.value })
@@ -884,6 +896,8 @@ export default function Reports() {
                 </label>
                 <input
                   type="date"
+                  name="jobwork_end_date"
+                  id="jobwork_end_date"
                   value={dateRange.end_date}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, end_date: e.target.value })
@@ -992,6 +1006,8 @@ export default function Reports() {
                 Select Item
               </label>
               <select
+                name="stock_ledger_item"
+                id="stock_ledger_item"
                 value={selectedItem}
                 onChange={(e) => setSelectedItem(e.target.value)}
                 className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
@@ -1011,6 +1027,8 @@ export default function Reports() {
               </label>
               <input
                 type="date"
+                name="stock_start_date"
+                id="stock_start_date"
                 value={dateRange.start_date}
                 onChange={(e) =>
                   setDateRange({ ...dateRange, start_date: e.target.value })
@@ -1025,6 +1043,8 @@ export default function Reports() {
               </label>
               <input
                 type="date"
+                name="stock_end_date"
+                id="stock_end_date"
                 value={dateRange.end_date}
                 onChange={(e) =>
                   setDateRange({ ...dateRange, end_date: e.target.value })

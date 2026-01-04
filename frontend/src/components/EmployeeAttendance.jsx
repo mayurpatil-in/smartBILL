@@ -130,6 +130,8 @@ export default function EmployeeAttendance() {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20"
+            name="attendance_date"
+            id="attendance_date"
           />
           <button
             onClick={handleSave}
@@ -259,6 +261,8 @@ export default function EmployeeAttendance() {
                           handleChange(emp.id, "overtime_hours", e.target.value)
                         }
                         className="w-20 px-2 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        name={`overtime_hours_${emp.id}`}
+                        id={`overtime_hours_${emp.id}`}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -271,6 +275,8 @@ export default function EmployeeAttendance() {
                           handleChange(emp.id, "bonus_amount", e.target.value)
                         }
                         className="w-20 px-2 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        name={`bonus_amount_${emp.id}`}
+                        id={`bonus_amount_${emp.id}`}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -282,6 +288,8 @@ export default function EmployeeAttendance() {
                           handleChange(emp.id, "notes", e.target.value)
                         }
                         className="w-full min-w-[150px] px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        name={`attendance_note_${emp.id}`}
+                        id={`attendance_note_${emp.id}`}
                       />
                     </td>
                   </tr>

@@ -285,6 +285,8 @@ export default function AddEmployeeModal({
                     <div className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
+                        name="is_active"
+                        id="is_active"
                         className="sr-only peer"
                         checked={formData.is_active}
                         onChange={(e) =>
@@ -311,6 +313,8 @@ export default function AddEmployeeModal({
                     <input
                       required
                       type="text"
+                      name="employee_name"
+                      id="employee_name"
                       value={formData.name}
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
@@ -333,6 +337,8 @@ export default function AddEmployeeModal({
                       />
                       <input
                         type="tel"
+                        name="employee_phone"
+                        id="employee_phone"
                         value={formData.profile.phone}
                         onChange={(e) =>
                           setFormData({
@@ -360,6 +366,8 @@ export default function AddEmployeeModal({
                       />
                       <input
                         type="email"
+                        name="employee_email"
+                        id="employee_email"
                         value={formData.email}
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
@@ -383,6 +391,8 @@ export default function AddEmployeeModal({
                     <input
                       required
                       type="text"
+                      name="employee_address"
+                      id="employee_address"
                       value={formData.profile.address}
                       onChange={(e) =>
                         setFormData({
@@ -411,6 +421,8 @@ export default function AddEmployeeModal({
                       />
                       <input
                         type="text"
+                        name="employee_pan"
+                        id="employee_pan"
                         value={formData.profile.pan_number}
                         onChange={(e) =>
                           setFormData({
@@ -438,6 +450,8 @@ export default function AddEmployeeModal({
                       />
                       <input
                         type="text"
+                        name="employee_aadhar"
+                        id="employee_aadhar"
                         value={formData.profile.aadhar_number}
                         onChange={(e) =>
                           setFormData({
@@ -479,6 +493,8 @@ export default function AddEmployeeModal({
                         <input
                           required
                           type="text"
+                          name="employee_designation"
+                          id="employee_designation"
                           value={formData.profile.designation}
                           onChange={(e) =>
                             setFormData({
@@ -506,6 +522,8 @@ export default function AddEmployeeModal({
                         />
                         <input
                           type="date"
+                          name="joining_date"
+                          id="joining_date"
                           value={formData.profile.joining_date}
                           onChange={(e) =>
                             setFormData({
@@ -532,6 +550,7 @@ export default function AddEmployeeModal({
                           <input
                             type="radio"
                             name="salary_type"
+                            id="salary_type_monthly"
                             value="monthly"
                             checked={formData.profile.salary_type === "monthly"}
                             onChange={(e) =>
@@ -553,6 +572,7 @@ export default function AddEmployeeModal({
                           <input
                             type="radio"
                             name="salary_type"
+                            id="salary_type_daily"
                             value="daily"
                             checked={formData.profile.salary_type === "daily"}
                             onChange={(e) =>
@@ -586,6 +606,8 @@ export default function AddEmployeeModal({
                           type="number"
                           min="0"
                           step="0.01"
+                          name="base_salary"
+                          id="base_salary"
                           value={formData.profile.base_salary}
                           onChange={(e) =>
                             setFormData({
@@ -658,6 +680,8 @@ export default function AddEmployeeModal({
                               className="hidden"
                               onChange={(e) => handleFileUpload(e, doc)}
                               disabled={uploading}
+                              name={`file_upload_${doc}`}
+                              id={`file_upload_${doc}`}
                             />
                             {uploading ? (
                               <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>

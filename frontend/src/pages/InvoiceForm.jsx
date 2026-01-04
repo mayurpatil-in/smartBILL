@@ -436,6 +436,8 @@ export default function InvoiceForm() {
                   Party
                 </label>
                 <select
+                  name="invoice_party_id"
+                  id="invoice_party_id"
                   value={formData.party_id}
                   onChange={(e) =>
                     setFormData({
@@ -460,6 +462,8 @@ export default function InvoiceForm() {
                 </label>
                 <input
                   type="date"
+                  name="invoice_date"
+                  id="invoice_date"
                   value={formData.invoice_date}
                   min={activeFY?.start_date}
                   max={activeFY?.end_date}
@@ -484,6 +488,8 @@ export default function InvoiceForm() {
                     Select Item
                   </label>
                   <select
+                    name="invoice_item_id"
+                    id="invoice_item_id"
                     value={currentItem.item_id}
                     onChange={(e) => handleItemSelect(e.target.value)}
                     disabled={!formData.party_id}
@@ -506,6 +512,8 @@ export default function InvoiceForm() {
                     Select Delivery Challan
                   </label>
                   <select
+                    name="invoice_challan_id"
+                    id="invoice_challan_id"
                     value={currentItem.delivery_challan_item_id}
                     onChange={(e) => handleChallanSelect(e.target.value)}
                     disabled={!currentItem.item_id}
@@ -530,6 +538,8 @@ export default function InvoiceForm() {
                   </label>
                   <input
                     type="text"
+                    name="invoice_grn_no"
+                    id="invoice_grn_no"
                     value={currentItem.grn_no}
                     onChange={(e) =>
                       setCurrentItem({
@@ -751,6 +761,8 @@ export default function InvoiceForm() {
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
+                      name="gst_rate_edit"
+                      id="gst_rate_edit"
                       value={gstRate}
                       onChange={(e) => setGstRate(Number(e.target.value))}
                       className="w-16 px-2 py-1 text-sm font-bold text-center rounded border border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"

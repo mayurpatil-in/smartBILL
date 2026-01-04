@@ -205,10 +205,15 @@ export default function PaymentList() {
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-end">
         <div>
-          <label className="block text-xs font-medium mb-1 text-gray-500">
+          <label
+            htmlFor="filter_party_id"
+            className="block text-xs font-medium mb-1 text-gray-500"
+          >
             Party
           </label>
           <select
+            name="filter_party_id"
+            id="filter_party_id"
             value={filters.party_id}
             onChange={(e) =>
               setFilters({ ...filters, party_id: e.target.value })
@@ -224,10 +229,15 @@ export default function PaymentList() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1 text-gray-500">
+          <label
+            htmlFor="filter_payment_type"
+            className="block text-xs font-medium mb-1 text-gray-500"
+          >
             Type
           </label>
           <select
+            name="filter_payment_type"
+            id="filter_payment_type"
             value={filters.payment_type}
             onChange={(e) =>
               setFilters({ ...filters, payment_type: e.target.value })
@@ -346,11 +356,16 @@ export default function PaymentList() {
                 <div className="space-y-4">
                   {/* Party Select */}
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="payment_party_id"
+                      className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+                    >
                       Party
                     </label>
                     <select
                       required
+                      name="payment_party_id"
+                      id="payment_party_id"
                       value={formData.party_id}
                       onChange={(e) =>
                         setFormData({ ...formData, party_id: e.target.value })
@@ -368,12 +383,17 @@ export default function PaymentList() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="payment_date"
+                        className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+                      >
                         Date
                       </label>
                       <input
                         type="date"
                         required
+                        name="payment_date"
+                        id="payment_date"
                         value={formData.payment_date}
                         onChange={(e) =>
                           setFormData({
@@ -385,13 +405,18 @@ export default function PaymentList() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="payment_amount"
+                        className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+                      >
                         Amount
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         required
+                        name="payment_amount"
+                        id="payment_amount"
                         value={formData.amount}
                         onChange={(e) =>
                           setFormData({ ...formData, amount: e.target.value })
@@ -404,10 +429,15 @@ export default function PaymentList() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="payment_type"
+                        className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+                      >
                         Type
                       </label>
                       <select
+                        name="payment_type"
+                        id="payment_type"
                         value={formData.payment_type}
                         onChange={(e) =>
                           setFormData({
@@ -422,10 +452,15 @@ export default function PaymentList() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="payment_mode"
+                        className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+                      >
                         Mode
                       </label>
                       <select
+                        name="payment_mode"
+                        id="payment_mode"
                         value={formData.payment_mode}
                         onChange={(e) =>
                           setFormData({
@@ -445,11 +480,16 @@ export default function PaymentList() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="payment_reference"
+                      className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+                    >
                       Reference / Notes
                     </label>
                     <input
                       type="text"
+                      name="payment_reference"
+                      id="payment_reference"
                       value={formData.reference_number}
                       onChange={(e) =>
                         setFormData({
@@ -462,6 +502,8 @@ export default function PaymentList() {
                     />
                     <textarea
                       rows="2"
+                      name="payment_notes"
+                      id="payment_notes"
                       value={formData.notes}
                       onChange={(e) =>
                         setFormData({ ...formData, notes: e.target.value })
@@ -541,6 +583,8 @@ export default function PaymentList() {
                                     }
                                     className="w-20 px-2 py-1 text-right text-xs border rounded bg-white dark:bg-gray-800"
                                     onClick={(e) => e.stopPropagation()}
+                                    name={`allocation_${inv.id}`}
+                                    id={`allocation_${inv.id}`}
                                   />
                                 )}
                               </div>

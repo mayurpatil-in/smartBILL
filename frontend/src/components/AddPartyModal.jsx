@@ -81,6 +81,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <Input
             label="Party Name"
+            name="party_name"
+            id="party_name"
             value={form.name}
             onChange={(v) => setForm({ ...form, name: v })}
             required
@@ -90,12 +92,16 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Phone Number"
+              name="party_phone"
+              id="party_phone"
               value={form.phone}
               onChange={(v) => setForm({ ...form, phone: v })}
             />
             <Input
               label="Email (Optional)"
               type="email"
+              name="party_email"
+              id="party_email"
               value={form.email}
               onChange={(v) => setForm({ ...form, email: v })}
             />
@@ -103,6 +109,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
 
           <Input
             label="GSTIN (Optional)"
+            name="gst_number"
+            id="gst_number"
             value={form.gst_number}
             onChange={(v) => setForm({ ...form, gst_number: v })}
             placeholder="e.g. 29ABCDE1234F1Z5"
@@ -110,6 +118,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
 
           <Input
             label="Address (Optional)"
+            name="party_address"
+            id="party_address"
             value={form.address}
             onChange={(v) => setForm({ ...form, address: v })}
           />
@@ -117,6 +127,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
           <Input
             label="Opening Balance (Optional)"
             type="number"
+            name="opening_balance"
+            id="opening_balance"
             value={form.opening_balance}
             onChange={(v) => setForm({ ...form, opening_balance: v })}
           />
@@ -129,6 +141,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
+                name="is_active"
+                id="is_active"
                 className="sr-only peer"
                 checked={form.is_active}
                 onChange={(e) =>
@@ -171,14 +185,21 @@ function Input({
   required = false,
   placeholder = "",
   autoFocus = false,
+  name,
+  id,
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
+      <label
+        htmlFor={id || name}
+        className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300"
+      >
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type={type}
+        name={name}
+        id={id || name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}

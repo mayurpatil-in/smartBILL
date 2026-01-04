@@ -405,6 +405,8 @@ export default function AddDeliveryChallanModal({
                   Party <span className="text-red-500">*</span>
                 </label>
                 <select
+                  name="delivery_party_id"
+                  id="delivery_party_id"
                   value={form.party_id}
                   onChange={(e) => handlePartyChange(e.target.value)}
                   required
@@ -426,6 +428,8 @@ export default function AddDeliveryChallanModal({
                 </label>
                 <input
                   type="date"
+                  name="delivery_challan_date"
+                  id="delivery_challan_date"
                   value={form.challan_date}
                   onChange={(e) =>
                     setForm({ ...form, challan_date: e.target.value })
@@ -442,6 +446,8 @@ export default function AddDeliveryChallanModal({
                 </label>
                 <input
                   type="text"
+                  name="vehicle_number"
+                  id="vehicle_number"
                   value={form.vehicle_number}
                   onChange={(e) =>
                     setForm({ ...form, vehicle_number: e.target.value })
@@ -469,6 +475,8 @@ export default function AddDeliveryChallanModal({
                     Select Item <span className="text-red-500">*</span>
                   </label>
                   <select
+                    name="delivery_item_id"
+                    id="delivery_item_id"
                     value={currentItem.item_id}
                     onChange={(e) => handleItemChange(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
@@ -516,6 +524,8 @@ export default function AddDeliveryChallanModal({
                     Select Challan <span className="text-red-500">*</span>
                   </label>
                   <select
+                    name="party_challan_item_id"
+                    id="party_challan_item_id"
                     value={currentItem.party_challan_item_id}
                     onChange={(e) => handleChallanItemChange(e.target.value)}
                     disabled={!currentItem.item_id}
@@ -552,6 +562,8 @@ export default function AddDeliveryChallanModal({
                   </label>
                   <input
                     type="number"
+                    name="ok_qty"
+                    id="ok_qty"
                     value={currentItem.ok_qty}
                     onChange={(e) => handleQtyChange("ok_qty", e.target.value)}
                     min="0"
@@ -568,6 +580,8 @@ export default function AddDeliveryChallanModal({
                   </label>
                   <input
                     type="number"
+                    name="cr_qty"
+                    id="cr_qty"
                     value={currentItem.cr_qty}
                     onChange={(e) => handleQtyChange("cr_qty", e.target.value)}
                     min="0"
@@ -584,6 +598,8 @@ export default function AddDeliveryChallanModal({
                   </label>
                   <input
                     type="number"
+                    name="mr_qty"
+                    id="mr_qty"
                     value={currentItem.mr_qty}
                     onChange={(e) => handleQtyChange("mr_qty", e.target.value)}
                     min="0"

@@ -346,6 +346,8 @@ export default function AddPartyChallanModal({
                 </label>
                 <input
                   type="text"
+                  name="challan_number"
+                  id="challan_number"
                   value={form.challan_number}
                   onChange={(e) =>
                     setForm({ ...form, challan_number: e.target.value })
@@ -362,6 +364,8 @@ export default function AddPartyChallanModal({
                   Party <span className="text-red-500">*</span>
                 </label>
                 <select
+                  name="party_id"
+                  id="party_id"
                   value={form.party_id}
                   onChange={(e) =>
                     setForm({ ...form, party_id: e.target.value })
@@ -385,6 +389,8 @@ export default function AddPartyChallanModal({
                 </label>
                 <input
                   type="date"
+                  name="challan_date"
+                  id="challan_date"
                   value={form.challan_date}
                   onChange={(e) =>
                     setForm({ ...form, challan_date: e.target.value })
@@ -401,6 +407,8 @@ export default function AddPartyChallanModal({
                 </label>
                 <input
                   type="number"
+                  name="working_days"
+                  id="working_days"
                   value={form.working_days}
                   onChange={(e) =>
                     setForm({ ...form, working_days: e.target.value })
@@ -429,6 +437,8 @@ export default function AddPartyChallanModal({
                     Select Item <span className="text-red-500">*</span>
                   </label>
                   <select
+                    name="item_id"
+                    id="item_id"
                     value={currentItem.item_id}
                     onChange={(e) => handleItemChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
@@ -450,6 +460,8 @@ export default function AddPartyChallanModal({
                     Select Process
                   </label>
                   <select
+                    name="process_id"
+                    id="process_id"
                     value={currentItem.process_id}
                     onChange={(e) =>
                       setCurrentItem({
@@ -493,6 +505,8 @@ export default function AddPartyChallanModal({
                   </label>
                   <input
                     type="number"
+                    name="quantity_ordered"
+                    id="quantity_ordered"
                     value={currentItem.quantity_ordered}
                     onChange={(e) =>
                       setCurrentItem({

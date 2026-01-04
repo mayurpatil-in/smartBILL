@@ -150,6 +150,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
               <Input
                 label="Item Name"
                 icon={<Tag size={16} />}
+                name="item_name"
+                id="item_name"
                 value={form.name}
                 onChange={(v) => setForm({ ...form, name: v })}
                 required
@@ -172,6 +174,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                     Linked Party
                   </label>
                   <select
+                    name="party_link"
+                    id="party_link"
                     value={form.party_id}
                     onChange={(e) =>
                       setForm({ ...form, party_id: e.target.value })
@@ -197,6 +201,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                   </label>
                   <div className="flex gap-2">
                     <select
+                      name="process_link"
+                      id="process_link"
                       value={form.process_id}
                       onChange={(e) =>
                         setForm({ ...form, process_id: e.target.value })
@@ -235,6 +241,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                 <Input
                   label="HSN Code"
                   icon={<Tag size={16} />}
+                  name="hsn_code"
+                  id="hsn_code"
                   value={form.hsn_code}
                   onChange={(v) => setForm({ ...form, hsn_code: v })}
                   placeholder="e.g., 7326"
@@ -242,6 +250,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                 <Input
                   label="P.O Number"
                   icon={<FileText size={16} />}
+                  name="po_number"
+                  id="po_number"
                   value={form.po_number}
                   onChange={(v) => setForm({ ...form, po_number: v })}
                   placeholder="e.g., PO-2024-001"
@@ -260,6 +270,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                   label="Casting Weight"
                   icon={<Weight size={16} />}
                   type="number"
+                  name="casting_weight"
+                  id="casting_weight"
                   value={form.casting_weight}
                   onChange={(v) => setForm({ ...form, casting_weight: v })}
                   placeholder="0.000"
@@ -270,6 +282,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                   label="Scrap Weight"
                   icon={<Weight size={16} />}
                   type="number"
+                  name="scrap_weight"
+                  id="scrap_weight"
                   value={form.scrap_weight}
                   onChange={(v) => setForm({ ...form, scrap_weight: v })}
                   placeholder="0.000"
@@ -281,6 +295,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                 label="Rate"
                 icon={<DollarSign size={16} />}
                 type="number"
+                name="item_rate"
+                id="item_rate"
                 value={form.rate}
                 onChange={(v) => setForm({ ...form, rate: v })}
                 required
@@ -305,6 +321,8 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
+                  name="item_status_toggle"
+                  id="item_status_toggle"
                   className="sr-only peer"
                   checked={form.is_active}
                   onChange={(e) =>
@@ -358,10 +376,15 @@ function Input({
   prefix = null,
   suffix = null,
   step = null,
+  name,
+  id,
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+      <label
+        htmlFor={id || name}
+        className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+      >
         {icon && <span className="text-gray-400">{icon}</span>}
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -373,6 +396,8 @@ function Input({
         )}
         <input
           type={type}
+          name={name}
+          id={id || name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}

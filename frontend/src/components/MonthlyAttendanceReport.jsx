@@ -135,6 +135,8 @@ export default function MonthlyAttendanceReport() {
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value))}
               className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20"
+              name="report_month"
+              id="report_month"
             >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m}>
@@ -154,6 +156,8 @@ export default function MonthlyAttendanceReport() {
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
               className="w-20 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20"
+              name="report_year"
+              id="report_year"
             />
           </div>
           <button

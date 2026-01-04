@@ -147,6 +147,8 @@ export default function Parties() {
             <Search className="text-gray-400" size={20} />
             <input
               type="text"
+              name="party_search"
+              id="party_search"
               placeholder="Search parties by name..."
               className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
               value={searchTerm}

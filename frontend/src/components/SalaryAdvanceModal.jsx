@@ -114,6 +114,8 @@ export default function SalaryAdvanceModal({ isOpen, onClose, employee }) {
                       onChange={(e) => setAmount(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none"
                       placeholder="0.00"
+                      name="advance_amount"
+                      id="advance_amount"
                     />
                   </div>
                 </div>
@@ -132,6 +134,8 @@ export default function SalaryAdvanceModal({ isOpen, onClose, employee }) {
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none"
+                      name="advance_date"
+                      id="advance_date"
                     />
                   </div>
                 </div>
@@ -146,6 +150,8 @@ export default function SalaryAdvanceModal({ isOpen, onClose, employee }) {
                   onChange={(e) => setReason(e.target.value)}
                   className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none"
                   placeholder="e.g. Personal emergency"
+                  name="advance_reason"
+                  id="advance_reason"
                 />
               </div>
               <div className="flex gap-2 justify-end">
