@@ -40,8 +40,23 @@ export function AuthProvider({ children }) {
         setUser(initialUser);
 
         // 🌍 Fetch fresh data from API to ensure updates persist
-        try {
-          const profileData = await getProfile();
+        // 🔄 RETRY LOGIC for Sidecar startup delay
+        let retries = 5;
+        let profileData = null;
+
+        while (retries > 0) {
+          try {
+            profileData = await getProfile();
+            break; // Success
+          } catch (e) {
+            console.warn(`Init profile fetch failed. Retries left: ${retries}`);
+            retries--;
+            if (retries === 0) throw e;
+            await new Promise((res) => setTimeout(res, 1000)); // Wait 1s
+          }
+        }
+
+        if (profileData) {
           setUser((prev) => ({
             ...prev,
             name: profileData.user.name,
@@ -49,8 +64,6 @@ export function AuthProvider({ children }) {
             companyName: profileData.company?.name || prev.companyName,
             companyLogo: profileData.company?.logo,
           }));
-        } catch (e) {
-          console.warn("Failed to fetch fresh profile on init", e);
         }
 
         startTimer();

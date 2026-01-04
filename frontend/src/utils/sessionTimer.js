@@ -1,3 +1,5 @@
+import { API_URL } from "../api/axios";
+
 let listeners = [];
 let interval = null;
 
@@ -84,7 +86,7 @@ export function clearSession() {
  */
 export async function refreshSession() {
   try {
-    const baseURL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+    const baseURL = API_URL;
     
     const res = await fetch(
       `${baseURL}/auth/refresh`,

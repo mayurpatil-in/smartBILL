@@ -80,10 +80,12 @@ npx tailwindcss init -p
 
 ## ⭐ Desktop
 
-### Frontend Run
+### Dektop Run
 
 ```bash
 npm run tauri dev
+
+npm run tauri icon app-icon.png # Change app-icon.png to your icon
 ```
 
 ## Status: 🚧 In Progress
