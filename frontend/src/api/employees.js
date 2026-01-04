@@ -65,3 +65,16 @@ export const uploadDocument = async (userId, formData) => {
   });
   return response.data;
 };
+
+export const payEmployeeSalary = async (userId, month, year, paymentMethod) => {
+  const response = await api.post(`/employees/${userId}/salary/pay`, null, {
+  });
+  return response.data;
+};
+
+export const getEmployeeIDCard = async (userId) => {
+  const response = await api.get(`/employees/${userId}/id-card/pdf`, {
+    responseType: 'blob',
+  });
+  return window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+};

@@ -5,6 +5,7 @@ import {
   User,
   Mail,
   DollarSign,
+  IndianRupee,
   Briefcase,
   Phone,
   Calendar,
@@ -54,7 +55,7 @@ export default function AddEmployeeModal({
       toast.success(`${type.toUpperCase()} uploaded successfully`);
 
       // Update local state to show the link
-      const key = `${type}_doc_path`;
+      const key = type === "photo" ? "photo_path" : `${type}_doc_path`;
       setFormData((prev) => ({
         ...prev,
         profile: {
@@ -63,7 +64,7 @@ export default function AddEmployeeModal({
         },
       }));
     } catch (err) {
-      toast.error("Upload failed");
+      toast.error("Failed to upload document");
     } finally {
       setUploading(false);
     }
@@ -299,6 +300,46 @@ export default function AddEmployeeModal({
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                     </div>
                   </label>
+                </div>
+
+                {/* PROFILE PHOTO UPLOAD */}
+                <div className="flex justify-center">
+                  <div className="relative group">
+                    <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      {formData.profile?.photo_path ? (
+                        <img
+                          src={`http://localhost:8000/${formData.profile.photo_path.replace(
+                            /\\/g,
+                            "/"
+                          )}`}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : pendingDocs["photo"] ? (
+                        <img
+                          src={URL.createObjectURL(pendingDocs["photo"])}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={48} className="text-gray-400" />
+                      )}
+                    </div>
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                      <Upload size={24} />
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => handleFileUpload(e, "photo")}
+                        accept="image/*"
+                      />
+                    </label>
+                    {uploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-full">
+                        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -598,7 +639,7 @@ export default function AddEmployeeModal({
                         Base Salary / Rate
                       </label>
                       <div className="relative">
-                        <DollarSign
+                        <IndianRupee
                           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                           size={18}
                         />

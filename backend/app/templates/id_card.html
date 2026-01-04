@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Employee ID Card</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', 'Helvetica', sans-serif; /* Modern Font */
+            background-color: #f3f4f6;
+            -webkit-print-color-adjust: exact;
+        }
+        .page {
+            width: 210mm;
+            height: 297mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 40px; /* More breathing room */
+        }
+        
+        /* CARD COMMON */
+        .card {
+            width: 54mm;  
+            height: 85.6mm; 
+            position: relative;
+            background-color: white;
+            border-radius: 12px; /* Smooth corners */
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); /* Premium shadow */
+            border: 1px dashed #d1d5db;
+        }
+
+        /* FRONT SIDE */
+        .front {
+            background: #ffffff;
+            /* Subtle Background Pattern */
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 10px 10px;
+        }
+        
+        /* Premium Curved Header */
+        .header-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 38mm;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            z-index: 1;
+            /* Abstract shape accent */
+            overflow: hidden;
+        }
+        
+        .header-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            right: -20%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .company-name {
+            position: relative;
+            z-index: 2;
+            color: white;
+            padding-top: 5mm;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            width: 90%;
+            margin: 0 auto;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .profile-photo-container {
+            position: relative;
+            z-index: 3;
+            width: 30mm;
+            height: 30mm;
+            margin: 3mm auto 0;
+            padding: 3px;
+            background: linear-gradient(to bottom right, #fbbf24, #d97706); /* Gold Border */
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .profile-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white; 
+            background-color: #f3f4f6;
+            display: block;
+        }
+
+        .employee-info {
+            text-align: center;
+            padding-top: 5mm;
+            position: relative;
+            z-index: 2;
+        }
+
+        .name {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .designation {
+            font-size: 8px;
+            color: #d97706; /* Gold/Amber text */
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 2px;
+            letter-spacing: 1px;
+            background: rgba(251, 191, 36, 0.1);
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .details-table {
+            width: 85%;
+            margin: 15px auto 0;
+            font-size: 9px;
+            color: #4b5563;
+            border-collapse: separate;
+            border-spacing: 0 3x; /* Space between rows */
+        }
+        .details-table td {
+            text-align: left;
+            padding: 2px 0;
+            width: 50%; /* Force equal columns */
+        }
+        .details-table td.label {
+            font-weight: 700;
+            color: #94a3b8;
+            text-align: right;
+            padding-right: 8px; /* Gap from center */
+            font-size: 8px;
+            text-transform: uppercase;
+            width: 50%; /* Center the split */
+        }
+        .details-table td.value {
+            font-weight: 600;
+            color: #1e293b;
+            text-align: left;
+            padding-left: 1px; /* Gap from center */
+        }
+
+        /* BACK SIDE */
+        .back {
+            background: #0f172a; /* Slate 900 */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background-image: linear-gradient(45deg, #0f172a 25%, #1e293b 25%, #1e293b 50%, #0f172a 50%, #0f172a 75%, #1e293b 75%, #1e293b 100%);
+            background-size: 20px 20px;
+        }
+        
+        .back-content {
+            padding: 15px;
+            position: relative;
+            z-index: 2;
+            background: rgba(15, 23, 42, 0.8); /* Overlay for text readability */
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 5px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            margin-bottom: 5mm;
+        }
+
+        .qr-code {
+            width: 32mm;
+            height: 32mm;
+            display: block;
+        }
+
+        .scan-text {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #fbbf24; /* Gold */
+            margin-bottom: 3mm;
+        }
+
+        .verification-note {
+            font-size: 7px;
+            color: #94a3b8;
+            max-width: 85%;
+            margin: 0 auto;
+            line-height: 1.4;
+            font-weight: 300;
+        }
+        
+        .verification-note b {
+            color: white;
+            font-weight: 600;
+        }
+
+        .back-footer {
+            position: absolute;
+            bottom: 4mm;
+            width: 100%;
+            font-size: 6px;
+            color: #64748b;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        .cut-instruction {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- FRONT SIDE -->
+        <div style="position: relative;">
+            <div class="cut-instruction">FRONT SIDE</div>
+            <div class="card front">
+                <div class="header-bg"></div>
+                <div class="company-name">{{ company.name }}</div>
+                
+                <div class="profile-photo-container">
+                {% if employee.employee_profile and employee.employee_profile.photo_path %}
+                    <img src="{{ request_base_url }}/{{ employee.employee_profile.photo_path | replace('\\', '/') }}" class="profile-photo" />
+                {% else %}
+                    <div class="profile-photo" style="display: flex; align-items: center; justify-content: center; font-size: 30px; color: #9ca3af; background: white;">
+                        {{ employee.name[0] }}
+                    </div>
+                {% endif %}
+                </div>
+
+                <div class="employee-info">
+                    <h1 class="name">{{ employee.name }}</h1>
+                    <div class="designation">{{ employee.employee_profile.designation or 'Team Member' }}</div>
+                    
+                    <table class="details-table">
+                        <tr>
+                            <td class="label">ID Number:</td>
+                            <td class="value">EMP-{{ "%03d" | format(employee.id) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Date Joined:</td>
+                            <td class="value">{{ employee.employee_profile.joining_date if employee.employee_profile.joining_date else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Contact:</td>
+                            <td class="value">{{ employee.employee_profile.phone or 'N/A' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Premium Gold Accent Bottom -->
+                <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(to right, #1e3a8a, #2563eb);"></div>
+            </div>
+        </div>
+
+        <!-- BACK SIDE -->
+         <div style="position: relative;">
+            <div class="cut-instruction">BACK SIDE</div>
+            <div class="card back">
+                 <div class="back-content">
+                    <div class="scan-text">Scan to Verify</div>
+                    
+                    <div class="qr-wrapper">
+                        {% if qr_code_base64 %}
+                            <img src="data:image/png;base64,{{ qr_code_base64 }}" class="qr-code" />
+                        {% endif %}
+                    </div>
+                    
+                    <div class="verification-note">
+                        This card is the property of<br><b>{{ company.name }}</b>.<br><br>
+                        If found, please return to the company address or contact support.
+                    </div>
+                    
+                    <div class="back-footer">
+                        Securely Generated by AcrNeuron.ai
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

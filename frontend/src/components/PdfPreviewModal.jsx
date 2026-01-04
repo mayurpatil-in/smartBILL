@@ -172,31 +172,33 @@ export default function PdfPreviewModal({
             <button
               onClick={() => {
                 const toastId = toast.loading("Preparing print...");
+
+                // Remove existing print iframe if any
+                const existingIframe = document.getElementById("print-iframe");
+                if (existingIframe) document.body.removeChild(existingIframe);
+
                 const iframe = document.createElement("iframe");
-                // Position off-screen but keep dimensions to ensure rendering
+                iframe.id = "print-iframe";
                 iframe.style.position = "fixed";
                 iframe.style.left = "-10000px";
                 iframe.style.top = "0";
                 iframe.style.width = "1000px";
                 iframe.style.height = "1000px";
-                iframe.style.border = "0";
                 iframe.src = pdfUrl;
+
                 document.body.appendChild(iframe);
 
                 iframe.onload = () => {
-                  // PDF Viewer needs time to initialize
+                  toast.success("Printing...", { id: toastId });
                   setTimeout(() => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    toast.dismiss(toastId);
-
-                    // Cleanup
-                    setTimeout(() => {
-                      if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                      }
-                    }, 60000);
-                  }, 2000); // 2 second delay for rendering
+                    try {
+                      iframe.contentWindow.focus();
+                      iframe.contentWindow.print();
+                    } catch (e) {
+                      console.error(e);
+                      toast.error("Print failed. Try downloading.");
+                    }
+                  }, 500);
                 };
               }}
               className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition flex items-center gap-2"

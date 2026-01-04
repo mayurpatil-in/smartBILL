@@ -123,3 +123,4 @@ class SalarySlip(BaseModel):
     total_advances_deducted: float = 0.0
     
     final_payable: float
+    is_paid: bool = False

@@ -84,9 +84,11 @@ app.include_router(reports_router)
 
 from app.routers.public_challan import router as public_challan_router
 from app.routers.public_reports import router as public_reports_router
+from app.routers.public_verify import router as public_verify_router
 
 app.include_router(public_challan_router)
 app.include_router(public_reports_router)
+app.include_router(public_verify_router)
 
 from app.routers.invoice import public_router as public_invoice_router
 app.include_router(public_invoice_router)

@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import extract, and_, func
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 from calendar import monthrange
 import shutil
 import os
+import os
+import qrcode
+import io
+import base64
+from jose import jwt
+from app.core.config import settings
 from jinja2 import Environment, FileSystemLoader
 
 from app.services.pdf_service import generate_pdf
@@ -21,8 +27,9 @@ from app.schemas.user import (
     AttendanceCreate, AttendanceResponse, SalarySlip,
     SalaryAdvanceCreate, SalaryAdvanceResponse
 )
-from app.core.dependencies import get_company_id
+from app.core.dependencies import get_company_id, get_active_financial_year
 from app.core.security import get_password_hash
+from app.models.expense import Expense
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -365,6 +372,19 @@ def calculate_salary(
 
     final_payable = calculated_amount + total_overtime_pay + total_bonus - total_advances
 
+    # Check if already paid
+    # Construct description to match pay_salary logic
+    month_name = date(year, month, 1).strftime("%B")
+    expected_desc = f"Salary for {user.name} - {month_name} {year}"
+    
+    existing_expense = db.query(Expense).filter(
+        Expense.category == "Salary",
+        Expense.description == expected_desc,
+        Expense.company_id == company_id
+    ).first()
+    
+    is_paid = existing_expense is not None
+
     return SalarySlip(
         user_id=user_id,
         month=f"{year}-{month:02d}",
@@ -375,7 +395,8 @@ def calculate_salary(
         total_overtime_pay=round(total_overtime_pay, 2),
         total_bonus=round(total_bonus, 2),
         total_advances_deducted=round(total_advances, 2),
-        final_payable=round(final_payable, 2)
+        final_payable=round(final_payable, 2),
+        is_paid=is_paid
     )
 
 # ================================
@@ -416,6 +437,8 @@ def upload_document(
         profile.aadhar_doc_path = file_path
     elif doc_type == "resume":
         profile.resume_doc_path = file_path
+    elif doc_type == "photo":
+        profile.photo_path = file_path
         
     db.commit()
     
@@ -483,6 +506,126 @@ async def get_salary_slip_pdf(
     pdf_content = await generate_pdf(html_content)
     
     filename = f"SalarySlip_{user.name}_{month_name}{year}.pdf"
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
+    )
+
+@router.post("/{user_id}/salary/pay")
+def pay_salary(
+    user_id: int,
+    month: int,
+    year: int,
+    payment_method: str = "Cash",
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Calculates the final payable salary and creates an Expense record.
+    """
+    # 1. Calculate Salary (Reuse logic)
+    try:
+        slip = calculate_salary(user_id, month, year, company_id, db)
+    except HTTPException as e:
+        raise e
+    
+    if slip.is_paid:
+        raise HTTPException(status_code=400, detail="Salary already paid for this month")
+    
+    if slip.final_payable <= 0:
+        raise HTTPException(status_code=400, detail="Net payable amount is zero or negative")
+
+    # 2. Get Employee Name
+    user = db.query(User).filter(User.id == user_id).first()
+    emp_name = user.name if user else "Employee"
+    month_name = date(year, month, 1).strftime("%B")
+
+    # 3. Create Expense
+    expense = Expense(
+        company_id=company_id,
+        financial_year_id=fy.id,
+        date=date.today(),
+        category="Salary",
+        description=f"Salary for {emp_name} - {month_name} {year}",
+        amount=slip.final_payable,
+        payment_method=payment_method,
+        status="PAID"
+    )
+    
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+    
+    return {"message": "Salary paid and expense created", "expense_id": expense.id}
+
+
+@router.get("/{user_id}/id-card/pdf")
+async def get_id_card_pdf(
+    user_id: int,
+    request: Request,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    # 1. Fetch User
+    user = db.query(User).options(joinedload(User.employee_profile)).filter(
+        User.id == user_id, 
+        User.company_id == company_id
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+        
+    company = user.company
+    
+    # 2. Generate QR Code (VCard format or just info)
+    # Simple VCard
+    # 2. Generate QR Code (Verification URL)
+    # Attempt to determine frontend URL from referer (best guess for client origin)
+    referer = request.headers.get("referer")
+    if referer:
+        # referer example: http://localhost:5173/employees
+        base_url = "/".join(referer.split("/")[:3]) 
+    else:
+        # Fallback
+        base_url = f"{request.url.scheme}://{request.url.hostname}:5173"
+        
+    # Generate Secure Token
+    token_payload = {"sub": str(user.id), "type": "verification"}
+    token = jwt.encode(token_payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    
+    verification_url = f"{base_url}/verify-id/{user.id}?token={token}"
+    
+    qr = qrcode.QRCode(box_size=2, border=1)
+    qr.add_data(verification_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
+    # 3. Render Template
+    # Base URL for images
+    request_base_url = str(request.base_url).rstrip("/")
+    
+    template = env.get_template("id_card.html")
+    html_content = template.render(
+        company=company,
+        employee=user,
+        qr_code_base64=qr_base64,
+        request_base_url=request_base_url
+    )
+    
+    # 4. Generate PDF
+    # ID Card Dimensions approx 2.125 x 3.375 inches
+    # We might need to pass custom options to generate_pdf if it supports size args,
+    # otherwise CSS @page should handle it with proper print options.
+    pdf_content = await generate_pdf(html_content)
+    
+    filename = f"IDCard_{user.name}.pdf"
     
     return Response(
         content=pdf_content,

@@ -22,6 +22,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Payments = lazy(() => import("./pages/PaymentList"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Expenses = lazy(() => import("./pages/Expenses")); // [NEW]
+const VerifyID = lazy(() => import("./pages/VerifyID"));
 
 function AppRoutes() {
   const { isSuperAdmin } = useAuth();
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-id/:id" element={<VerifyID />} />
 
         {/* Protected App */}
         <Route

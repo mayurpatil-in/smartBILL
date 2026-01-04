@@ -28,7 +28,10 @@ from sqlalchemy.orm import joinedload
 
 from app.models.invoice_item import InvoiceItem
 from app.models.delivery_challan_item import DeliveryChallanItem
+from app.models.invoice_item import InvoiceItem
+from app.models.delivery_challan_item import DeliveryChallanItem
 from app.models.party_challan_item import PartyChallanItem
+from app.schemas.report import DashboardStats
 
 from starlette.templating import Jinja2Templates
 
@@ -1074,7 +1077,7 @@ async def get_stock_ledger_pdf(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-@router.get("/dashboard-stats")
+@router.get("/dashboard-stats", response_model=DashboardStats)
 def get_dashboard_stats(
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
@@ -1084,9 +1087,11 @@ def get_dashboard_stats(
     Returns aggregated stats for the dashboard:
     1. Total Revenue (Payments Received)
     2. Total Receivables (Unpaid Invoices)
-    3. Total Payables (Unpaid Expenses/Purchases - Placeholder if not fully implemented)
-    4. Monthly Sales Trend (Last 6 months)
-    5. Recent Invoices (Top 5)
+    3. Total Payables (Unpaid Expenses/Purchases)
+    4. Sales Trend
+    5. Recent Invoices
+    6. Expense Breakdown (Pie Chart)
+    7. Cash Flow Trend (Income vs Exp)
     """
     from app.models.payment import Payment
     from app.models.expense import Expense
@@ -1101,36 +1106,30 @@ def get_dashboard_stats(
     ).scalar() or 0.0
 
     # 2. Total Receivables (Pending Invoice Amounts)
-    # We sum (Grand Total - Paid Amount) for all OPEN/PARTIAL invoices
-    # Note: Using a direct calculation might be accurate enough
     receivables = db.query(func.sum(Invoice.grand_total - Invoice.paid_amount)).filter(
         Invoice.company_id == company_id,
         Invoice.financial_year_id == fy.id,
-        Invoice.status.in_(["BILLED", "PARTIAL", "OPEN"]) # Exclude PAID and CANCELLED
+        Invoice.status.in_(["BILLED", "PARTIAL", "OPEN"])
     ).scalar() or 0.0
 
     # 3. Total Payables / Outflow
-    # A. Vendor Payments (Purchase Bills mainly)
+    # A. Vendor Payments
     payments_made = float(db.query(func.sum(Payment.amount)).filter(
         Payment.company_id == company_id,
         Payment.financial_year_id == fy.id,
         Payment.payment_type == "PAID"
     ).scalar() or 0.0)
     
-    # B. Operational Expenses (Rent, Salary, etc form Expense Module)
-    # Only count PAID expenses for cash flow, or all for accrual? usually PAID for simple dash
-    # Our Expense model defaults status='PAID' for standard expenses
+    # B. Operational Expenses (Only PAID for cash flow)
     operational_expenses = float(db.query(func.sum(Expense.amount)).filter(
         Expense.company_id == company_id,
         Expense.financial_year_id == fy.id,
         Expense.status == "PAID"
     ).scalar() or 0.0)
 
-    # Total Money Out
     total_expenses = payments_made + operational_expenses
     
     # 4. Monthly Sales Trend (Last 6 Months within FY)
-    # Group by Month
     sales_data = db.query(
         extract('month', Invoice.invoice_date).label('month'),
         func.sum(Invoice.grand_total).label('total')
@@ -1140,26 +1139,16 @@ def get_dashboard_stats(
         Invoice.status != "CANCELLED"
     ).group_by(extract('month', Invoice.invoice_date)).all()
 
-    # Format for Frontend (Ensure all months are present or just return what we have)
-    # Map month number to Name
     sales_map = {row.month: float(row.total) for row in sales_data}
     
     chart_data = []
-    # Simple approach: Show all 12 months of FY or just relevant ones. 
-    # Let's show the months of the active FY (Sorted)
-    # Assuming FY starts in April (Indian FY) or Jan. 
-    # We'll just sort the data we found.
-    
+    # Simple FY check: If FY matches current year, show relevant months
     for m in range(1, 13):
         if m in sales_map:
             chart_data.append({
                 "name": calendar.month_abbr[m],
                 "sales": sales_map[m]
             })
-    
-    # Sort chart data by month index relative to FY start if possible, 
-    # but for now, simple calendar order or let frontend handle it. 
-    # Let's just return what we query.
 
     # 5. Recent Invoices
     recent_invoices = db.query(Invoice).options(joinedload(Invoice.party)).filter(
@@ -1177,6 +1166,69 @@ def get_dashboard_stats(
             "amount": float(inv.grand_total),
             "status": inv.status
         })
+        
+    # 6. Expense Breakdown (By Category)
+    expense_cat_data = db.query(
+        Expense.category,
+        func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.company_id == company_id,
+        Expense.financial_year_id == fy.id
+    ).group_by(Expense.category).all()
+    
+    expense_breakdown = [
+        {"category": row.category or "Uncategorized", "amount": float(row.total)}
+        for row in expense_cat_data
+    ]
+    
+    # 7. Cash Flow Trend (Income vs Expense per month)
+    # Income (Payments Received)
+    income_data = db.query(
+        extract('month', Payment.payment_date).label('month'),
+        func.sum(Payment.amount).label('total')
+    ).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == "RECEIVED"
+    ).group_by(extract('month', Payment.payment_date)).all()
+    income_map = {row.month: float(row.total) for row in income_data}
+    
+    # Expenses (Vendor Payments)
+    vendor_exp_data = db.query(
+        extract('month', Payment.payment_date).label('month'),
+        func.sum(Payment.amount).label('total')
+    ).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == "PAID"
+    ).group_by(extract('month', Payment.payment_date)).all()
+    vendor_exp_map = {row.month: float(row.total) for row in vendor_exp_data}
+    
+    # Operational Expenses
+    op_exp_data = db.query(
+        extract('month', Expense.date).label('month'),
+        func.sum(Expense.amount).label('total')
+    ).filter(
+        Expense.company_id == company_id,
+        Expense.financial_year_id == fy.id
+    ).group_by(extract('month', Expense.date)).all()
+    op_exp_map = {row.month: float(row.total) for row in op_exp_data}
+    
+    monthly_cashflow = []
+    # Iterate all 12 months for simpler chart data
+    for m in range(1, 13):
+        inc = income_map.get(m, 0.0)
+        exp = vendor_exp_map.get(m, 0.0) + op_exp_map.get(m, 0.0)
+        
+        # Only add if there's data to keep chart clean? Or show all 0s?
+        # Clean is better.
+        if inc > 0 or exp > 0:
+            monthly_cashflow.append({
+                "month": calendar.month_abbr[m],
+                "income": inc,
+                "expense": exp,
+                "net": inc - exp
+            })
 
     return {
         "revenue": float(total_revenue),
@@ -1184,7 +1236,9 @@ def get_dashboard_stats(
         "expenses": float(total_expenses),
         "net_income": float(total_revenue) - float(total_expenses),
         "sales_trend": chart_data,
-        "recent_activity": recent_data
+        "recent_activity": recent_data,
+        "expense_breakdown": expense_breakdown,
+        "monthly_cashflow": monthly_cashflow
     }
 
 

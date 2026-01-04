@@ -24,6 +24,7 @@ class EmployeeProfile(Base):
     pan_doc_path = Column(String(255), nullable=True)
     aadhar_doc_path = Column(String(255), nullable=True)
     resume_doc_path = Column(String(255), nullable=True)
+    photo_path = Column(String(255), nullable=True)
 
     joining_date = Column(Date, nullable=True)
     

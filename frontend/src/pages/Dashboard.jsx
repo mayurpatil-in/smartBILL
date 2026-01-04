@@ -9,9 +9,18 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
   Tooltip,
 } from "recharts";
-import { ArrowRight, Calendar, FileText } from "lucide-react";
+import {
+  ArrowRight,
+  Calendar,
+  FileText,
+  PieChart as PieChartIcon,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/axios";
 
@@ -148,11 +157,9 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Sales Overview
+                Cash Flow Analysis
               </h3>
-              <p className="text-sm text-gray-500">
-                Monthly revenue performance
-              </p>
+              <p className="text-sm text-gray-500">Income vs Expenses</p>
             </div>
           </div>
 
@@ -165,12 +172,12 @@ export default function Dashboard() {
                   <AreaChart
                     width={chartWidth}
                     height={300}
-                    data={stats?.sales_trend || []}
+                    data={stats?.monthly_cashflow || []}
                     margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                   >
                     <defs>
                       <linearGradient
-                        id="colorSales"
+                        id="colorIncome"
                         x1="0"
                         y1="0"
                         x2="0"
@@ -178,12 +185,30 @@ export default function Dashboard() {
                       >
                         <stop
                           offset="5%"
-                          stopColor="#2563eb"
+                          stopColor="#10b981"
                           stopOpacity={0.3}
                         />
                         <stop
                           offset="95%"
-                          stopColor="#2563eb"
+                          stopColor="#10b981"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                      <linearGradient
+                        id="colorExpense"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#ef4444"
+                          stopOpacity={0.3}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#ef4444"
                           stopOpacity={0}
                         />
                       </linearGradient>
@@ -194,7 +219,7 @@ export default function Dashboard() {
                       stroke="#f3f4f6"
                     />
                     <XAxis
-                      dataKey="name"
+                      dataKey="month"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#9ca3af", fontSize: 12 }}
@@ -212,19 +237,32 @@ export default function Dashboard() {
                         border: "none",
                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                       }}
-                      itemStyle={{ color: "#2563eb", fontWeight: 600 }}
-                      formatter={(val) => [
+                      formatter={(val, name) => [
                         `₹${val.toLocaleString()}`,
-                        "Revenue",
+                        name === "income" ? "Income" : "Expense",
                       ]}
+                    />
+                    <Legend
+                      iconType="circle"
+                      wrapperStyle={{ paddingTop: "20px" }}
                     />
                     <Area
                       type="monotone"
-                      dataKey="sales"
-                      stroke="#2563eb"
+                      dataKey="income"
+                      stroke="#10b981"
                       strokeWidth={3}
                       fillOpacity={1}
-                      fill="url(#colorSales)"
+                      fill="url(#colorIncome)"
+                      name="income"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="expense"
+                      stroke="#ef4444"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorExpense)"
+                      name="expense"
                     />
                   </AreaChart>
                 )}
@@ -233,70 +271,112 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* RECENT INVOICES / ACTIVITY */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-            Recent Invoices
+        {/* EXPENSE BREAKDOWN */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center relative">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 self-start w-full flex items-center justify-between">
+            Expense Breakdown
+            <PieChartIcon size={18} className="text-gray-400" />
           </h3>
 
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[300px] custom-scrollbar">
+          <div className="w-full h-[300px] flex items-center justify-center">
             {statsLoading ? (
-              [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 bg-gray-50 rounded-xl animate-pulse"
-                />
-              ))
-            ) : stats?.recent_activity?.length > 0 ? (
-              stats.recent_activity.map((inv) => (
-                <div
-                  key={inv.id}
-                  className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 cursor-pointer"
-                  onClick={() => navigate(`/invoices`)}
+              <div className="w-48 h-48 rounded-full bg-gray-50 dark:bg-gray-900 animate-pulse"></div>
+            ) : stats?.expense_breakdown?.length > 0 ? (
+              <PieChart width={300} height={300}>
+                <Pie
+                  data={stats.expense_breakdown}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="amount"
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                        inv.status === "PAID"
-                          ? "bg-green-100 text-green-600"
-                          : "bg-blue-100 text-blue-600"
-                      }`}
-                    >
-                      <FileText size={18} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {inv.party_name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {inv.invoice_number}
-                      </p>
-                    </div>
+                  {stats.expense_breakdown.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][
+                          index % 5
+                        ]
+                      }
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(val) => `₹${val.toLocaleString()}`}
+                  contentStyle={{ borderRadius: "12px", border: "none" }}
+                />
+                <Legend iconType="circle" />
+              </PieChart>
+            ) : (
+              <div className="text-gray-400 text-sm">No expense data</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* RECENT INVOICES / ACTIVITY */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+          Recent Invoices
+        </h3>
+
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[300px] custom-scrollbar">
+          {statsLoading ? (
+            [1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 bg-gray-50 rounded-xl animate-pulse"
+              />
+            ))
+          ) : stats?.recent_activity?.length > 0 ? (
+            stats.recent_activity.map((inv) => (
+              <div
+                key={inv.id}
+                className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 cursor-pointer"
+                onClick={() => navigate(`/invoices`)}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                      inv.status === "PAID"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-blue-100 text-blue-600"
+                    }`}
+                  >
+                    <FileText size={18} />
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      ₹{inv.amount.toLocaleString()}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {inv.party_name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {new Date(inv.date).toLocaleDateString()}
+                      {inv.invoice_number}
                     </p>
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-8">
-                No recent activity
-              </p>
-            )}
-          </div>
-
-          <button
-            onClick={() => navigate("/invoices")}
-            className="mt-4 w-full py-2.5 flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all"
-          >
-            View All Invoices <ArrowRight size={16} />
-          </button>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    ₹{inv.amount.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(inv.date).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-gray-500 py-8">No recent activity</p>
+          )}
         </div>
+
+        <button
+          onClick={() => navigate("/invoices")}
+          className="mt-4 w-full py-2.5 flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all"
+        >
+          View All Invoices <ArrowRight size={16} />
+        </button>
       </div>
     </div>
   );

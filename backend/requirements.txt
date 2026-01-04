@@ -41,3 +41,4 @@ httpx
 # ===============================
 playwright
 jinja2
+qrcode[pil]
