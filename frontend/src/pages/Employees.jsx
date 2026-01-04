@@ -726,7 +726,14 @@ function PaySalaryModal({
       onSuccess();
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.detail || "Failed to pay salary");
+      const detail = error.response?.data?.detail;
+      const msg =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail)
+          ? detail.map((d) => d.msg).join(", ")
+          : "Failed to pay salary";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

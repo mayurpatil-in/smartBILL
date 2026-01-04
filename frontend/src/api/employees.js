@@ -68,6 +68,7 @@ export const uploadDocument = async (userId, formData) => {
 
 export const payEmployeeSalary = async (userId, month, year, paymentMethod) => {
   const response = await api.post(`/employees/${userId}/salary/pay`, null, {
+    params: { month, year, payment_method: paymentMethod }
   });
   return response.data;
 };

@@ -291,6 +291,7 @@ export default function Dashboard() {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="amount"
+                  nameKey="category"
                 >
                   {stats.expense_breakdown.map((entry, index) => (
                     <Cell
