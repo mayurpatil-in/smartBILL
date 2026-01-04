@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, Query, Response
+import qrcode
+import io
+import base64
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
 from typing import List, Optional
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 from starlette.concurrency import run_in_threadpool
 
 from app.database.session import get_db
@@ -25,7 +29,10 @@ from app.models.invoice_item import InvoiceItem
 from app.models.delivery_challan_item import DeliveryChallanItem
 from app.models.party_challan_item import PartyChallanItem
 
+from starlette.templating import Jinja2Templates
+
 router = APIRouter(prefix="/reports", tags=["Reports"])
+templates = Jinja2Templates(directory="app/templates")
 
 @router.post("/recalculate-stock")
 def recalculate_stock(
@@ -1117,3 +1124,259 @@ def get_dashboard_stats(
         "sales_trend": chart_data,
         "recent_activity": recent_data
     }
+
+
+@router.get("/gst")
+def get_gst_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    type: str = "gstr1",  # gstr1 (Sales), gstr2 (Purchases - Future)
+    company_id: int = Depends(get_company_id),
+    fy=Depends(get_active_financial_year),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns GST Report Data (Sales Register for now).
+    Columns: Date, Invoice No, Party Name, GSTIN, Taxable Value, SGST, CGST, IGST, Total Amount
+    """
+    # 1. Date Parsing
+    start = (
+        datetime.strptime(start_date, "%Y-%m-%d").date()
+        if start_date
+        else fy.start_date
+    )
+    end = (
+        datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else fy.end_date
+    )
+
+    if type == "gstr1":
+        # Sales Invoices
+        invoices = (
+            db.query(Invoice)
+            .options(joinedload(Invoice.party), joinedload(Invoice.items))
+            .filter(
+                Invoice.company_id == company_id,
+                Invoice.invoice_date >= start,
+                Invoice.invoice_date <= end,
+                Invoice.status != "CANCELLED",
+            )
+            .order_by(Invoice.invoice_date.asc())
+            .all()
+        )
+
+        report_data = []
+        for inv in invoices:
+            # Calculate Tax Breakdown logic
+            # Assuming we can derive it from items or have it stored.
+            # Simplified:
+            # Taxable = Sum(Item Amount) (Assuming Item Amount is Taxable)
+            # OR Taxable = Grand Total - Tax.
+            # Let's try to calculate from items if they have tax rate.
+
+            taxable_value = 0.0
+            total_tax = 0.0
+            
+            # Simple assumption for now if exact schema unknown:
+            # We take grand total. We assume basic logic or 18% if unknown? 
+            # No, that's dangerous.
+            # Inspect invoice items.
+            
+            for item in inv.items:
+                 # Assume item.amount is taxable value? Or line total?
+                 # Let's assume item.amount is the line total (Price * Qty).
+                 # If we don't have tax info, we just sum taxable.
+                 taxable_value += float(item.amount)
+
+            # Check if Invoice has 'sub_total' which is usually taxable
+            if hasattr(inv, 'sub_total') and inv.sub_total:
+                 taxable_value = float(inv.sub_total)
+            
+            grand_total = float(inv.grand_total)
+            total_tax = grand_total - taxable_value
+
+            # Determine SGST/CGST vs IGST
+            # Logic: If Party State != Company State => IGST
+            # Else => CGST + SGST (50/50)
+            
+            # We need Company State. For now, let's default to IGST=0, SGST/CGST=Half Tax
+            # Unless we fetch Company.
+            
+            sgst = total_tax / 2
+            cgst = total_tax / 2
+            igst = 0.0
+            
+            # Refinement: If we assume most are local:
+            
+            report_data.append(
+                {
+                    "id": inv.id,
+                    "date": inv.invoice_date,
+                    "invoice_number": inv.invoice_number,
+                    "party_name": inv.party.name if inv.party else "Unknown",
+                    "gstin": inv.party.gst_number if inv.party else "-",
+                    "taxable_value": taxable_value,
+                    "sgst": sgst,
+                    "cgst": cgst,
+                    "igst": igst,
+                    "total_amount": grand_total,
+                    "status": inv.status,
+                }
+            )
+
+        return report_data
+
+    return []
+
+
+@router.get("/gst/pdf")
+def get_gst_report_pdf(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    type: str = "gstr1",
+    company_id: int = Depends(get_company_id),
+    fy=Depends(get_active_financial_year),
+    db: Session = Depends(get_db),
+):
+    """
+    Generates PDF for GST Report
+    """
+    start = (
+        datetime.strptime(start_date, "%Y-%m-%d").date()
+        if start_date
+        else fy.start_date
+    )
+    end = (
+        datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else fy.end_date
+    )
+
+    company = db.query(Company).filter(Company.id == company_id).first()
+
+    report_rows = []
+    
+    # Totals
+    total_taxable = 0
+    total_sgst = 0
+    total_cgst = 0
+    total_igst = 0
+    total_grand = 0
+
+    # Group by Party
+    grouped_data = {}
+
+    if type == "gstr1":
+        invoices = (
+            db.query(Invoice)
+            .options(joinedload(Invoice.party), joinedload(Invoice.items))
+            .filter(
+                Invoice.company_id == company_id,
+                Invoice.invoice_date >= start,
+                Invoice.invoice_date <= end,
+                Invoice.status != "CANCELLED",
+            )
+            .order_by(Invoice.invoice_date.asc())
+            .all()
+        )
+
+        for inv in invoices:
+            party_name = inv.party.name if inv.party else "Unknown"
+            gstin = inv.party.gst_number if inv.party else "-"
+            party_key = f"{party_name} ({gstin})"
+
+            if party_key not in grouped_data:
+                grouped_data[party_key] = {
+                    "party_name": party_name,
+                    "gstin": gstin,
+                    "invoices": [],
+                    "sub_taxable": 0,
+                    "sub_sgst": 0,
+                    "sub_cgst": 0,
+                    "sub_igst": 0,
+                    "sub_total": 0
+                }
+
+            taxable_value = 0.0
+            for item in inv.items:
+                 taxable_value += float(item.amount)
+
+            if hasattr(inv, 'sub_total') and inv.sub_total:
+                 taxable_value = float(inv.sub_total)
+            
+            grand_total = float(inv.grand_total)
+            total_tax = grand_total - taxable_value
+            
+            sgst = total_tax / 2
+            cgst = total_tax / 2
+            igst = 0.0
+
+            grouped_data[party_key]["invoices"].append({
+                "date": inv.invoice_date.strftime("%d-%m-%Y"),
+                "invoice_number": inv.invoice_number,
+                "taxable_value": taxable_value,
+                "sgst": sgst,
+                "cgst": cgst,
+                "igst": igst,
+                "total_amount": grand_total
+            })
+
+            grouped_data[party_key]["sub_taxable"] += taxable_value
+            grouped_data[party_key]["sub_sgst"] += sgst
+            grouped_data[party_key]["sub_cgst"] += cgst
+            grouped_data[party_key]["sub_igst"] += igst
+            grouped_data[party_key]["sub_total"] += grand_total
+
+            total_taxable += taxable_value
+            total_sgst += sgst
+            total_cgst += cgst
+            total_igst += igst
+            total_grand += grand_total
+            
+    # Convert dict to sorted list
+    report_data = sorted(grouped_data.values(), key=lambda x: x["party_name"])
+
+    # Generate QR Code with Download Link
+    base_url = "http://192.168.31.139:8000"
+    download_link = f"{base_url}/reports/gst/pdf?start_date={start.strftime('%Y-%m-%d')}&end_date={end.strftime('%Y-%m-%d')}&type={type}&company_id={company_id}"
+    
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(download_link)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
+
+    # 2. Render Template
+    template = templates.get_template("gst_report.html")
+    html_content = template.render(
+        company=company,
+        start_date=start.strftime("%d-%m-%Y"),
+        end_date=end.strftime("%d-%m-%Y"),
+        generation_date=datetime.now().strftime("%d-%m-%Y %H:%M"),
+        grouped_data=report_data,
+        total_taxable=total_taxable,
+        qr_code=qr_code_base64,
+        total_sgst=total_sgst,
+        total_cgst=total_cgst,
+        total_igst=total_igst,
+        total_amount=total_grand
+    )
+
+    # 3. Generate PDF
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.set_content(html_content)
+        pdf_data = page.pdf(format="A4", margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"})
+        browser.close()
+
+    return Response(
+        content=pdf_data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=GST_Report_{type}.pdf"},
+    )

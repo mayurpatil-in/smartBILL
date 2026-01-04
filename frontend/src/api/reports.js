@@ -65,3 +65,22 @@ export const getDashboardStats = async () => {
   const response = await api.get('/reports/dashboard-stats');
   return response.data;
 };
+
+export const getGSTReport = async (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== "" && v != null)
+  );
+  const response = await api.get('/reports/gst', { params: cleanParams });
+  return response.data;
+};
+
+export const getGSTReportPDF = async (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== "" && v != null)
+  );
+  const response = await api.get('/reports/gst/pdf', {
+    params: cleanParams,
+    responseType: 'blob'
+  });
+  return response.data;
+};

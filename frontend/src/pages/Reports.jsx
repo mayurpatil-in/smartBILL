@@ -19,8 +19,9 @@ import {
   getPartyStatement,
   getPartyStatementPDF,
   getStockLedger,
-  getTrueStockLedgerPDF,
   recalculateStock,
+  getGSTReport,
+  getGSTReportPDF,
 } from "../api/reports";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
@@ -51,6 +52,10 @@ export default function Reports() {
   const [stockLedgerData, setStockLedgerData] = useState([]);
   const [stockLedgerLoading, setStockLedgerLoading] = useState(false);
 
+  // GST Report State
+  const [gstData, setGstData] = useState([]);
+  const [gstLoading, setGstLoading] = useState(false);
+
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     const currentMonth = today.getMonth(); // 0-11 (Jan=0, Apr=3)
@@ -78,6 +83,9 @@ export default function Reports() {
     }
     if (activeTab === "stock" && selectedItem) {
       fetchStockLedger();
+    }
+    if (activeTab === "gst") {
+      fetchGSTReport();
     }
   }, [activeTab, selectedStatementPartyId, selectedItem, dateRange]);
 
@@ -142,6 +150,71 @@ export default function Reports() {
       toast.error("Failed to load stock ledger");
     } finally {
       setStockLedgerLoading(false);
+    }
+  };
+
+  const fetchGSTReport = async () => {
+    try {
+      setGstLoading(true);
+      const res = await getGSTReport({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+        type: "gstr1",
+      });
+      setGstData(res);
+    } catch (err) {
+      toast.error("Failed to load GST report");
+    } finally {
+      setGstLoading(false);
+    }
+  };
+
+  const exportGSTReport = () => {
+    const exportData = gstData.map((item) => ({
+      Date: item.date,
+      "Invoice No": item.invoice_number,
+      "Party Name": item.party_name,
+      GSTIN: item.gstin,
+      "Taxable Value": item.taxable_value,
+      SGST: item.sgst,
+      CGST: item.cgst,
+      IGST: item.igst,
+      "Total Amount": item.total_amount,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "GSTR-1 Sales");
+    XLSX.writeFile(wb, "GSTR1_Report.xlsx");
+  };
+
+  const handlePrintGSTReport = async () => {
+    try {
+      setPdfLoading(true);
+      const loadingToast = toast.loading("Generating GST Report PDF...");
+
+      const blob = await getGSTReportPDF({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+        type: "gstr1",
+      });
+
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+
+      setPreviewDoc({
+        url: url,
+        title: `GST_Report_GSTR1_${dateRange.start_date}`,
+      });
+
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to generate PDF");
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -479,6 +552,19 @@ export default function Reports() {
           >
             Stock Ledger
             {activeTab === "stock" && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("gst")}
+            className={`pb-3 text-sm font-medium transition-all relative ${
+              activeTab === "gst"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            GST Report
+            {activeTab === "gst" && (
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
             )}
           </button>
@@ -1148,6 +1234,187 @@ export default function Reports() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "gst" && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end justify-between">
+            <div className="flex flex-wrap gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-500">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  name="gst_start_date"
+                  id="gst_start_date"
+                  value={dateRange.start_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, start_date: e.target.value })
+                  }
+                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-500">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  name="gst_end_date"
+                  id="gst_end_date"
+                  value={dateRange.end_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, end_date: e.target.value })
+                  }
+                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={exportGSTReport}
+              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-lg shadow-green-600/20 transition-all active:scale-95 whitespace-nowrap"
+            >
+              <Download size={18} />
+              Export GSTR-1
+            </button>
+            <button
+              onClick={handlePrintGSTReport}
+              disabled={pdfLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap"
+            >
+              <Printer size={18} />
+              {pdfLoading ? "Generating..." : "Print PDF"}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800/20">
+              <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                Total Taxable Value
+              </p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                ₹
+                {gstData
+                  .reduce((sum, item) => sum + item.taxable_value, 0)
+                  .toLocaleString()}
+              </h3>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/20">
+              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                Total Tax (IGST+CGST+SGST)
+              </p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                ₹
+                {gstData
+                  .reduce(
+                    (sum, item) => sum + item.igst + item.cgst + item.sgst,
+                    0
+                  )
+                  .toLocaleString()}
+              </h3>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
+              <p className="text-sm text-gray-500 font-medium">Invoice Count</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {gstData.length}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold text-gray-500">
+                      Date
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500">
+                      Invoice No
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500">
+                      Party Name
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500">
+                      GSTIN
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                      Taxable
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                      SGST
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                      CGST
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                      IGST
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                      Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {gstLoading ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-8">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-gray-500">Loading GST Data...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : gstData.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="9"
+                        className="text-center py-8 text-gray-500"
+                      >
+                        No records found
+                      </td>
+                    </tr>
+                  ) : (
+                    gstData.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                          {row.date}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-purple-600">
+                          {row.invoice_number}
+                        </td>
+                        <td className="px-6 py-4 text-gray-900 dark:text-gray-100 font-medium">
+                          {row.party_name}
+                        </td>
+                        <td className="px-6 py-4 text-gray-500">{row.gstin}</td>
+                        <td className="px-6 py-4 text-right font-medium">
+                          {row.taxable_value.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-500">
+                          {row.sgst.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-500">
+                          {row.cgst.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-500">
+                          {row.igst.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
+                          {row.total_amount.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
