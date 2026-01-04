@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Party Statement</title>
+    <title>Stock Ledger</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
         
@@ -26,7 +26,7 @@
             right: 0;
             bottom: 0;
             border: 4px solid transparent;
-            border-image: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border-image: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
             border-image-slice: 1;
             pointer-events: none;
             z-index: 1000;
@@ -65,14 +65,14 @@
         
         .report-title {
             text-align: right;
-            border-left: 4px solid #6366f1;
+            border-left: 4px solid #10b981;
             padding-left: 15px;
         }
         
         .report-title h2 {
             margin: 0;
             font-size: 20px;
-            color: #6366f1;
+            color: #10b981;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -81,11 +81,12 @@
         
         .report-title p {
             margin: 5px 0 0 0;
-            font-size: 12px;
+            font-size: 9px;
             font-weight: 500;
             color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 1px;
+            white-space: nowrap;
         }
 
         .meta-container {
@@ -100,7 +101,7 @@
             background: #f1f5f9;
             padding: 12px 16px;
             border-radius: 8px;
-            border-left: 4px solid #a855f7;
+            border-left: 4px solid #3b82f6;
             display: flex;
             flex-direction: column;
         }
@@ -120,12 +121,10 @@
             color: #0f172a;
         }
         
-        
         thead { display: table-header-group; }
         tfoot { display: table-footer-group; }
-        
         tr { page-break-inside: avoid; }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -169,86 +168,9 @@
             text-transform: uppercase;
         }
         
-        .type-INVOICE { background: #fee2e2; color: #991b1b; }
-        .type-PAYMENT { background: #dcfce7; color: #166534; }
+        .type-IN { background: #dbeafe; color: #1e40af; }
+        .type-OUT { background: #dcfce7; color: #166534; }
         .type-OPENING { background: #f3f4f6; color: #4b5563; }
-
-        .grand-total-section {
-            margin-top: 40px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: #fff;
-            padding: 20px;
-            page-break-inside: avoid;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-
-        .grand-total-header {
-            margin: 0 0 15px 0;
-            font-size: 14px;
-            font-weight: 700;
-            text-transform: uppercase;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 10px;
-            color: #94a3b8;
-        }
-
-        .grand-total-table {
-             width: 100%;
-        }
-
-        .grand-total-table th {
-            background: transparent;
-            color: #94a3b8;
-            border: none;
-            padding-bottom: 8px;
-            text-align: right;
-        }
-
-        .grand-total-table td {
-            border: none;
-            padding: 8px 10px;
-            font-size: 14px;
-            font-weight: 700;
-            color: #fff;
-            text-align: right;
-        }
-        
-        .grand-total-amount {
-            font-size: 18px !important;
-            color: #4ade80 !important;
-        }
-
-        .header-qr {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 2px;
-        }
-        
-        .qr-container {
-            border: 1px solid #e5e7eb;
-            padding: 5px;
-            border-radius: 6px;
-            text-align: center;
-            background: white;
-            margin-top: 10px;
-            display: inline-block;
-        }
-        
-        .qr-img { 
-            width: 50px; 
-            height: 50px; 
-            display: block; 
-        }
-
-        .qr-label { 
-            font-size: 8px; 
-            margin-top: 2px; 
-            color: #6b7280; 
-            font-weight: 500; 
-        }
 
         .footer {
             margin-top: 60px;
@@ -272,33 +194,38 @@
             <p><strong>GSTIN:</strong> {{ company.gst_number }} | <strong>Phone:</strong> {{ company.phone }}</p>
         </div>
         <div class="report-title">
-            <h2>Statement of Accounts</h2>
-            <p>Financial Year: {{ financial_year }}</p>
-            <div class="qr-container">
-                 <img src="data:image/png;base64,{{ qr_code }}" class="qr-img" alt="QR Code">
-                 <div class="qr-label">Scan to Verify</div>
-            </div>
+            <h2>Stock Ledger</h2>
+            <p>Report Period: {{ start_date }} to {{ end_date }}</p>
         </div>
     </div>
 
     <div class="meta-container">
         <div class="meta-card">
-            <span class="meta-label">To Party Details</span>
+            <span class="meta-label">Item Details</span>
+            <span class="meta-value">{{ item.name }}</span>
+            <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-weight: 400;">
+                HSN Code: {{ item.hsn_code or '-' }}
+            </div>
+        </div>
+        
+        {% if party %}
+        <div class="meta-card" style="border-left-color: #ec4899;">
+            <span class="meta-label">Party Details</span>
             <span class="meta-value">{{ party.name }}</span>
             <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-weight: 400;">
                 GSTIN: {{ party.gst_number }}
             </div>
         </div>
-        <div class="meta-card" style="border-left-color: #6366f1;">
-            <span class="meta-label">Statement Period</span>
-            <span class="meta-value">{{ start_date }} to {{ end_date }}</span>
-            <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-weight: 400;">
-                Generated On: {{ generation_date }}
-            </div>
+        {% else %}
+        <div class="meta-card" style="border-left-color: #10b981;">
+            <span class="meta-label">Current Stock</span>
+            <span class="meta-value">{{ current_stock }}</span>
         </div>
-        <div class="meta-card" style="border-left-color: #ec4899;">
+        {% endif %}
+
+        <div class="meta-card" style="border-left-color: #6366f1;">
             <span class="meta-label">Opening Balance</span>
-            <span class="meta-value" style="color: #ec4899;">{{ opening_balance }}</span>
+            <span class="meta-value" style="color: #6366f1;">{{ opening_balance }}</span>
         </div>
     </div>
 
@@ -306,53 +233,51 @@
         <thead>
             <tr>
                 <th width="12%">Date</th>
-                <th width="10%">Type</th>
-                <th width="15%">Ref No.</th>
+                <th width="8%">Type</th>
+                <th width="12%">Ref No.</th>
                 <th width="25%">Description</th>
-                <th width="12%" class="text-right">Debit</th>
-                <th width="12%" class="text-right">Credit</th>
-                <th width="14%" class="text-right">Balance</th>
+                {% if not party %}
+                <th width="15%">Party</th>
+                {% endif %}
+                <th width="10%" class="text-right">In Qty</th>
+                <th width="10%" class="text-right">Out Qty</th>
+                <th width="10%" class="text-right">Balance</th>
             </tr>
         </thead>
         <tbody>
+            <!-- Opening -->
+            <tr style="background: #f8fafc;">
+                <td>{{ start_date }}</td>
+                <td><span class="type-badge type-OPENING">OPENING</span></td>
+                <td>-</td>
+                <td>Opening Stock</td>
+                {% if not party %}
+                <td>-</td>
+                {% endif %}
+                <td class="text-right">-</td>
+                <td class="text-right">-</td>
+                <td class="text-right font-bold">{{ opening_balance }}</td>
+            </tr>
+
             {% for row in transactions %}
             <tr>
                 <td>{{ row.date }}</td>
                 <td><span class="type-badge type-{{ row.type }}">{{ row.type }}</span></td>
                 <td class="font-mono" style="color: #475569;">{{ row.ref }}</td>
                 <td>{{ row.description }}</td>
-                <td class="text-right">{{ row.debit if row.debit else '-' }}</td>
-                <td class="text-right">{{ row.credit if row.credit else '-' }}</td>
+                {% if not party %}
+                <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{{ row.party_name }}</td>
+                {% endif %}
+                <td class="text-right" style="color: #2563eb;">{{ row.in_qty if row.in_qty > 0 else '-' }}</td>
+                <td class="text-right" style="color: #16a34a;">{{ row.out_qty if row.out_qty > 0 else '-' }}</td>
                 <td class="text-right font-bold">{{ row.balance }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <div class="grand-total-section">
-        <div class="grand-total-header">Statement Summary</div>
-        <table class="grand-total-table">
-            <thead>
-                <tr>
-                    <th>Opening Balance</th>
-                    <th>Total Debits</th>
-                    <th>Total Credits</th>
-                    <th>Closing Balance</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>{{ opening_balance }}</td>
-                    <td style="color: #fca5a5;">{{ total_debit }}</td>
-                    <td style="color: #86efac;">{{ total_credit }}</td>
-                    <td class="grand-total-amount">{{ closing_balance }}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
     <div class="footer">
-        <p>This is a computer generated statement and does not require a signature.</p>
+        <p>This is a computer generated report and does not require a signature.</p>
     </div>
 
 </body>

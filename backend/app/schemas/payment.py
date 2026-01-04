@@ -30,11 +30,27 @@ class PartySummary(BaseModel):
     id: int
     name: str
 
+class InvoiceSummary(BaseModel):
+    id: int
+    invoice_number: str
+    invoice_date: date
+    grand_total: Decimal
+    paid_amount: Optional[Decimal] = 0
+
+class AllocationResponse(BaseModel):
+    invoice_id: int
+    amount: Decimal
+    invoice: Optional[InvoiceSummary] = None
+
+    class Config:
+        from_attributes = True
+
 class PaymentResponse(PaymentBase):
     id: int
     company_id: int
     financial_year_id: int
-    party: Optional[PartySummary] = None # Simplified party object
+    party: Optional[PartySummary] = None 
+    allocations: List[AllocationResponse] = []
 
     class Config:
         from_attributes = True

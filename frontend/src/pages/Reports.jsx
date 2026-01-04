@@ -22,6 +22,7 @@ import {
   recalculateStock,
   getGSTReport,
   getGSTReportPDF,
+  getTrueStockLedgerPDF,
 } from "../api/reports";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
@@ -49,6 +50,7 @@ export default function Reports() {
   // Stock Ledger State
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState("");
+  const [selectedStockParty, setSelectedStockParty] = useState("");
   const [stockLedgerData, setStockLedgerData] = useState([]);
   const [stockLedgerLoading, setStockLedgerLoading] = useState(false);
 
@@ -302,6 +304,7 @@ export default function Reports() {
 
       const blob = await getTrueStockLedgerPDF({
         item_id: selectedItem,
+        party_id: selectedStockParty,
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
       });
@@ -312,7 +315,7 @@ export default function Reports() {
 
       setPreviewDoc({
         url: url,
-        title: `Stock_Ledger_${selectedItem}`, // ideally item name
+        title: `Stock_Ledger_${selectedItem}`,
       });
 
       toast.dismiss(loadingToast);
@@ -810,7 +813,10 @@ export default function Reports() {
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end">
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-500">
+              <label
+                htmlFor="statement_party_id"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
                 Select Party
               </label>
               <select
@@ -829,7 +835,10 @@ export default function Reports() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-500">
+              <label
+                htmlFor="statement_start_date"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
                 Start Date
               </label>
               <input
@@ -845,7 +854,10 @@ export default function Reports() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-500">
+              <label
+                htmlFor="statement_end_date"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
                 End Date
               </label>
               <input
@@ -941,7 +953,10 @@ export default function Reports() {
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="w-full md:w-auto">
-              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="jobwork_ledger_party"
+                className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+              >
                 Select Party for Ledger
               </label>
               <select
@@ -962,7 +977,10 @@ export default function Reports() {
 
             <div className="flex gap-4 w-full md:w-auto">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="jobwork_start_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
                   Start Date
                 </label>
                 <input
@@ -977,7 +995,10 @@ export default function Reports() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="jobwork_end_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
                   End Date
                 </label>
                 <input
@@ -1088,7 +1109,33 @@ export default function Reports() {
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end">
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-500">
+              <label
+                htmlFor="stock_ledger_party"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
+                Select Party (Optional)
+              </label>
+              <select
+                name="stock_ledger_party"
+                id="stock_ledger_party"
+                value={selectedStockParty}
+                onChange={(e) => setSelectedStockParty(e.target.value)}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
+              >
+                <option value="">-- All Parties --</option>
+                {parties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="stock_ledger_item"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
                 Select Item
               </label>
               <select
@@ -1099,16 +1146,26 @@ export default function Reports() {
                 className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
               >
                 <option value="">-- Select Item --</option>
-                {items.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.name}
-                  </option>
-                ))}
+                {items
+                  .filter((i) =>
+                    selectedStockParty
+                      ? i.party_id === parseInt(selectedStockParty) ||
+                        !i.party_id
+                      : true
+                  )
+                  .map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-500">
+              <label
+                htmlFor="stock_start_date"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
                 Start Date
               </label>
               <input
@@ -1124,7 +1181,10 @@ export default function Reports() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-500">
+              <label
+                htmlFor="stock_end_date"
+                className="block text-sm font-medium mb-1 text-gray-500"
+              >
                 End Date
               </label>
               <input
@@ -1243,7 +1303,10 @@ export default function Reports() {
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end justify-between">
             <div className="flex flex-wrap gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-500">
+                <label
+                  htmlFor="gst_start_date"
+                  className="block text-sm font-medium mb-1 text-gray-500"
+                >
                   Start Date
                 </label>
                 <input
@@ -1258,7 +1321,10 @@ export default function Reports() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-500">
+                <label
+                  htmlFor="gst_end_date"
+                  className="block text-sm font-medium mb-1 text-gray-500"
+                >
                   End Date
                 </label>
                 <input

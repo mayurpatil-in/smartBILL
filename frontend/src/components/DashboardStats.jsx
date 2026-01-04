@@ -3,6 +3,7 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  IndianRupee,
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
@@ -92,7 +93,7 @@ export default function DashboardStats({ stats, loading }) {
       <StatCard
         title="Total Revenue"
         value={stats?.revenue}
-        icon={DollarSign}
+        icon={IndianRupee}
         color="green"
         // trend={12} // Placeholder for real trend
       />

@@ -76,7 +76,10 @@ def list_payments(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Payment).options(joinedload(Payment.party)).filter(
+    query = db.query(Payment).options(
+        joinedload(Payment.party),
+        joinedload(Payment.allocations).joinedload(PaymentAllocation.invoice)
+    ).filter(
         Payment.company_id == company_id,
         Payment.financial_year_id == fy.id
     )
@@ -98,7 +101,9 @@ def get_payment(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    payment = db.query(Payment).filter(
+    payment = db.query(Payment).options(
+        joinedload(Payment.allocations).joinedload(PaymentAllocation.invoice)
+    ).filter(
         Payment.id == id,
         Payment.company_id == company_id
     ).first()
