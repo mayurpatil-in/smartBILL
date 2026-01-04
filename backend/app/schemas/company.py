@@ -9,6 +9,7 @@ class CompanyBase(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
+    logo: Optional[str] = None
 
 
 class CompanyCreate(CompanyBase):

@@ -76,77 +76,115 @@ export default function Sidebar({
       </div>
 
       {/* ================= MENU ================= */}
-      <nav className="px-3 py-4 space-y-1 flex-1">
-        <MenuLink
-          to="/"
-          icon={LayoutDashboard}
-          label="Dashboard"
-          collapsed={collapsed}
-        />
+      <nav className="px-3 py-4 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+        {/* GROUP 1: CORE */}
+        <div className="space-y-1">
+          {/* Section Label (Only visible when not collapsed) */}
+          {!collapsed && (
+            <p className="px-4 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+              Operations
+            </p>
+          )}
+          <MenuLink
+            to="/"
+            icon={LayoutDashboard}
+            label="Dashboard"
+            collapsed={collapsed}
+          />
+          {!isSuperAdmin && (
+            <>
+              <MenuLink
+                to="/parties"
+                icon={Users}
+                label="Parties"
+                collapsed={collapsed}
+              />
+              <MenuLink
+                to="/items"
+                icon={Package}
+                label="Stock"
+                collapsed={collapsed}
+              />
+              <MenuLink
+                to="/party-challans"
+                icon={ClipboardList}
+                label="Party Challans"
+                collapsed={collapsed}
+              />
+              <MenuLink
+                to="/challans"
+                icon={Truck}
+                label="Delivery Challans"
+                collapsed={collapsed}
+              />
+            </>
+          )}
+        </div>
 
         {!isSuperAdmin && (
           <>
-            <MenuLink
-              to="/parties"
-              icon={Users}
-              label="Parties"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/items"
-              icon={Package}
-              label="Stock"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/party-challans"
-              icon={ClipboardList}
-              label="Party Challans"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/challans"
-              icon={Truck}
-              label="Delivery Challans"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/invoices"
-              icon={FileText}
-              label="Invoices"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/payments"
-              icon={WalletCards}
-              label="Payments"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/expenses"
-              icon={Wallet}
-              label="Expenses"
-              collapsed={collapsed}
-            />
+            {/* GROUP 2: FINANCE */}
+            <div className="space-y-1">
+              {!collapsed && (
+                <p className="px-4 text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">
+                  Finance
+                </p>
+              )}
+              <MenuLink
+                to="/invoices"
+                icon={FileText}
+                label="Invoices"
+                collapsed={collapsed}
+              />
+              <MenuLink
+                to="/payments"
+                icon={WalletCards}
+                label="Payments"
+                collapsed={collapsed}
+              />
+              <MenuLink
+                to="/expenses"
+                icon={Wallet}
+                label="Expenses"
+                collapsed={collapsed}
+              />
+            </div>
 
-            <MenuLink
-              to="/employees"
-              icon={Users}
-              label="Employees"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/reports"
-              icon={FileText}
-              label="Reports"
-              collapsed={collapsed}
-            />
-            <MenuLink
-              to="/settings"
-              icon={Settings}
-              label="Settings"
-              collapsed={collapsed}
-            />
+            {/* GROUP 3: HR */}
+            <div className="space-y-1">
+              {!collapsed && (
+                <p className="px-4 text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2">
+                  HR
+                </p>
+              )}
+              <MenuLink
+                to="/employees"
+                icon={Users}
+                label="Employees"
+                collapsed={collapsed}
+              />
+            </div>
+
+            {/* GROUP 4: ADMIN */}
+            <div className="space-y-1">
+              {!collapsed && (
+                <p className="px-4 text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-2">
+                  System
+                </p>
+              )}
+              <MenuLink
+                to="/reports"
+                icon={FileText}
+                label="Reports"
+                collapsed={collapsed}
+              />
+              <MenuLink
+                to="/settings"
+                icon={Settings}
+                label="Settings"
+                collapsed={collapsed}
+              />
+            </div>
           </>
         )}
       </nav>

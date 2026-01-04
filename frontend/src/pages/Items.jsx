@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Fragment } from "react";
 import {
   Plus,
   Search,
@@ -134,6 +134,8 @@ export default function Items() {
 
           <div className="w-full sm:w-64">
             <select
+              name="party_filter"
+              id="party_filter"
               value={selectedParty}
               onChange={(e) => setSelectedParty(e.target.value)}
               className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
@@ -225,6 +227,8 @@ export default function Items() {
                 items
               </span>
               <select
+                name="items_per_page"
+                id="items_per_page"
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
@@ -259,7 +263,7 @@ export default function Items() {
                     return false;
                   })
                   .map((page, index, array) => (
-                    <>
+                    <Fragment key={page}>
                       {index > 0 && array[index - 1] !== page - 1 && (
                         <span
                           key={`ellipsis-${page}`}
@@ -279,7 +283,7 @@ export default function Items() {
                       >
                         {page}
                       </button>
-                    </>
+                    </Fragment>
                   ))}
               </div>
               <button

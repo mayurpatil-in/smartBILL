@@ -14,3 +14,10 @@ export const updateCompanyProfile = async (companyData) => {
   const { data } = await axios.patch("/profile/company", companyData);
   return data;
 };
+
+export const uploadCompanyLogo = async (formData) => {
+  const { data } = await axios.post("/profile/company/logo", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+};

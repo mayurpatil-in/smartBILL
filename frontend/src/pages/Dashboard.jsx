@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { ArrowRight, Calendar, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../api/axios";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -89,17 +90,28 @@ export default function Dashboard() {
         </div>
 
         {/* LEFT: Title + Context */}
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Welcome back, {user?.name || "Admin"} 👋
-          </h1>
-          <p className="text-blue-100 text-lg font-medium opacity-90">
-            Here's what's happening in{" "}
-            <span className="font-bold underline decoration-blue-300 underline-offset-4">
-              {user?.companyName}
-            </span>{" "}
-            today.
-          </p>
+        <div className="relative z-10 flex items-center gap-6">
+          {user?.companyLogo && (
+            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 p-2 shadow-inner flex-shrink-0 flex items-center justify-center">
+              <img
+                src={`${API_URL}${user.companyLogo}`}
+                alt="Company Logo"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </div>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+              Welcome back, {user?.name || "Admin"} 👋
+            </h1>
+            <p className="text-blue-100 text-lg font-medium opacity-90">
+              Here's what's happening in{" "}
+              <span className="font-bold underline decoration-blue-300 underline-offset-4">
+                {user?.companyName}
+              </span>{" "}
+              today.
+            </p>
+          </div>
         </div>
 
         {/* RIGHT: Active FY Badge */}

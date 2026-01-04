@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+import shutil
+import os
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.auth_router import oauth2_scheme
@@ -95,3 +97,42 @@ def update_company_profile(
     db.commit()
     db.refresh(company)
     return {"message": "Company details updated", "company": company}
+
+
+@router.post("/company/logo")
+def upload_company_logo(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not user.company_id:
+        raise HTTPException(status_code=400, detail="User does not belong to a company")
+    
+    if user.role.value != "COMPANY_ADMIN":
+        raise HTTPException(status_code=403, detail="Only Company Admins can upload logo")
+
+    # Create directory if not exists
+    upload_dir = "uploads/logos"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generate filename (use company ID to avoid conflicts/orphans)
+    # Get extension
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"company_{user.company_id}_logo{ext}"
+    file_path = os.path.join(upload_dir, filename)
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Update company record
+    # Store relative path for frontend to use with base URL
+    # e.g. /uploads/logos/company_1_logo.png
+    logo_url = f"/{upload_dir}/{filename}".replace("\\", "/") # Ensure forward slashes
+    
+    company = user.company
+    company.logo = logo_url
+    db.commit()
+    db.refresh(company)
+    
+    return {"message": "Logo uploaded successfully", "logo_url": logo_url}

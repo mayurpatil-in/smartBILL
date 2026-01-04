@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Fragment } from "react";
 import {
   Plus,
   Search,
@@ -228,6 +228,8 @@ export default function Parties() {
                 parties
               </span>
               <select
+                name="parties_per_page"
+                id="parties_per_page"
                 value={partiesPerPage}
                 onChange={(e) => {
                   setPartiesPerPage(Number(e.target.value));
@@ -262,7 +264,7 @@ export default function Parties() {
                     return false;
                   })
                   .map((page, index, array) => (
-                    <>
+                    <Fragment key={page}>
                       {index > 0 && array[index - 1] !== page - 1 && (
                         <span
                           key={`ellipsis-${page}`}
@@ -282,7 +284,7 @@ export default function Parties() {
                       >
                         {page}
                       </button>
-                    </>
+                    </Fragment>
                   ))}
               </div>
               <button

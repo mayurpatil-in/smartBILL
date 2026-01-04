@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
             name: profileData.user.name,
             email: profileData.user.email,
             companyName: profileData.company?.name || prev.companyName,
+            companyLogo: profileData.company?.logo,
           }));
         } catch (e) {
           console.warn("Failed to fetch fresh profile on init", e);

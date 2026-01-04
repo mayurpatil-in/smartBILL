@@ -30,6 +30,7 @@ class Company(Base):
     address = Column(String, nullable=True)
     phone = Column(String(20), nullable=True)
     email = Column(String(255), nullable=True)
+    logo = Column(String(500), nullable=True)
 
     # =========================
     # 🔐 SUBSCRIPTION CONTROL (SUPER ADMIN)

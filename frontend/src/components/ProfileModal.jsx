@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, User, Building, Lock } from "lucide-react";
+import { X, User, Building, Lock, Camera } from "lucide-react";
 import {
   getProfile,
   updateUserProfile,
   updateCompanyProfile,
+  uploadCompanyLogo,
 } from "../api/profile";
+import { API_URL } from "../api/axios";
 import { useAuth } from "../hooks/useAuth";
 import toast from "react-hot-toast";
 
@@ -32,6 +34,10 @@ export default function ProfileModal({ open, onClose }) {
     phone: "",
     email: "",
   });
+
+  const [logo, setLogo] = useState(null);
+  const fileInputRef = useRef(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -62,6 +68,7 @@ export default function ProfileModal({ open, onClose }) {
           phone: data.company.phone || "",
           email: data.company.email || "",
         });
+        setLogo(data.company.logo);
       }
     } catch (err) {
       toast.error("Failed to load profile");
@@ -80,6 +87,42 @@ export default function ProfileModal({ open, onClose }) {
       loadData(); // refresh
     } catch (err) {
       toast.error(err.response?.data?.detail || "Update failed");
+    }
+  };
+
+  const handleLogoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await uploadCompanyLogo(formData);
+      // Construct full URL if needed, but relative usually fine if using logic
+      // Actually backend returns /uploads/logos/..., we might need base URL
+      setLogo(res.logo_url);
+
+      // Append timestamp to force refresh on other components (Context/Dashboard)
+      // Browsers cache images by URL. Since the filename is constant (company_X.png),
+      // we need to change the URL string to fetch the new version.
+      const cacheBustedUrl = `${res.logo_url}?t=${Date.now()}`;
+      updateUser({ companyLogo: cacheBustedUrl });
+
+      // Update local state as well to show immediate preview
+      setLogo(cacheBustedUrl);
+
+      toast.success("Logo uploaded successfully");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Logo upload failed");
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -152,6 +195,7 @@ export default function ProfileModal({ open, onClose }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       label="Full Name"
+                      name="personal_name"
                       value={personalForm.name}
                       onChange={(v) =>
                         setPersonalForm({ ...personalForm, name: v })
@@ -160,6 +204,8 @@ export default function ProfileModal({ open, onClose }) {
                     <Input
                       label="Email Address"
                       type="email"
+                      name="personal_email"
+                      autoComplete="username"
                       value={personalForm.email}
                       onChange={(v) =>
                         setPersonalForm({ ...personalForm, email: v })
@@ -175,6 +221,8 @@ export default function ProfileModal({ open, onClose }) {
                       <Input
                         label="Current Password"
                         type="password"
+                        name="current_password"
+                        autoComplete="current-password"
                         value={personalForm.current_password}
                         onChange={(v) =>
                           setPersonalForm({
@@ -186,6 +234,8 @@ export default function ProfileModal({ open, onClose }) {
                       <Input
                         label="New Password"
                         type="password"
+                        name="new_password"
+                        autoComplete="new-password"
                         value={personalForm.new_password}
                         onChange={(v) =>
                           setPersonalForm({
@@ -210,8 +260,51 @@ export default function ProfileModal({ open, onClose }) {
 
               {activeTab === "company" && (
                 <form onSubmit={handleCompanySubmit} className="space-y-4">
+                  {/* LOGO UPLOAD */}
+                  <div className="flex flex-col items-center justify-center mb-6">
+                    <div
+                      className="relative group cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <div className="w-24 h-24 rounded-full border-4 border-gray-100 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                        {logo ? (
+                          <img
+                            src={`${API_URL}${logo}`}
+                            alt="Company Logo"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = "";
+                              setLogo(null);
+                            }} // Fallback
+                          />
+                        ) : (
+                          <Building className="text-gray-400" size={40} />
+                        )}
+                      </div>
+                      <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <Camera className="text-white" size={24} />
+                      </div>
+                      {uploadingLogo && (
+                        <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Click to upload logo
+                    </p>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                    />
+                  </div>
+
                   <Input
                     label="Company Name"
+                    name="company_name"
                     value={companyForm.name}
                     onChange={(v) =>
                       setCompanyForm({ ...companyForm, name: v })
@@ -222,6 +315,7 @@ export default function ProfileModal({ open, onClose }) {
                     <Input
                       label="Email"
                       type="email"
+                      name="company_email"
                       value={companyForm.email}
                       onChange={(v) =>
                         setCompanyForm({ ...companyForm, email: v })
@@ -229,6 +323,7 @@ export default function ProfileModal({ open, onClose }) {
                     />
                     <Input
                       label="Phone"
+                      name="company_phone"
                       value={companyForm.phone}
                       onChange={(v) =>
                         setCompanyForm({ ...companyForm, phone: v })
@@ -239,6 +334,7 @@ export default function ProfileModal({ open, onClose }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       label="GST Number"
+                      name="company_gst"
                       value={companyForm.gst_number}
                       onChange={(v) =>
                         setCompanyForm({ ...companyForm, gst_number: v })
@@ -246,6 +342,7 @@ export default function ProfileModal({ open, onClose }) {
                     />
                     <Input
                       label="Address"
+                      name="company_address"
                       value={companyForm.address}
                       onChange={(v) =>
                         setCompanyForm({ ...companyForm, address: v })
@@ -272,14 +369,28 @@ export default function ProfileModal({ open, onClose }) {
   );
 }
 
-function Input({ label, type = "text", value, onChange }) {
+function Input({
+  label,
+  type = "text",
+  value,
+  onChange,
+  name,
+  id,
+  autoComplete,
+}) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+      <label
+        htmlFor={id || name}
+        className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+      >
         {label}
       </label>
       <input
         type={type}
+        name={name}
+        id={id || name}
+        autoComplete={autoComplete}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="
