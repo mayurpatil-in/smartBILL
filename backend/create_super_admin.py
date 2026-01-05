@@ -12,7 +12,11 @@ from app.models.company import Company
 from app.models.financial_year import FinancialYear
 from app.models.party import Party
 from app.models.party_challan import PartyChallan
+from app.models.party_challan_item import PartyChallanItem
 from app.models.delivery_challan import DeliveryChallan
+from app.models.delivery_challan_item import DeliveryChallanItem
+from app.models.invoice import Invoice
+from app.models.invoice_item import InvoiceItem
 from app.models.item import Item
 from app.models.stock_transaction import StockTransaction
 from app.models import * # safe catch-all if __init__ exposes them
