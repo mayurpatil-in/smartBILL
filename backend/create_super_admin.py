@@ -6,7 +6,17 @@ import sys
 sys.path.append(os.getcwd())
 
 from app.database.session import SessionLocal
+# Import all models to ensure they are registered with SQLAlchemy
 from app.models.user import User, UserRole
+from app.models.company import Company
+from app.models.financial_year import FinancialYear
+from app.models.party import Party
+from app.models.party_challan import PartyChallan
+from app.models.delivery_challan import DeliveryChallan
+from app.models.items import Item
+from app.models.stock_transaction import StockTransaction
+from app.models import * # safe catch-all if __init__ exposes them
+
 from app.core.security import get_password_hash
 
 def create_super_admin():
