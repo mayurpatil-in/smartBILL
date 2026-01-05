@@ -291,7 +291,7 @@ def get_next_challan_number(
 
 
 @router.get("/pending-items/{party_id}")
-@router.get("/pending-items/{party_id}")
+
 def get_pending_challan_items(
     party_id: int,
     invoice_id: int = None,
@@ -360,6 +360,35 @@ def delete_challan(
     
     if not challan:
         raise HTTPException(status_code=404, detail="Delivery Challan not found")
+        
+    # Check if linked to any Invoice
+    from app.models.invoice import Invoice
+    from app.models.invoice_item import InvoiceItem
+    
+    # 1. Direct Link
+    linked_invoice = db.query(Invoice).filter(Invoice.challan_id == challan.id).first()
+    if linked_invoice:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete challan because it is linked to Invoice {linked_invoice.invoice_number}"
+        )
+        
+    # 2. Item Link
+    challan_item_ids = [item.id for item in challan.items]
+    if challan_item_ids:
+        linked_item = db.query(InvoiceItem).filter(
+            InvoiceItem.delivery_challan_item_id.in_(challan_item_ids)
+        ).first()
+        
+        if linked_item:
+            # Fetch the linked invoice to see its number
+            inv = db.query(Invoice).get(linked_item.invoice_id)
+            inv_num = inv.invoice_number if inv else "Unknown"
+            
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot delete challan because items are billed in Invoice {inv_num}"
+            )
     
     # Reverse party challan delivered quantities
     for item in challan.items:

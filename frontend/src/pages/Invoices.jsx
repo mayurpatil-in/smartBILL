@@ -101,7 +101,8 @@ export default function Invoices() {
       fetchInvoices();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete invoice");
+      const msg = error.response?.data?.detail || "Failed to delete invoice";
+      toast.error(msg);
     } finally {
       setDeleteConfirmOpen(false);
       setSelectedDeleteId(null);

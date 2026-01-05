@@ -83,7 +83,7 @@ app.include_router(profile_router)
 app.include_router(process_router)
 app.include_router(party_challan_router)
 app.include_router(employees_router)
-app.include_router(employees_router)
+
 app.include_router(reports_router)
 
 from app.routers.public_challan import router as public_challan_router

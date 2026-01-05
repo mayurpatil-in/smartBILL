@@ -119,37 +119,7 @@ def get_invoice_stats(
     return stats
 
 
-@router.get("/stats")
-def get_invoice_stats(
-    company_id: int = Depends(get_company_id),
-    fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
-):
-    stats = {
-        "total": {"count": 0, "amount": 0},
-        "paid": {"count": 0, "amount": 0},
-        "pending": {"count": 0, "amount": 0}
-    }
-    
-    invoices = db.query(Invoice).filter(
-        Invoice.company_id == company_id,
-        Invoice.financial_year_id == fy.id
-    ).all()
-    
-    for inv in invoices:
-        # Total
-        stats["total"]["count"] += 1
-        stats["total"]["amount"] += float(inv.grand_total or 0)
-        
-        # Paid vs Pending
-        if inv.status == "PAID":
-            stats["paid"]["count"] += 1
-            stats["paid"]["amount"] += float(inv.grand_total or 0)
-        else:
-            stats["pending"]["count"] += 1
-            stats["pending"]["amount"] += float(inv.grand_total or 0)
-            
-    return stats
+
 
 
     return stats
@@ -431,7 +401,19 @@ def delete_invoice(
             challan.status = "sent"
             db.add(challan)
 
-    # 2. Delete Invoice Items
+    # 2. Check for Payment Allocations
+    from app.models.payment_allocation import PaymentAllocation
+    allocations = db.query(PaymentAllocation).filter(
+        PaymentAllocation.invoice_id == invoice.id
+    ).all()
+    
+    if allocations:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete invoice because it has {len(allocations)} linked payment(s). Please delete the payments first."
+        )
+
+    # 3. Delete Invoice Items
     db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).delete()
 
     # 3. Delete Invoice
