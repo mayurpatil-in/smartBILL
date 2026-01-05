@@ -13,7 +13,7 @@ from app.models.financial_year import FinancialYear
 from app.models.party import Party
 from app.models.party_challan import PartyChallan
 from app.models.delivery_challan import DeliveryChallan
-from app.models.items import Item
+from app.models.item import Item
 from app.models.stock_transaction import StockTransaction
 from app.models import * # safe catch-all if __init__ exposes them
 
