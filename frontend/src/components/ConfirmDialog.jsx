@@ -8,6 +8,7 @@ export default function ConfirmDialog({
   onCancel,
   confirmLabel = "Confirm",
   type = "danger", // danger, success, info
+  children,
 }) {
   if (!open) return null;
 
@@ -68,9 +69,12 @@ export default function ConfirmDialog({
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed">
-            {message}
-          </p>
+          {message && (
+            <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-4">
+              {message}
+            </p>
+          )}
+          {children}
         </div>
 
         {/* Actions */}

@@ -12,12 +12,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.auth.auth_router import router as auth_router
 from app.services.pdf_service import pdf_manager
+from app.services.backup_service import backup_manager
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
 @app.on_event("startup")
 async def startup_event():
     await pdf_manager.start()
+    backup_manager.start_scheduler()
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -56,6 +58,7 @@ from app.routers.employees import router as employees_router
 from app.routers.reports import router as reports_router
 from app.routers.payment import router as payment_router
 from app.routers.expense import router as expense_router
+from app.routers.backup import router as backup_router
 
 
 # ===================== ROUTERS =====================
@@ -68,6 +71,7 @@ app.include_router(stock_router)
 app.include_router(invoice_router)
 app.include_router(payment_router)
 app.include_router(expense_router)
+app.include_router(backup_router)
 app.include_router(invoice_pdf_router)
 app.include_router(health_router)
 app.include_router(super_admin_router)

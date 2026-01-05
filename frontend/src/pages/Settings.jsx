@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import FinancialYearCard from "../components/FinancialYearCard";
 import AddFinancialYearModal from "../components/AddFinancialYearModal";
+import BackupTab from "../components/settings/BackupTab";
 import {
   getActiveFinancialYear,
   getAllFinancialYears,
@@ -8,9 +9,12 @@ import {
   activateFinancialYear,
   deleteFinancialYear,
 } from "../api/financialYear";
-import { Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, Database, LayoutGrid } from "lucide-react";
 
 export default function Settings() {
+  const [activeTab, setActiveTab] = useState("general");
+
+  // -- Financial Year State --
   const [activeFY, setActiveFY] = useState(null);
   const [allFY, setAllFY] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +62,7 @@ export default function Settings() {
     try {
       await activateFinancialYear(fy.id);
       setShowModal(false);
-      loadFY(); // Refresh to see update
+      loadFY();
     } catch {
       setError("Failed to activate financial year");
     }
@@ -94,16 +98,53 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="max-w-3xl">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-          Financial Year Configuration
-        </h2>
-        <FinancialYearCard
-          fy={activeFY}
-          loading={loading}
-          onAddFY={() => setShowModal(true)}
-        />
-        {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+      {/* TABS NAVIGATION */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab("general")}
+          className={`pb-3 px-4 text-sm font-medium transition-all relative ${
+            activeTab === "general"
+              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <LayoutGrid size={18} />
+            General
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab("backup")}
+          className={`pb-3 px-4 text-sm font-medium transition-all relative ${
+            activeTab === "backup"
+              ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Database size={18} />
+            Backup & Restore
+          </div>
+        </button>
+      </div>
+
+      {/* CONTENT AREA */}
+      <div className="min-h-[400px]">
+        {activeTab === "general" && (
+          <div className="max-w-3xl animate-fade-in">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              Financial Year Configuration
+            </h2>
+            <FinancialYearCard
+              fy={activeFY}
+              loading={loading}
+              onAddFY={() => setShowModal(true)}
+            />
+            {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+          </div>
+        )}
+
+        {activeTab === "backup" && <BackupTab />}
       </div>
 
       {/* MODAL */}
