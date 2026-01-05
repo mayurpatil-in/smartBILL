@@ -19,6 +19,14 @@ from app.models.invoice import Invoice
 from app.models.invoice_item import InvoiceItem
 from app.models.item import Item
 from app.models.stock_transaction import StockTransaction
+from app.models.employee_profile import EmployeeProfile
+from app.models.attendance import Attendance
+from app.models.salary_advance import SalaryAdvance
+from app.models.audit_log import AuditLog
+from app.models.process import Process
+from app.models.payment import Payment
+from app.models.payment_allocation import PaymentAllocation
+from app.models.expense import Expense
 from app.models import * # safe catch-all if __init__ exposes them
 
 from app.core.security import get_password_hash
