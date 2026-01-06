@@ -627,18 +627,36 @@ async def get_party_statement_pdf(
             "balance": f"{running_balance:,.2f}"
         })
 
-    # QR Code Generation (Placeholder URL for now)
+    # QR Code Generation
     import qrcode
     import io
     import base64
-    
+    from app.core.security import create_url_signature
     from app.core.config import get_backend_url
+    
     base_url = get_backend_url()
     
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    # Sign: company_id:party_id
+    # We should match what public_reports expects.
+    # public_reports verifies f"{company_id}:{party_id}" [+ dates if present]
+    # Let's include dates in signature for security if they are present.
     
-    # Needs a real endpoint. Using placeholder structure for now but dynamic host.
-    qr.add_data(f"{base_url}/verify/statement/{party_id}")  
+    sig_data = f"{company_id}:{party_id}"
+    if start_date:
+        sig_data += f":{start_date}"
+    if end_date:
+        sig_data += f":{end_date}"
+        
+    token = create_url_signature(sig_data)
+    
+    download_url = f"{base_url}/public/reports/statement/download?party_id={party_id}&company_id={company_id}&token={token}"
+    if start_date:
+        download_url += f"&start_date={start_date}"
+    if end_date:
+        download_url += f"&end_date={end_date}"
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(download_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buffered = io.BytesIO()
@@ -1022,6 +1040,42 @@ async def get_stock_ledger_pdf(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Data Prep Error: {str(e)}")
 
+    # QR Code Generation
+    import qrcode
+    import io
+    import base64
+    from app.core.security import create_url_signature
+    from app.core.config import get_backend_url
+    
+    base_url = get_backend_url()
+    
+    # Signature: company_id:item_id:party_id (party_id can be None/None -> "all")
+    party_val = str(party_id) if party_id else "all"
+    sig_data = f"{company_id}:{item_id}:{party_val}"
+    
+    if start_date:
+        sig_data += f":{start_date}"
+    if end_date:
+        sig_data += f":{end_date}"
+        
+    token = create_url_signature(sig_data)
+    
+    download_url = f"{base_url}/public/reports/stock/download?item_id={item_id}&company_id={company_id}&token={token}"
+    if party_id:
+        download_url += f"&party_id={party_id}"
+    if start_date:
+         download_url += f"&start_date={start_date}"
+    if end_date:
+         download_url += f"&end_date={end_date}"
+         
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(download_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
     # Render Template
     # ---------------
     company = db.query(Company).filter(Company.id == company_id).first()
@@ -1035,7 +1089,8 @@ async def get_stock_ledger_pdf(
         end_date=end.strftime("%d-%m-%Y"),
         opening_balance=f"{opening_balance:.2f}",
         current_stock=f"{running_balance:.2f}",
-        transactions=formatted_transactions
+        transactions=formatted_transactions,
+        qr_code=qr_code_b64
     )
 
     # Generate PDF

@@ -194,6 +194,9 @@
             <p><strong>GSTIN:</strong> {{ company.gst_number }} | <strong>Phone:</strong> {{ company.phone }}</p>
         </div>
         <div class="report-title">
+            {% if qr_code %}
+            <img src="data:image/png;base64,{{ qr_code }}" style="width: 80px; height: 80px; margin-bottom: 5px;">
+            {% endif %}
             <h2>Stock Ledger</h2>
             <p>Report Period: {{ start_date }} to {{ end_date }}</p>
         </div>
