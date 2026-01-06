@@ -25,6 +25,19 @@ async def startup_event():
 async def shutdown_event():
     await pdf_manager.stop()
 
+# ===================== PNA MIDDLEWARE =====================
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+from fastapi import Request, Response
+
+class PrivateNetworkAccessMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        # Check if the PNA header is requested (usually in OPTIONS)
+        if request.method == "OPTIONS" and request.headers.get("Access-Control-Request-Private-Network"):
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+        return response
+
 # ===================== CORS =====================
 app.add_middleware(
     CORSMiddleware,
@@ -33,6 +46,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(PrivateNetworkAccessMiddleware)
 
 # ===================== STATIC FILES =====================
 if not os.path.exists("uploads"):

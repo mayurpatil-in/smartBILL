@@ -46,15 +46,11 @@ def get_backend_url() -> str:
     """
     Returns the backend URL for QR codes and external links.
     Priority:
-    1. ENV VAR: BACKEND_URL (e.g. https://api.smartbill.com)
-    2. LAN IP: http://192.168.x.x:8000
+    1. LAN IP: http://192.168.x.x:8000 (Auto-detected)
+    2. ENV VAR: BACKEND_URL (Fallback if detection fails)
     3. LOCALHOST: http://localhost:8000
     """
-    # 1. Check Env Var
-    if settings.BACKEND_URL:
-        return settings.BACKEND_URL.rstrip("/")
-
-    # 2. Detect LAN IP
+    # 1. Detect LAN IP (Prioritize this for local QR codes)
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Doesn't actually connect, just determines route
@@ -63,5 +59,11 @@ def get_backend_url() -> str:
         s.close()
         return f"http://{lan_ip}:8000"
     except Exception:
-        # 3. Fallback
-        return "http://localhost:8000"
+        pass
+
+    # 2. Check Env Var
+    if settings.BACKEND_URL:
+        return settings.BACKEND_URL.rstrip("/")
+
+    # 3. Fallback
+    return "http://localhost:8000"

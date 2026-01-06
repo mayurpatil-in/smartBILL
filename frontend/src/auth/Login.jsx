@@ -159,6 +159,8 @@ export default function Login() {
           {/* Email */}
           <input
             type="email"
+            name="email"
+            id="email"
             autoFocus
             autoComplete="username"
             placeholder="Email address"
@@ -177,6 +179,8 @@ export default function Login() {
           <div className="relative mb-3">
             <input
               type={showPwd ? "text" : "password"}
+              name="password"
+              id="password"
               autoComplete="current-password"
               placeholder="Password"
               value={password}
@@ -200,9 +204,14 @@ export default function Login() {
 
           {/* Remember */}
           <div className="flex justify-between items-center mb-5">
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <label
+              htmlFor="remember"
+              className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"
+            >
               <input
                 type="checkbox"
+                name="remember"
+                id="remember"
                 checked={remember}
                 onChange={() => setRemember(!remember)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"

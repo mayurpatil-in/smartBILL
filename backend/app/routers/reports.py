@@ -194,8 +194,7 @@ def get_job_work_report(
             )
         )
     ).order_by(
-    ).order_by(
-        PartyChallan.challan_date.desc()
+        PartyChallan.challan_date.asc()
     ).all()
     
     report_data = []

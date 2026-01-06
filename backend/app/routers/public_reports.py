@@ -34,6 +34,8 @@ async def public_ledger_download(
     fy_id: int,
     token: str,
     party_id: int = None,
+    start_date: str = None,
+    end_date: str = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -63,6 +65,10 @@ async def public_ledger_download(
         party = db.query(Party).filter(Party.id == party_id).first()
         if party:
             party_name = party.name
+
+    # Parse Dates
+    start = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else fy.start_date
+    end = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else fy.end_date
 
     # 3. Query Data (Replicated Logic)
     query = db.query(PartyChallanItem).join(
@@ -100,23 +106,29 @@ async def public_ledger_download(
                 "out": 0.0,
                 "balance": 0.0
             }
-        
+            
+        c_date = row.party_challan.challan_date
         pending_qty = float(row.quantity_ordered) - float(row.quantity_delivered)
         pending = max(0.0, pending_qty)
 
-        is_opening = row.party_challan.financial_year_id != fy.id
-
-        if is_opening:
-            ledger_map[key]["opening"] += pending
-            ledger_map[key]["balance"] += pending
-        else:
-            ledger_map[key]["in"] += float(row.quantity_ordered)
-            ledger_map[key]["out"] += float(row.quantity_delivered)
-            ledger_map[key]["balance"] += pending
+        # Logic to match main report filtering
+        if c_date < start:
+             ledger_map[key]["opening"] += pending
+             ledger_map[key]["balance"] += pending
+        elif c_date <= end:
+             ledger_map[key]["in"] += float(row.quantity_ordered)
+             ledger_map[key]["out"] += float(row.quantity_delivered)
+             ledger_map[key]["balance"] += pending
+        
+        # If date is > end, we ignore it
 
     # Format numbers
     ledger_data = []
     for item in ledger_map.values():
+        # Only show if there's activity or opening balance
+        if item["opening"] == 0 and item["in"] == 0 and item["out"] == 0:
+            continue
+
         item["opening"] = f"{item['opening']:.2f}"
         item["in"] = f"{item['in']:.2f}"
         item["out"] = f"{item['out']:.2f}"
@@ -129,6 +141,8 @@ async def public_ledger_download(
     html_content = template.render(
         company=company,
         financial_year=f"{fy.start_date.year}-{fy.end_date.year}",
+        start_date=start,
+        end_date=end,
         party_name=party_name,
         generation_date=datetime.now().strftime("%d-%m-%Y %H:%M"),
         ledger_data=ledger_data,
