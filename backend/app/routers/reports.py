@@ -337,7 +337,7 @@ async def get_party_ledger_pdf(
     if end_date:
         download_url += f"&end_date={end_date}"
     
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr = qrcode.QRCode(version=None, box_size=10, border=5)
     qr.add_data(download_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
@@ -654,7 +654,7 @@ async def get_party_statement_pdf(
     if end_date:
         download_url += f"&end_date={end_date}"
     
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr = qrcode.QRCode(version=None, box_size=10, border=5)
     qr.add_data(download_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
@@ -1067,7 +1067,7 @@ async def get_stock_ledger_pdf(
     if end_date:
          download_url += f"&end_date={end_date}"
          
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr = qrcode.QRCode(version=None, box_size=10, border=5)
     qr.add_data(download_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")

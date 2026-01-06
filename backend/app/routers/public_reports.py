@@ -166,7 +166,7 @@ async def public_ledger_download(
     return Response(
         content=pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 # =========================================================
@@ -368,7 +368,7 @@ async def public_statement_download(
     return Response(
         content=pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 
@@ -580,7 +580,7 @@ async def public_stock_download(
     return Response(
         content=pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 
@@ -714,7 +714,7 @@ async def public_gst_report_download(
     current_url = f"{base_url}/public/reports/gst/pdf?start_date={start_date}&end_date={end_date}&type={type}&company_id={company_id}&token={token}"
     
     qr = qrcode.QRCode(
-        version=1,
+        version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=4,
@@ -771,5 +771,5 @@ async def public_gst_report_download(
     return Response(
         content=pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
