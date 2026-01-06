@@ -4,9 +4,10 @@ import { getToken, clearSession } from "../utils/sessionTimer";
 import { isTauri } from "@tauri-apps/api/core";
 
 // 🚀 Dynamic Base URL (Works on LAN/WiFi)
-export const API_URL = isTauri() 
-  ? "http://localhost:8000" 
-  : (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`);
+export const API_URL = isTauri()
+  ? "http://localhost:8000"
+  : import.meta.env.VITE_API_URL ||
+    `${window.location.protocol}//${window.location.hostname}:8000`;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -43,7 +44,7 @@ api.interceptors.response.use(
       if (error.config.url.includes("/auth/login")) {
         return Promise.reject(error);
       }
-      
+
       clearSession();
       if (window.location.pathname !== "/login") {
         window.location.replace("/login");

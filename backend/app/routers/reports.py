@@ -322,20 +322,9 @@ async def get_party_ledger_pdf(
     from app.core.security import create_url_signature
     
     # Generate Public Download URL
-    base_url = "http://localhost:5173" # Default
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        lan_ip = s.getsockname()[0]
-        s.close()
-        # Use backend port for public download if serving from API, or frontend if it proxies.
-        # But public_reports is on API port 8000.
-        # Let's point to API URL (port 8000 usually)
-        base_url = f"http://{lan_ip}:8000"
-    except:
-        pass
-
-    # Sign the parameters
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
+    
     # Sign the parameters (Include dates if needed, but token signature usually company/fy/party)
     party_val = str(party_id) if party_id else "all"
     data_to_sign = f"{company_id}:{fy.id}:{party_val}"
@@ -643,8 +632,13 @@ async def get_party_statement_pdf(
     import io
     import base64
     
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
+    
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(f"http://smartbill.app/verify/statement/{party_id}") 
+    
+    # Needs a real endpoint. Using placeholder structure for now but dynamic host.
+    qr.add_data(f"{base_url}/verify/statement/{party_id}")  
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buffered = io.BytesIO()
@@ -1457,7 +1451,9 @@ def get_gst_report_pdf(
     token = create_url_signature(sig_data)
     
     # 2. Construct Public URL
-    base_url = "http://192.168.31.139:8000"
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
+    
     download_link = f"{base_url}/public/reports/gst/pdf?start_date={start.strftime('%Y-%m-%d')}&end_date={end.strftime('%Y-%m-%d')}&type={type}&company_id={company_id}&token={token}"
     
     qr = qrcode.QRCode(

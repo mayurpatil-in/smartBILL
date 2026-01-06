@@ -474,21 +474,14 @@ async def print_challan(
     import base64
 
     # Generate Public Download URL
-    # FIX: If running on localhost, replace with LAN IP so phone can access it
-    import socket
+    from app.core.config import get_backend_url
     from app.core.security import create_url_signature
     
-    base_url = str(request.base_url)
-    if "localhost" in base_url or "127.0.0.1" in base_url:
-        try:
-            lan_ip = socket.gethostbyname(socket.gethostname())
-            base_url = base_url.replace("localhost", lan_ip).replace("127.0.0.1", lan_ip)
-        except:
-            pass
+    base_url = get_backend_url()
             
     # Sign the ID to prevent IDOR
     signature = create_url_signature(str(challan_id))
-    download_url = f"{base_url}public/challan/{challan_id}/download?token={signature}"
+    download_url = f"{base_url}/public/challan/{challan_id}/download?token={signature}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(download_url)
