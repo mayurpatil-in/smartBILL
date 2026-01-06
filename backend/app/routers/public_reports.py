@@ -11,8 +11,10 @@ import os
 from app.database.session import get_db
 from app.models.company import Company
 from app.models.financial_year import FinancialYear
+from app.models.financial_year import FinancialYear
 from app.models.party_challan_item import PartyChallanItem
 from app.models.party_challan import PartyChallan
+from app.models.invoice import Invoice
 from app.models.party import Party
 from app.models.item import Item
 from app.models.payment import Payment
@@ -525,7 +527,7 @@ async def public_stock_download(
             })
 
     # Render
-    template = templates.get_template("stock_ledger_print.html")
+    template = env.get_template("stock_ledger_print.html")
     html_content = template.render(
         company=company,
         item=item,
