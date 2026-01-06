@@ -539,20 +539,11 @@ async def print_invoice(
     company = db.query(Company).filter(Company.id == company_id).first()
     
     # Generate QR Code for Public Download
-    base_url = str(request.base_url)
-    # Localhost Fix
-    if "localhost" in base_url or "127.0.0.1" in base_url:
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            lan_ip = s.getsockname()[0]
-            s.close()
-            base_url = base_url.replace("localhost", lan_ip).replace("127.0.0.1", lan_ip)
-        except:
-            pass
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
             
     signature = create_url_signature(str(invoice_id))
-    download_url = f"{base_url}public/invoice/{invoice_id}/download?token={signature}"
+    download_url = f"{base_url}/public/invoice/{invoice_id}/download?token={signature}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(download_url)
