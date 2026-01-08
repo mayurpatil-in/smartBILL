@@ -28,7 +28,6 @@ import {
   markAllAsRead,
   clearAllNotifications,
 } from "../api/notification";
-import toast from "react-hot-toast";
 
 // Short "Pop" Sound (Base64)
 const NOTIFICATION_SOUND =
@@ -78,20 +77,7 @@ const NotificationDropdown = () => {
           const newItems = data.filter((n) => n.id > lastNotifIdRef.current);
 
           newItems.forEach((n) => {
-            if (n.type === "error") {
-              toast.error(n.title);
-            } else if (n.type === "success") {
-              toast.success(n.title);
-            } else {
-              toast(n.title, {
-                icon: "🔔",
-                style: {
-                  borderRadius: "10px",
-                  background: "#333",
-                  color: "#fff",
-                },
-              });
-            }
+            // Toast removed as per user request
           });
 
           playSound();
@@ -107,8 +93,8 @@ const NotificationDropdown = () => {
 
   useEffect(() => {
     fetchNotifs();
-    // Poll every 10s for snappier feeling
-    const interval = setInterval(fetchNotifs, 10000);
+    // Poll every 3s for real-time feeling
+    const interval = setInterval(fetchNotifs, 3000);
 
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -275,9 +261,15 @@ const NotificationDropdown = () => {
                       </p>
                       <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
                         <Clock size={10} />
-                        {formatDistanceToNow(new Date(n.created_at), {
-                          addSuffix: true,
-                        })}
+                        {formatDistanceToNow(
+                          new Date(
+                            n.created_at +
+                              (n.created_at.endsWith("Z") ? "" : "Z")
+                          ),
+                          {
+                            addSuffix: true,
+                          }
+                        )}
                       </p>
                     </div>
                   </div>
