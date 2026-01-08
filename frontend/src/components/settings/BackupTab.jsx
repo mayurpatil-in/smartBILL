@@ -65,13 +65,18 @@ const BackupTab = () => {
       open: true,
       type: "info",
       title: "Create New Backup",
-      mode: "create", // Custom mode to render specific children
-      onConfirm: () => handleCreateConfirm(),
+      mode: "create",
+      // onConfirm removed to prevent stale closures
     });
   };
 
   const handleCreateConfirm = async () => {
-    if (isEncrypted && !password) {
+    // Capture state before closing dialog to avoid race conditions/resets
+    const currentPassword = password;
+    const currentIsEncrypted = isEncrypted;
+    const currentFormat = backupFormat;
+
+    if (currentIsEncrypted && !currentPassword) {
       toast.error("Password is required for encryption");
       return;
     }
@@ -80,8 +85,8 @@ const BackupTab = () => {
     const toastId = toast.loading("Creating backup...");
     try {
       const data = await createManualBackup(
-        isEncrypted ? password : null,
-        backupFormat
+        currentIsEncrypted ? currentPassword : null,
+        currentFormat
       );
       toast.success("Backup created successfully!", { id: toastId });
       loadBackups();
@@ -109,7 +114,7 @@ const BackupTab = () => {
       mode: "restore",
       file: file,
       needsPassword: needsPassword,
-      onConfirm: () => handleRestoreConfirm(file, needsPassword),
+      // onConfirm removed
     });
 
     // Reset input so same file can be selected again if cancelled
@@ -118,7 +123,12 @@ const BackupTab = () => {
 
   const handleRestoreConfirm = async (file, needsPassword) => {
     // If password input is active in dialog, read from state `password`
-    if (needsPassword && !password) {
+    // Use params if passed, or fall back to dialog state if accessed via wrapper
+    const validFile = file || dialog.file;
+    const validNeedsPassword =
+      needsPassword !== undefined ? needsPassword : dialog.needsPassword;
+
+    if (validNeedsPassword && !password) {
       toast.error("Decryption password is required");
       return;
     }
@@ -126,7 +136,7 @@ const BackupTab = () => {
     closeDialog();
     const toastId = toast.loading("Restoring database...");
     try {
-      await importBackup(file, password);
+      await importBackup(validFile, password);
       toast.success("Restored successfully! Reloading...", { id: toastId });
       setTimeout(() => window.location.reload(), 2000);
     } catch (err) {
@@ -162,7 +172,7 @@ const BackupTab = () => {
       title: "Delete Backup",
       mode: "delete",
       message: `Are you sure you want to delete ${filename}? This action cannot be undone.`,
-      onConfirm: () => handleDeleteConfirm(filename),
+      filename: filename, // Store filename
     });
   };
 
@@ -177,6 +187,17 @@ const BackupTab = () => {
     }
   };
 
+  // Dispatcher to handle confirmation based on mode
+  const handleDialogConfirm = () => {
+    if (dialog.mode === "create") {
+      handleCreateConfirm();
+    } else if (dialog.mode === "restore") {
+      handleRestoreConfirm(dialog.file, dialog.needsPassword);
+    } else if (dialog.mode === "delete") {
+      handleDeleteConfirm(dialog.filename);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* HER MODAL RENDER */}
@@ -186,7 +207,7 @@ const BackupTab = () => {
         title={dialog.title}
         message={dialog.message}
         onCancel={closeDialog}
-        onConfirm={dialog.onConfirm}
+        onConfirm={handleDialogConfirm}
         confirmLabel={
           dialog.mode === "delete"
             ? "Delete"
@@ -355,7 +376,7 @@ const BackupTab = () => {
       </div>
 
       {/* History Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[400px]">
         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
           <div>
             <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -368,77 +389,143 @@ const BackupTab = () => {
           </div>
           <button
             onClick={loadBackups}
-            className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+            className="p-2 text-gray-400 hover:text-blue-600 transition-colors bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow"
             title="Refresh List"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto flex-1">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-900/50 dark:text-gray-400">
+            <thead className="text-xs text-gray-500 uppercase bg-gray-50/80 dark:bg-gray-900/50 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 sticky top-0 backdrop-blur-sm z-10">
               <tr>
-                <th className="px-6 py-4">Filename</th>
-                <th className="px-6 py-4">Created Date</th>
-                <th className="px-6 py-4">Size</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 font-semibold tracking-wider">
+                  Filename
+                </th>
+                <th className="px-6 py-4 font-semibold tracking-wider">Type</th>
+                <th className="px-6 py-4 font-semibold tracking-wider">
+                  Created
+                </th>
+                <th className="px-6 py-4 font-semibold tracking-wider">Size</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {backups.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan="4"
-                    className="px-6 py-8 text-center text-gray-400 italic"
-                  >
-                    No backups found on server.
+                  <td colSpan="5" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                      <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                        <Archive size={32} className="opacity-50" />
+                      </div>
+                      <p className="text-base font-medium text-gray-600 dark:text-gray-300">
+                        No backups found
+                      </p>
+                      <p className="text-sm mt-1">
+                        Create a manual backup or wait for the daily
+                        auto-backup.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                backups.map((b) => (
-                  <tr
-                    key={b.filename}
-                    className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      <div className="flex items-center gap-2">
-                        {b.is_encrypted ? (
-                          <Lock size={14} className="text-amber-500" />
-                        ) : (
-                          <FileDown size={14} className="text-blue-500" />
-                        )}
-                        {b.filename}
-                        {b.filename.startsWith("auto_") && (
-                          <span className="text-[10px] uppercase bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">
-                            Auto
+                backups.map((b) => {
+                  const isAuto = b.filename.startsWith("auto_");
+                  const isDump =
+                    b.filename.endsWith(".dump") ||
+                    b.filename.includes(".dump");
+                  const isEnc = b.is_encrypted;
+
+                  return (
+                    <tr
+                      key={b.filename}
+                      className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors duration-200"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-sm ${
+                              isDump
+                                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                            }`}
+                          >
+                            {isDump ? (
+                              <Archive size={20} />
+                            ) : (
+                              <FileDown size={20} />
+                            )}
+                          </div>
+                          <div>
+                            <p
+                              className="font-medium text-gray-900 dark:text-white truncate max-w-[200px] sm:max-w-xs"
+                              title={b.filename}
+                            >
+                              {b.filename}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {isAuto && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 uppercase tracking-wide">
+                                  Auto
+                                </span>
+                              )}
+                              {isEnc && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-800">
+                                  <Lock size={10} /> Encrypted
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`text-xs font-semibold px-2 py-1 rounded-md border ${
+                            isDump
+                              ? "bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800"
+                              : "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+                          }`}
+                        >
+                          {isDump ? "BINARY DUMP" : "SQL TEXT"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {new Date(b.created_at).toLocaleDateString()}
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                      {new Date(b.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 font-mono">
-                      {(b.size / 1024).toFixed(1)} KB
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleDownloadBackup(b.filename)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-xs uppercase tracking-wide"
-                      >
-                        Download
-                      </button>
-                      <button
-                        onClick={() => openDeleteDialog(b.filename)}
-                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                          <span className="text-xs text-gray-400">
+                            {new Date(b.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-mono text-sm">
+                        {(b.size / 1024 / 1024).toFixed(2)} MB
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button
+                            onClick={() => handleDownloadBackup(b.filename)}
+                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                            title="Download"
+                          >
+                            <Download size={18} />
+                          </button>
+                          <button
+                            onClick={() => openDeleteDialog(b.filename)}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

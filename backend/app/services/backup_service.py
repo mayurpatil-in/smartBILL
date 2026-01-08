@@ -13,9 +13,16 @@ from app.core.config import settings
 
 BACKUP_DIR = "backups"
 # PostgreSQL Binaries Path
-PG_BIN_PATH = r"C:\Program Files\PostgreSQL\18\bin"
-PG_DUMP_EXE = os.path.join(PG_BIN_PATH, "pg_dump.exe")
-PSQL_EXE = os.path.join(PG_BIN_PATH, "psql.exe")
+# Dynamic path resolution for cross-platform support
+if os.name == 'nt':  # Windows
+    PG_BIN_PATH = r"C:\Program Files\PostgreSQL\18\bin"
+    PG_DUMP_EXE = os.path.join(PG_BIN_PATH, "pg_dump.exe")
+    PSQL_EXE = os.path.join(PG_BIN_PATH, "psql.exe")
+    PG_RESTORE_EXE = os.path.join(PG_BIN_PATH, "pg_restore.exe")
+else:  # Linux / VPS
+    PG_DUMP_EXE = shutil.which("pg_dump") or "pg_dump"
+    PSQL_EXE = shutil.which("psql") or "psql"
+    PG_RESTORE_EXE = shutil.which("pg_restore") or "pg_restore"
 
 class BackupManager:
     def __init__(self):
@@ -25,7 +32,16 @@ class BackupManager:
 
     def start_scheduler(self):
         # Default: Daily backup at 2:00 AM
-        self.scheduler.add_job(self.create_backup, 'cron', hour=2, minute=0, id='daily_backup', replace_existing=True)
+        # Changed format to 'dump' (Binary) as requested by user
+        self.scheduler.add_job(
+            self.create_backup, 
+            'cron', 
+            hour=2, 
+            minute=0, 
+            id='daily_backup', 
+            replace_existing=True,
+            kwargs={"format": "dump"}
+        )
         self.scheduler.start()
 
     def _derive_key(self, password: str, salt: bytes) -> bytes:
@@ -56,11 +72,11 @@ class BackupManager:
     async def _get_pg_executable(self, name):
         """
         Get path to postgres executable.
-        Currently hardcoded for Windows as per environment.
         """
-        # Hardcoded path based on user environment
-        base_path = r"C:\Program Files\PostgreSQL\18\bin"
-        return os.path.join(base_path, f"{name}.exe")
+        if os.name == 'nt':
+            base_path = r"C:\Program Files\PostgreSQL\18\bin"
+            return os.path.join(base_path, f"{name}.exe")
+        return shutil.which(name) or name
 
     def create_backup(self, auto=True, password: str = None, format: str = "sql"):
         """
@@ -189,10 +205,9 @@ class BackupManager:
         is_binary = sql_file_path.endswith(".dump") or format == "dump"
         
         if is_binary:
-            pg_restore_exe = r"C:\Program Files\PostgreSQL\18\bin\pg_restore.exe"
             # pg_restore: -c (clean), -d (dbname)
             cmd = [
-                pg_restore_exe,
+                PG_RESTORE_EXE,
                 "-h", str(db_conf["host"]),
                 "-p", str(db_conf["port"]),
                 "-U", str(db_conf["user"]),
@@ -202,9 +217,8 @@ class BackupManager:
             ]
             tool_name = "pg_restore"
         else:
-            psql_exe = r"C:\Program Files\PostgreSQL\18\bin\psql.exe"
             cmd = [
-                psql_exe,
+                PSQL_EXE,
                 "-h", str(db_conf["host"]),
                 "-p", str(db_conf["port"]),
                 "-U", str(db_conf["user"]),

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict L0kX003ZpvamIgo3JgLe0vJR6nsJoS2uKMdocfDqd596fCbp8NnNOXiRkkbun9D
+\restrict CYonNTnZletV5PulBl8UM546k3xfFKPj9NpsLZlrJMUcoaNMhORKFg4L0s5r1d7
 
 -- Dumped from database version 18.0
 -- Dumped by pg_dump version 18.0
@@ -1249,7 +1249,6 @@ e7cc317a1b92
 --
 
 COPY public.attendance (id, user_id, date, status, notes, overtime_hours, bonus_amount, created_at, updated_at) FROM stdin;
-3	21	2026-01-04	PRESENT		0.00	0.00	2026-01-05 00:46:28.556006	2026-01-05 00:46:28.556006
 \.
 
 
@@ -1293,15 +1292,15 @@ COPY public.delivery_challan (id, company_id, financial_year_id, party_id, chall
 60	2	12	1	2026-01-02	sent	2026-01-02 13:51:51.045334+05:30	\N	DC-001		t	\N	
 61	2	12	1	2026-01-02	sent	2026-01-02 13:54:03.490036+05:30	\N	DC-002		t	\N	
 62	2	12	1	2026-01-02	sent	2026-01-02 13:54:24.967385+05:30	\N	DC-003		t	\N	
-74	10	15	10	2026-01-03	delivered	2026-01-03 13:09:34.019366+05:30	2026-01-04 15:32:07.117518+05:30	DC-001		t	\N	
 72	10	15	11	2026-01-03	delivered	2026-01-03 12:44:52.987604+05:30	2026-01-04 15:51:09.838729+05:30	DC-001		t	\N	
 73	10	15	11	2026-01-04	delivered	2026-01-03 13:00:32.306811+05:30	2026-01-04 15:57:07.309656+05:30	DC-002		t	\N	
 75	10	15	11	2026-01-04	delivered	2026-01-04 16:15:26.197148+05:30	2026-01-04 16:16:46.302344+05:30	DC-003		t	\N	
 76	10	15	10	2026-01-04	delivered	2026-01-04 16:18:54.581667+05:30	2026-01-04 16:20:16.908723+05:30	DC-002		t	\N	
-77	10	15	10	2026-01-04	delivered	2026-01-04 16:19:33.079942+05:30	2026-01-04 16:20:35.555413+05:30	DC-003		t	\N	
-78	10	15	10	2026-01-04	delivered	2026-01-04 16:19:48.076338+05:30	2026-01-04 16:20:49.954954+05:30	DC-004		t	\N	
 40	2	6	1	2025-12-31	draft	2025-12-31 16:22:38.908022+05:30	\N	DC-001		t	\N	
+78	10	15	10	2026-01-04	sent	2026-01-04 16:19:48.076338+05:30	2026-01-05 19:10:00.710597+05:30	DC-004		t	\N	
+74	10	15	10	2026-01-03	sent	2026-01-03 13:09:34.019366+05:30	2026-01-05 20:37:23.076704+05:30	DC-001		t	\N	
 43	5	14	9	2026-01-01	draft	2026-01-01 11:25:22.450347+05:30	\N	DC-001		t	\N	
+77	10	15	10	2026-01-04	sent	2026-01-04 16:19:33.079942+05:30	2026-01-08 09:52:30.362674+05:30	DC-003		t	\N	
 \.
 
 
@@ -1330,7 +1329,6 @@ COPY public.delivery_challan_items (id, challan_id, item_id, party_challan_item_
 --
 
 COPY public.employee_profiles (id, user_id, designation, phone, address, pan_number, aadhar_number, pan_doc_path, aadhar_doc_path, resume_doc_path, joining_date, salary_type, base_salary, created_at, updated_at, photo_path) FROM stdin;
-2	21	Senior Developer	8275831212	A/P-Kaneri, Tal-Karveer, Dist-Kolhapur, State-Maharashtra, 416234	CCOPP5793D	502478658941	\N	\N	\N	2026-01-03	MONTHLY	100000.00	2026-01-04 23:11:26.063646	2026-01-04 23:11:27.707663	uploads\\21\\photo_IMG_20190817_081308.jpg
 \.
 
 
@@ -1366,10 +1364,7 @@ COPY public.invoice (id, company_id, financial_year_id, party_id, challan_id, in
 1	2	1	1	5	2025-12-23	900.00	162.00	1062.00	t	2025-12-23 14:25:28.743722	2025-12-23 14:25:28.743722	INV-OLD-1	\N	\N	\N	\N	\N
 30	10	15	11	\N	2026-01-04	1200.00	216.00	1416.00	f	2026-01-04 15:51:09.838729	2026-01-04 16:49:19.807126	INV/25-26/002	\N	BILLED		0.00	\N
 31	10	15	11	\N	2026-01-04	2000.00	360.00	2360.00	f	2026-01-04 15:57:07.309656	2026-01-04 16:49:19.807126	INV/25-26/003	\N	BILLED		0.00	\N
-29	10	15	10	\N	2026-01-04	9000.00	1620.00	10620.00	f	2026-01-04 15:32:07.117518	2026-01-04 17:16:43.897656	INV/25-26/001	\N	PAID		10620.00	PAID
-33	10	15	10	\N	2026-01-04	9000.00	1620.00	10620.00	f	2026-01-04 16:20:16.908723	2026-01-04 17:16:43.897656	INV/25-26/005	\N	PAID		10620.00	PAID
-34	10	15	10	\N	2026-01-04	13500.00	2430.00	15930.00	f	2026-01-04 16:20:35.555413	2026-01-04 17:16:43.897656	INV/25-26/006	\N	PAID		15930.00	PAID
-35	10	15	10	\N	2026-01-04	36000.00	6480.00	42480.00	f	2026-01-04 16:20:49.954954	2026-01-04 17:16:43.897656	INV/25-26/007	\N	PAID		42480.00	PAID
+33	10	15	10	\N	2026-01-04	9000.00	1620.00	10620.00	f	2026-01-04 16:20:16.908723	2026-01-06 13:51:59.216065	INV/25-26/005	\N	PAID		10620.00	PAID
 32	10	15	11	\N	2026-01-04	1140.00	205.20	1345.20	f	2026-01-04 16:16:46.302344	2026-01-04 16:16:46.302344	INV/25-26/004	\N	OPEN		0.00	PENDING
 \.
 
@@ -1379,13 +1374,10 @@ COPY public.invoice (id, company_id, financial_year_id, party_id, challan_id, in
 --
 
 COPY public.invoice_items (id, invoice_id, item_id, quantity, rate, amount, created_at, updated_at, grn_no, delivery_challan_item_id) FROM stdin;
-39	29	11	100.00	90.00	9000.00	2026-01-04 15:32:07.117518	2026-01-04 15:32:07.117518	12	70
 40	30	10	100.00	12.00	1200.00	2026-01-04 15:51:09.838729	2026-01-04 15:51:09.838729	122	68
 41	31	9	100.00	20.00	2000.00	2026-01-04 15:57:07.309656	2026-01-04 15:57:07.309656	56	69
 42	32	10	95.00	12.00	1140.00	2026-01-04 16:16:46.302344	2026-01-04 16:16:46.302344	78	71
 43	33	11	100.00	90.00	9000.00	2026-01-04 16:20:16.908723	2026-01-04 16:20:16.908723	78	72
-44	34	11	150.00	90.00	13500.00	2026-01-04 16:20:35.555413	2026-01-04 16:20:35.555413	89	73
-45	35	11	400.00	90.00	36000.00	2026-01-04 16:20:49.954954	2026-01-04 16:20:49.954954	457	74
 \.
 
 
@@ -1464,10 +1456,7 @@ COPY public.party_challan_items (id, party_challan_id, item_id, quantity_ordered
 --
 
 COPY public.payment_allocation (id, payment_id, invoice_id, amount, created_at, updated_at) FROM stdin;
-26	25	29	10620.00	2026-01-04 17:16:43.897656	2026-01-04 17:16:43.897656
-27	25	33	10620.00	2026-01-04 17:16:43.897656	2026-01-04 17:16:43.897656
-28	25	34	15930.00	2026-01-04 17:16:43.897656	2026-01-04 17:16:43.897656
-29	25	35	42480.00	2026-01-04 17:16:43.897656	2026-01-04 17:16:43.897656
+31	27	33	10620.00	2026-01-06 13:51:59.216065	2026-01-06 13:51:59.216065
 \.
 
 
@@ -1476,7 +1465,7 @@ COPY public.payment_allocation (id, payment_id, invoice_id, amount, created_at, 
 --
 
 COPY public.payments (id, company_id, financial_year_id, party_id, payment_date, amount, payment_type, payment_mode, reference_number, notes, created_at, updated_at) FROM stdin;
-25	10	15	10	2026-01-04	79650.00	RECEIVED	CHEQUE	124578		2026-01-04 17:16:43.897656	2026-01-04 17:16:43.897656
+27	10	15	10	2026-01-06	10620.00	RECEIVED	CHEQUE	124578		2026-01-06 13:51:59.216065	2026-01-06 13:51:59.216065
 \.
 
 
@@ -1536,7 +1525,6 @@ COPY public.stock_transactions (id, company_id, financial_year_id, item_id, quan
 COPY public.users (id, company_id, name, email, password_hash, role, is_active, created_at, updated_at) FROM stdin;
 7	5	Samarth	sam@demo.com	$2b$12$UQg1gMO0hQPQmaq6zIMAweIP9r.bSmVpAtUraa5frUIVKkwT/Gcve	COMPANY_ADMIN	t	2025-12-31 14:42:44.887341	2026-01-01 11:16:33.598711
 19	10	Samarath	samarth@gmail.com	$2b$12$Lir2AQ3XHi/FrMlEANGrHOKgGV5rvAciIfjWA90MmDruWsBcRHxCy	COMPANY_ADMIN	t	2026-01-01 18:12:11.444357	2026-01-01 18:12:11.444357
-21	10	Mayur Patil	mayur@gmail.com	\N	USER	t	2026-01-04 23:11:26.063646	2026-01-04 23:38:19.1824
 1	2	Kesarkar	admin1@demo.com	$2b$12$VY9fhGGHIMhsnSlHCH8X8Oh4b/B9kygIb1sHcVx5u02KGi13T6DCy	COMPANY_ADMIN	t	2025-12-22 17:01:14.295634	2025-12-31 18:27:54.039001
 13	2	Mayur Patil	mayur@mayur.com	\N	USER	t	2025-12-31 18:45:48.328522	2025-12-31 18:45:48.328522
 2	\N	Super Admin	superadmin@smartbill.com	$2b$12$xq2Bv1I0y2zkY3R5X1syl.Ec7/LaGpXYX3iTB0lDMSuxCii8rzqY2	SUPER_ADMIN	t	2025-12-27 20:09:14.014719	2026-01-01 10:44:37.309914
@@ -1645,14 +1633,14 @@ SELECT pg_catalog.setval('public.party_id_seq', 11, true);
 -- Name: payment_allocation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.payment_allocation_id_seq', 29, true);
+SELECT pg_catalog.setval('public.payment_allocation_id_seq', 31, true);
 
 
 --
 -- Name: payments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.payments_id_seq', 25, true);
+SELECT pg_catalog.setval('public.payments_id_seq', 27, true);
 
 
 --
@@ -2425,5 +2413,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict L0kX003ZpvamIgo3JgLe0vJR6nsJoS2uKMdocfDqd596fCbp8NnNOXiRkkbun9D
+\unrestrict CYonNTnZletV5PulBl8UM546k3xfFKPj9NpsLZlrJMUcoaNMhORKFg4L0s5r1d7
 
