@@ -33,14 +33,26 @@ class BackupManager:
     def start_scheduler(self):
         # Default: Daily backup at 2:00 AM
         # Changed format to 'dump' (Binary) as requested by user
+        # Job 1: Binary Dump at 2:00 AM
         self.scheduler.add_job(
             self.create_backup, 
             'cron', 
             hour=2, 
             minute=0, 
-            id='daily_backup', 
+            id='daily_backup_dump', 
             replace_existing=True,
             kwargs={"format": "dump"}
+        )
+
+        # Job 2: Plain SQL at 2:05 AM
+        self.scheduler.add_job(
+            self.create_backup, 
+            'cron', 
+            hour=2, 
+            minute=5, 
+            id='daily_backup_sql', 
+            replace_existing=True,
+            kwargs={"format": "sql"}
         )
         self.scheduler.start()
 
