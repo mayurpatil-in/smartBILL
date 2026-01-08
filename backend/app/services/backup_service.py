@@ -56,6 +56,21 @@ class BackupManager:
         )
         self.scheduler.start()
 
+    def _create_notification(self, title: str, message: str, type: str):
+        """Helper to safely create a DB notification"""
+        try:
+            # Lazy import to avoid circular dep if any
+            from app.database.session import SessionLocal
+            from app.models.notification import Notification
+            
+            db = SessionLocal()
+            notif = Notification(title=title, message=message, type=type)
+            db.add(notif)
+            db.commit()
+            db.close()
+        except Exception as e:
+            print(f"Failed to create notification: {e}")
+
     def _derive_key(self, password: str, salt: bytes) -> bytes:
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
@@ -164,14 +179,34 @@ class BackupManager:
                 
                 if auto:
                     self.prune_backups()
+                    
+                # NOTIFICATION: Success
+                self._create_notification(
+                    "Auto Backup Successful" if auto else "Manual Backup Successful", 
+                    f"Backup created: {enc_filename} (Encrypted)",
+                    "success"
+                )
                 return enc_filename
             
             if auto:
                 self.prune_backups()
+                
+            # NOTIFICATION: Success
+            self._create_notification(
+                 "Auto Backup Successful" if auto else "Manual Backup Successful", 
+                 f"Backup created: {filename}",
+                 "success"
+            )
             return filename
             
         except Exception as e:
             print(f"Backup failed: {e}")
+            # NOTIFICATION: Error
+            self._create_notification(
+                "Backup Failed", 
+                f"Error creating backup: {str(e)}",
+                "error"
+            )
             return None
 
     def decrypt_backup_file(self, file_path, password):

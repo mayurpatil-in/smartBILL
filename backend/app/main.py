@@ -98,6 +98,9 @@ app.include_router(employees_router)
 
 app.include_router(reports_router)
 
+from app.routers.notification import router as notification_router
+app.include_router(notification_router)
+
 from app.routers.public_challan import router as public_challan_router
 from app.routers.public_reports import router as public_reports_router
 from app.routers.public_verify import router as public_verify_router
