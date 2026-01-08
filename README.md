@@ -86,6 +86,8 @@ npx tailwindcss init -p
 npm run tauri dev
 
 npm run tauri icon app-icon.png # Change app-icon.png to your icon
+
+netstat -ano | findstr :8000 || echo Port 8000 is free
 ```
 
 ## Status: 🚧 In Progress

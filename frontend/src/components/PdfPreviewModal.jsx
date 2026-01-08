@@ -67,26 +67,32 @@ export default function PdfPreviewModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-scale-in">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Printer className="text-blue-600" size={24} />
-            {title}
-          </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden animate-scale-in border border-gray-200 dark:border-gray-700">
+        {/* Header with Gradient */}
+        <div className="relative flex items-center justify-between px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
+              <Printer className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{title}</h2>
+              <p className="text-xs text-blue-100 mt-0.5">Preview & Download</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200"
+            title="Close Preview"
           >
             <X size={24} />
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content Area */}
         <div
           ref={containerRef}
-          className="flex-1 bg-gray-100 dark:bg-gray-900 p-6 overflow-y-auto flex justify-center"
+          className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 p-8 overflow-y-auto flex justify-center"
         >
           {ready &&
             (pdfUrl ? (
@@ -94,72 +100,105 @@ export default function PdfPreviewModal({
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={
-                  <div className="text-gray-500 animate-pulse">
-                    Loading PDF...
+                  <div className="flex flex-col items-center justify-center gap-4 py-20">
+                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium animate-pulse">
+                      Loading PDF...
+                    </p>
                   </div>
                 }
-                error={<div className="text-red-500">Failed to load PDF.</div>}
-                className="shadow-lg"
+                error={
+                  <div className="flex flex-col items-center justify-center gap-3 py-20 text-red-500">
+                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full">
+                      <X size={32} />
+                    </div>
+                    <p className="font-semibold">Failed to load PDF</p>
+                    <p className="text-sm text-gray-500">
+                      Please try again or download the file
+                    </p>
+                  </div>
+                }
+                className="shadow-2xl"
               >
                 <Page
                   pageNumber={pageNumber}
                   width={
-                    (containerWidth ? Math.min(containerWidth, 800) : 600) *
+                    (containerWidth ? Math.min(containerWidth, 850) : 650) *
                     scale
                   }
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
-                  className="rounded-lg overflow-hidden bg-white"
+                  className="rounded-2xl overflow-hidden bg-white shadow-xl ring-1 ring-gray-200 dark:ring-gray-700"
                 />
               </Document>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-3 animate-pulse">
-                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <p>Generating PDF...</p>
+              <div className="flex flex-col items-center justify-center h-full gap-4 animate-pulse">
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Printer className="text-blue-500" size={28} />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                    Generating PDF...
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    This may take a moment
+                  </p>
+                </div>
               </div>
             ))}
         </div>
 
-        {/* Pagination & Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Pagination */}
-          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 order-2 sm:order-1">
+        {/* Enhanced Footer with Controls */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-inner">
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-3 text-sm order-2 sm:order-1">
             <button
               disabled={pageNumber <= 1}
               onClick={() => setPageNumber((p) => p - 1)}
-              className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30"
+              className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+              title="Previous Page"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={18} />
             </button>
-            <span>
-              Page {pageNumber} of {numPages || "--"}
-            </span>
+            <div className="px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">
+                Page{" "}
+                <span className="text-blue-600 dark:text-blue-400">
+                  {pageNumber}
+                </span>{" "}
+                of {numPages || "--"}
+              </span>
+            </div>
             <button
               disabled={pageNumber >= numPages}
               onClick={() => setPageNumber((p) => p + 1)}
-              className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30"
+              className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+              title="Next Page"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={18} />
             </button>
 
             {/* Divider */}
-            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-2" />
+            <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1" />
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-xl shadow-sm">
               <button
                 onClick={() => setScale((s) => Math.max(0.5, s - 0.25))}
-                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
                 title="Zoom Out"
               >
                 <Minus size={16} />
               </button>
-              <span className="w-12 text-center">
+              <span className="w-14 text-center font-semibold text-gray-700 dark:text-gray-300">
                 {Math.round(scale * 100)}%
               </span>
               <button
                 onClick={() => setScale((s) => Math.min(2.5, s + 0.25))}
-                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
                 title="Zoom In"
               >
                 <Plus size={16} />
@@ -167,8 +206,8 @@ export default function PdfPreviewModal({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 order-1 sm:order-2 w-full sm:w-auto justify-end">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto justify-end">
             <button
               onClick={() => {
                 const toastId = toast.loading("Preparing print...");
@@ -205,6 +244,38 @@ export default function PdfPreviewModal({
             >
               <Printer size={18} />
               Print
+            </button>
+            <button
+              onClick={() => {
+                // Open PDF in external viewer (system default)
+                const link = document.createElement("a");
+                link.href = pdfUrl;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success("Opening in external viewer...");
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition flex items-center gap-2"
+              title="Open in system PDF viewer (Adobe, Edge, etc.)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              Open Externally
             </button>
             <a
               href={pdfUrl}

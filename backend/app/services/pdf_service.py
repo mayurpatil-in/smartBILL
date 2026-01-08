@@ -21,9 +21,38 @@ class PDFManager:
 
     async def _init_browser(self):
         """Initialize browser inside the worker loop"""
-        self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(headless=True)
-        print("INFO:    PDF Service (Playwright) started in background thread.")
+        try:
+            self._playwright = await async_playwright().start()
+            
+            # Try 1: Bundled/Default
+            try:
+                print("INFO:    Attempting to launch default/bundled Chromium...")
+                self._browser = await self._playwright.chromium.launch(headless=True)
+                print("INFO:    PDF Service: Using Bundled/Default Chromium.")
+            except Exception as e_bundled:
+                print(f"WARN:    Default browser failed: {e_bundled}")
+                
+                # Try 2: Microsoft Edge
+                try:
+                    print("INFO:    Attempting to launch Microsoft Edge...")
+                    self._browser = await self._playwright.chromium.launch(channel="msedge", headless=True)
+                    print("INFO:    PDF Service: Using Microsoft Edge.")
+                except Exception as e_edge:
+                    print(f"WARN:    Edge failed: {e_edge}")
+                    
+                    # Try 3: Google Chrome
+                    try:
+                        print("INFO:    Attempting to launch Google Chrome...")
+                        self._browser = await self._playwright.chromium.launch(channel="chrome", headless=True)
+                        print("INFO:    PDF Service: Using Google Chrome.")
+                    except Exception as e_chrome:
+                        print(f"ERROR:   All browser launch attempts failed. PDF generation will be unavailable.")
+                        print(f"ERROR:   Chrome failed: {e_chrome}")
+                        self._browser = None
+                        
+        except Exception as e:
+            print(f"CRITICAL PDF SERVICE ERROR: {e}")
+            self._browser = None
 
     async def start(self):
         """Start the worker thread and browser"""
@@ -38,8 +67,13 @@ class PDFManager:
             await asyncio.sleep(0.01)
 
         # Initialize browser in that loop
-        future = asyncio.run_coroutine_threadsafe(self._init_browser(), self._loop)
-        await asyncio.wrap_future(future)
+        # We wrap this to ensure it doesn't crash the main startup
+        try:
+            future = asyncio.run_coroutine_threadsafe(self._init_browser(), self._loop)
+            await asyncio.wrap_future(future)
+        except Exception as e:
+            print(f"ERROR: Failed to initialize PDF Service: {e}")
+            # Do NOT re-raise, allow app to start without PDF
 
     async def _stop_browser(self):
         try:
@@ -73,7 +107,11 @@ class PDFManager:
     async def _generate_task(self, html_content: str) -> bytes:
         """Task running in the worker loop"""
         if not self._browser:
+            # Try to init again if it failed previously (maybe user installed browser?)
             await self._init_browser()
+            
+        if not self._browser:
+             raise Exception("PDF Service Unavailable: No supported browser (Chromium, Edge, Chrome) found.")
             
         context = await self._browser.new_context()
         page = await context.new_page()

@@ -25,5 +25,33 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     print("Tables created successfully!")
 
+    # --- SEED DEFAULT SUPER ADMIN ---
+    try:
+        from sqlalchemy.orm import sessionmaker
+        from app.core.security import get_password_hash
+        
+        SessionLocal = sessionmaker(bind=engine)
+        db = SessionLocal()
+        
+        user = db.query(User).filter(User.email == "admin@smartbill.com").first()
+        if not user:
+            print("Seeding default Super Admin user...")
+            super_admin = User(
+                full_name="Super Admin",
+                email="admin@smartbill.com",
+                hashed_password=get_password_hash("admin"),
+                role="SUPER_ADMIN",
+                is_active=True
+            )
+            db.add(super_admin)
+            db.commit()
+            print("Default Super Admin created: admin@smartbill.com / admin")
+        else:
+             print("Super Admin already exists.")
+        
+        db.close()
+    except Exception as e:
+        print(f"Error seeding default user: {e}")
+
 if __name__ == "__main__":
     init_db()

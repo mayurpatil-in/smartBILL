@@ -1393,7 +1393,7 @@ def get_gst_report(
 
 
 @router.get("/gst/pdf")
-def get_gst_report_pdf(
+async def get_gst_report_pdf(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     type: str = "gstr1",
@@ -1540,26 +1540,36 @@ def get_gst_report_pdf(
         total_amount=total_grand
     )
 
-    # 3. Generate PDF
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.set_content(html_content)
-        pdf_data = page.pdf(
-            format="A4",
-            margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-            display_header_footer=True,
-            footer_template="""
-                <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                    Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                </div>
-            """,
-            header_template="<div></div>"
-        )
-        browser.close()
+    # 3. Generate PDF using run_in_threadpool
+    def _generate_pdf_sync(html: str) -> bytes:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_content(html)
+            pdf_data = page.pdf(
+                format="A4",
+                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
+                display_header_footer=True,
+                footer_template="""
+                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
+                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+                    </div>
+                """,
+                header_template="<div></div>"
+            )
+            browser.close()
+            return pdf_data
+
+    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
 
     return Response(
         content=pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=GST_Report_{type}.pdf"},
+        headers={
+            "Content-Disposition": f"attachment; filename=GST_Report_{type}.pdf",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        },
     )
+
