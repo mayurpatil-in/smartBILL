@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   X,
   Save,
@@ -34,6 +34,7 @@ export default function AddDeliveryChallanModal({
   const [items, setItems] = useState([]);
   const [partyChallansByItem, setPartyChallansByItem] = useState([]);
   const [nextChallanNumber, setNextChallanNumber] = useState("");
+  const scrollContainerRef = useRef(null);
 
   const [form, setForm] = useState({
     party_id: "",
@@ -281,6 +282,16 @@ export default function AddDeliveryChallanModal({
     setPartyChallansByItem([]);
 
     toast.success("Item added successfully");
+
+    // Auto-scroll to bottom to show the newly added item
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    }, 100);
   };
 
   const removeItemRow = (index) => {
@@ -362,22 +373,22 @@ export default function AddDeliveryChallanModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-6xl shadow-2xl overflow-hidden animate-scale-in max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl overflow-hidden animate-scale-in max-h-[92vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 sticky top-0 backdrop-blur-md z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg">
-              <FileText size={20} className="text-white" />
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-purple-500 via-purple-600 to-blue-600 sticky top-0 backdrop-blur-xl z-10 shadow-lg">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xl border border-white/30">
+              <FileText size={24} className="text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-white drop-shadow-md">
                 {deliveryChallan
                   ? "Edit Delivery Challan"
                   : "Create Delivery Challan"}
               </h2>
               {!deliveryChallan && nextChallanNumber && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-white/80 font-medium mt-0.5">
                   Challan No: {nextChallanNumber}
                 </p>
               )}
@@ -385,358 +396,393 @@ export default function AddDeliveryChallanModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded-full transition-all"
+            className="p-2.5 hover:bg-white/20 rounded-xl transition-all duration-200 group"
           >
-            <X size={20} className="text-gray-600 dark:text-gray-400" />
+            <X
+              size={22}
+              className="text-white group-hover:rotate-90 transition-transform duration-200"
+            />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Challan Details */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-              <Building2 size={16} className="text-purple-600" />
-              Challan Details
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <Building2 size={14} className="text-gray-400" />
-                  Party <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="delivery_party_id"
-                  id="delivery_party_id"
-                  value={form.party_id}
-                  onChange={(e) => handlePartyChange(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                >
-                  <option value="">Select Party</option>
-                  {parties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+        {/* Scrollable Content */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Challan Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5 text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 uppercase tracking-wide">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md">
+                  <Building2 size={16} className="text-white" />
+                </div>
+                Challan Details
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <Calendar size={14} className="text-gray-400" />
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="delivery_challan_date"
-                  id="delivery_challan_date"
-                  value={form.challan_date}
-                  onChange={(e) =>
-                    setForm({ ...form, challan_date: e.target.value })
-                  }
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                  <Truck size={14} className="text-gray-400" />
-                  Vehicle Number
-                </label>
-                <input
-                  type="text"
-                  name="vehicle_number"
-                  id="vehicle_number"
-                  value={form.vehicle_number}
-                  onChange={(e) =>
-                    setForm({ ...form, vehicle_number: e.target.value })
-                  }
-                  placeholder="MH-12-AB-1234"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Items Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-              <Package size={16} className="text-purple-600" />
-              Items
-            </div>
-
-            {/* Item Input Row */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-                {/* Select Item */}
-                <div className="lg:col-span-3">
-                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    Select Item <span className="text-red-500">*</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Building2 size={14} className="text-purple-500" />
+                    Party <span className="text-red-500">*</span>
                   </label>
                   <select
-                    name="delivery_item_id"
-                    id="delivery_item_id"
-                    value={currentItem.item_id}
-                    onChange={(e) => handleItemChange(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                    name="delivery_party_id"
+                    id="delivery_party_id"
+                    value={form.party_id}
+                    onChange={(e) => handlePartyChange(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer"
                   >
-                    <option value="">
-                      {form.party_id ? "Select Item" : "Select Party First"}
-                    </option>
-                    {getPartyItems().map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name}
+                    <option value="">Select Party</option>
+                    {parties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Total Pending Qty Display */}
-                <div className="lg:col-span-2">
-                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    Total Pending Qty
-                  </label>
-                  <div
-                    className={`px-3 py-2.5 rounded-lg border-2 text-sm font-bold flex items-center justify-center ${
-                      currentItem.item_id
-                        ? "border-orange-300 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-700 text-orange-700 dark:text-orange-400"
-                        : "border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-gray-400"
-                    }`}
-                  >
-                    {currentItem.item_id
-                      ? `${partyChallansByItem.reduce(
-                          (acc, challan) =>
-                            acc +
-                            challan.items.reduce(
-                              (sum, item) => sum + getEffectivePending(item),
-                              0
-                            ),
-                          0
-                        )} units`
-                      : "-"}
-                  </div>
-                </div>
-
-                {/* Select Challan */}
-                <div className="lg:col-span-3">
-                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    Select Challan <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="party_challan_item_id"
-                    id="party_challan_item_id"
-                    value={currentItem.party_challan_item_id}
-                    onChange={(e) => handleChallanItemChange(e.target.value)}
-                    disabled={!currentItem.item_id}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50"
-                  >
-                    <option value="">Select Challan</option>
-                    {partyChallansByItem.map((challan) =>
-                      challan.items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {challan.challan_number} -{" "}
-                          {item.process_name || "No Process"} (Pending:{" "}
-                          {getEffectivePending(item)})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                {/* Challan Qty */}
-                <div className="lg:col-span-1">
-                  <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    Challan Qty
-                  </label>
-                  <div className="px-3 py-2.5 rounded-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 text-sm font-bold text-blue-700 dark:text-blue-400 flex items-center justify-center">
-                    {currentItem.challan_qty || "-"}
-                  </div>
-                </div>
-
-                {/* OK Qty */}
-                <div className="lg:col-span-1">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                    OK Qty <span className="text-red-500">*</span>
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Calendar size={14} className="text-purple-500" />
+                    Date <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    name="ok_qty"
-                    id="ok_qty"
-                    value={currentItem.ok_qty}
-                    onChange={(e) => handleQtyChange("ok_qty", e.target.value)}
-                    min="0"
-                    placeholder="0"
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-green-50/50 dark:bg-green-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-colors"
+                    type="date"
+                    name="delivery_challan_date"
+                    id="delivery_challan_date"
+                    value={form.challan_date}
+                    onChange={(e) =>
+                      setForm({ ...form, challan_date: e.target.value })
+                    }
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer"
                   />
                 </div>
 
-                {/* CR Qty */}
-                <div className="lg:col-span-1">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                    CR Qty
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Truck size={14} className="text-purple-500" />
+                    Vehicle Number
                   </label>
                   <input
-                    type="number"
-                    name="cr_qty"
-                    id="cr_qty"
-                    value={currentItem.cr_qty}
-                    onChange={(e) => handleQtyChange("cr_qty", e.target.value)}
-                    min="0"
-                    placeholder="0"
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-red-50/50 dark:bg-red-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-colors"
+                    type="text"
+                    name="vehicle_number"
+                    id="vehicle_number"
+                    value={form.vehicle_number}
+                    onChange={(e) =>
+                      setForm({ ...form, vehicle_number: e.target.value })
+                    }
+                    placeholder="MH-12-AB-1234"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700"
                   />
                 </div>
-
-                {/* MR Qty */}
-                <div className="lg:col-span-1">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                    <AlertTriangle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-                    MR Qty
-                  </label>
-                  <input
-                    type="number"
-                    name="mr_qty"
-                    id="mr_qty"
-                    value={currentItem.mr_qty}
-                    onChange={(e) => handleQtyChange("mr_qty", e.target.value)}
-                    min="0"
-                    placeholder="0"
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-orange-50/50 dark:bg-orange-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Total Qty Display */}
-              <div className="mt-3 flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">
-                  Total Qty:{" "}
-                  <span className="text-purple-600 dark:text-purple-400">
-                    {currentItem.total_qty}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleAddItem}
-                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
-                >
-                  <Plus size={18} />
-                  Add
-                </button>
               </div>
             </div>
 
-            {/* Items Table */}
-            {form.items.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-gray-700 to-gray-800 text-white">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-                          Item Name
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-                          Challan No.
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-                          Process
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
-                          <div className="flex items-center justify-end gap-1">
-                            <CheckCircle size={14} className="text-green-400" />
-                            OK
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
-                          <div className="flex items-center justify-end gap-1">
-                            <XCircle size={14} className="text-red-400" />
-                            CR
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
-                          <div className="flex items-center justify-end gap-1">
-                            <AlertTriangle
-                              size={14}
-                              className="text-orange-400"
-                            />
-                            MR
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
-                          Total
-                        </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
-                          Delete
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {form.items.map((item, index) => (
-                        <tr
-                          key={index}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium">
-                            {getItemName(item.item_id)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                            {item.challan_number || "N/A"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                            {item.process_name || "-"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400 font-medium">
-                            {item.ok_qty}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium">
-                            {item.cr_qty}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right text-orange-600 dark:text-orange-400 font-medium">
-                            {item.mr_qty}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right font-bold text-purple-600 dark:text-purple-400">
-                            {item.total_qty}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => removeItemRow(index)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
+            <div className="space-y-4">
+              <div className="sticky top-0 z-30 flex items-center gap-2.5 text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 uppercase tracking-wide py-3 bg-white dark:bg-gray-800 backdrop-blur-md -mx-6 px-6 shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md">
+                  <Package size={16} className="text-white" />
+                </div>
+                Items
+              </div>
+
+              {/* Item Input Row */}
+              <div className="sticky top-[56px] z-20 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-5 rounded-2xl border-2 border-purple-200/50 dark:border-gray-700/50 shadow-md transition-shadow duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                  {/* Select Item */}
+                  <div className="lg:col-span-3">
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Select Item <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="delivery_item_id"
+                      id="delivery_item_id"
+                      value={currentItem.item_id}
+                      onChange={(e) => handleItemChange(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                    >
+                      <option value="">
+                        {form.party_id ? "Select Item" : "Select Party First"}
+                      </option>
+                      {getPartyItems().map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.name}
+                        </option>
                       ))}
-                    </tbody>
-                  </table>
+                    </select>
+                  </div>
+
+                  {/* Total Pending Qty Display */}
+                  <div className="lg:col-span-2">
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Total Pending Qty
+                    </label>
+                    <div
+                      className={`px-3 py-2.5 rounded-lg border-2 text-sm font-bold flex items-center justify-center ${
+                        currentItem.item_id
+                          ? "border-orange-300 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-700 text-orange-700 dark:text-orange-400"
+                          : "border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-gray-400"
+                      }`}
+                    >
+                      {currentItem.item_id
+                        ? `${partyChallansByItem.reduce(
+                            (acc, challan) =>
+                              acc +
+                              challan.items.reduce(
+                                (sum, item) => sum + getEffectivePending(item),
+                                0
+                              ),
+                            0
+                          )} units`
+                        : "-"}
+                    </div>
+                  </div>
+
+                  {/* Select Challan */}
+                  <div className="lg:col-span-3">
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Select Challan <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="party_challan_item_id"
+                      id="party_challan_item_id"
+                      value={currentItem.party_challan_item_id}
+                      onChange={(e) => handleChallanItemChange(e.target.value)}
+                      disabled={!currentItem.item_id}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50"
+                    >
+                      <option value="">Select Challan</option>
+                      {partyChallansByItem.map((challan) =>
+                        challan.items
+                          .filter((item) => getEffectivePending(item) > 0)
+                          .map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {challan.challan_number} -{" "}
+                              {item.process_name || "No Process"} (Pending:{" "}
+                              {getEffectivePending(item)})
+                            </option>
+                          ))
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Challan Qty */}
+                  <div className="lg:col-span-1">
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Challan Qty
+                    </label>
+                    <div className="px-3 py-2.5 rounded-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 text-sm font-bold text-blue-700 dark:text-blue-400 flex items-center justify-center">
+                      {currentItem.challan_qty || "-"}
+                    </div>
+                  </div>
+
+                  {/* OK Qty */}
+                  <div className="lg:col-span-1">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                      OK Qty <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="ok_qty"
+                      id="ok_qty"
+                      value={currentItem.ok_qty}
+                      onChange={(e) =>
+                        handleQtyChange("ok_qty", e.target.value)
+                      }
+                      min="0"
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-green-50/50 dark:bg-green-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* CR Qty */}
+                  <div className="lg:col-span-1">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                      CR Qty
+                    </label>
+                    <input
+                      type="number"
+                      name="cr_qty"
+                      id="cr_qty"
+                      value={currentItem.cr_qty}
+                      onChange={(e) =>
+                        handleQtyChange("cr_qty", e.target.value)
+                      }
+                      min="0"
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-red-50/50 dark:bg-red-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* MR Qty */}
+                  <div className="lg:col-span-1">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      <AlertTriangle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+                      MR Qty
+                    </label>
+                    <input
+                      type="number"
+                      name="mr_qty"
+                      id="mr_qty"
+                      value={currentItem.mr_qty}
+                      onChange={(e) =>
+                        handleQtyChange("mr_qty", e.target.value)
+                      }
+                      min="0"
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-orange-50/50 dark:bg-orange-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Total Qty Display */}
+                <div className="mt-3 flex justify-between items-center">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    Total Qty:{" "}
+                    <span className="text-purple-600 dark:text-purple-400">
+                      {currentItem.total_qty}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                  >
+                    <Plus size={18} />
+                    Add
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Action Buttons */}
-          <div className="sticky bottom-0 flex justify-end gap-3 pt-6 pb-4 px-6 -mx-6 -mb-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 backdrop-blur-md z-10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold transition-all border border-gray-200 dark:border-gray-600"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-8 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-purple-600/30 hover:shadow-xl hover:shadow-purple-600/40 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
-            >
-              <Save size={18} />
-              {loading ? "Saving..." : deliveryChallan ? "Update" : "Create"}
-            </button>
-          </div>
-        </form>
+              {/* Items Table */}
+              {form.items.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <thead className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 text-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[5%]">
+                            #
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[15%]">
+                            Item Name
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[15%]">
+                            Challan No.
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[15%]">
+                            Process
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            <div className="flex items-center justify-end gap-1">
+                              <CheckCircle
+                                size={14}
+                                className="text-green-300"
+                              />
+                              OK
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            <div className="flex items-center justify-end gap-1">
+                              <XCircle size={14} className="text-red-300" />
+                              CR
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            <div className="flex items-center justify-end gap-1">
+                              <AlertTriangle
+                                size={14}
+                                className="text-orange-300"
+                              />
+                              MR
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            Total
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            Delete
+                          </th>
+                        </tr>
+                      </thead>
+                    </table>
+                  </div>
+
+                  <div className="overflow-x-auto overflow-y-auto max-h-[300px]">
+                    <table className="w-full table-fixed">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {form.items.map((item, index) => (
+                          <tr
+                            key={index}
+                            className="hover:bg-purple-50 dark:hover:bg-gray-700/50 transition-colors"
+                          >
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 w-[5%]">
+                              {index + 1}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium w-[15%]">
+                              {getItemName(item.item_id)}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 w-[15%]">
+                              {item.challan_number || "N/A"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 w-[15%]">
+                              {item.process_name || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400 font-medium w-[10%]">
+                              {item.ok_qty}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium w-[10%]">
+                              {item.cr_qty}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right text-orange-600 dark:text-orange-400 font-medium w-[10%]">
+                              {item.mr_qty}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right font-bold text-purple-600 dark:text-purple-400 w-[10%]">
+                              {item.total_qty}
+                            </td>
+                            <td className="px-4 py-3 text-center w-[10%]">
+                              <button
+                                type="button"
+                                onClick={() => removeItemRow(index)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="sticky bottom-0 flex justify-end gap-4 pt-6 pb-4 px-6 -mx-6 -mb-6 border-t-2 border-gray-200 dark:border-gray-700 bg-gradient-to-b from-white to-gray-50/80 dark:from-gray-800 dark:to-gray-900/80 backdrop-blur-xl z-10">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-8 py-3 rounded-xl text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 font-bold transition-all duration-200 border-2 border-gray-300 dark:border-gray-600 hover:scale-105 active:scale-95 shadow-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2.5 px-10 py-3 bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-700 hover:via-purple-600 hover:to-blue-700 text-white rounded-xl font-bold shadow-xl shadow-purple-500/40 hover:shadow-2xl hover:shadow-purple-500/50 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                <Save size={20} strokeWidth={2.5} />
+                {loading
+                  ? "Saving..."
+                  : deliveryChallan
+                  ? "Update Challan"
+                  : "Create Challan"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

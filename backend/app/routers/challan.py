@@ -179,6 +179,171 @@ def create_challan(
     }
 
 
+@router.put("/{challan_id}", response_model=ChallanResponse)
+def update_challan(
+    challan_id: int,
+    data: ChallanCreate,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    # Get existing challan
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item)
+    ).filter(
+        DeliveryChallan.id == challan_id,
+        DeliveryChallan.company_id == company_id
+    ).first()
+    
+    if not challan:
+        raise HTTPException(status_code=404, detail="Delivery challan not found")
+    
+    # Step 1: Reverse all old items' quantities
+    for old_item in challan.items:
+        pc_item = old_item.party_challan_item
+        if pc_item:
+            # Reduce the delivered quantity
+            pc_item.quantity_delivered -= Decimal(str(old_item.quantity))
+            
+            # Update party challan status
+            party_challan = pc_item.party_challan
+            if party_challan:
+                total_ordered = sum(float(item.quantity_ordered) for item in party_challan.items)
+                total_delivered = sum(float(item.quantity_delivered) for item in party_challan.items)
+                
+                if total_delivered == 0:
+                    party_challan.status = "open"
+                elif total_delivered >= total_ordered:
+                    party_challan.status = "completed"
+                else:
+                    party_challan.status = "partial"
+        
+        # Delete stock transaction
+        db.query(StockTransaction).filter(
+            StockTransaction.reference_type == "DELIVERY_CHALLAN",
+            StockTransaction.reference_id == challan.id,
+            StockTransaction.item_id == pc_item.item_id if pc_item else None
+        ).delete()
+    
+    # Step 2: Delete all old delivery challan items
+    db.query(DeliveryChallanItem).filter(
+        DeliveryChallanItem.challan_id == challan.id
+    ).delete()
+    
+    # Step 3: Update challan metadata
+    challan.party_id = data.party_id
+    challan.challan_date = data.challan_date
+    challan.vehicle_number = data.vehicle_number
+    challan.notes = data.notes
+    challan.status = data.status or "sent"
+    
+    # Step 4: Add new items (same logic as create)
+    for item_data in data.items:
+        pc_item = db.query(PartyChallanItem).get(item_data.party_challan_item_id)
+        if not pc_item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Party challan item {item_data.party_challan_item_id} not found"
+            )
+        
+        # Create delivery challan item
+        challan_item = DeliveryChallanItem(
+            challan_id=challan.id,
+            party_challan_item_id=item_data.party_challan_item_id,
+            process_id=pc_item.process_id,
+            ok_qty=item_data.ok_qty,
+            cr_qty=item_data.cr_qty,
+            mr_qty=item_data.mr_qty,
+            quantity=item_data.quantity
+        )
+        db.add(challan_item)
+        
+        # Update party challan item delivered quantity
+        pc_item.quantity_delivered += Decimal(str(item_data.quantity))
+        
+        # Update party challan status
+        party_challan = pc_item.party_challan
+        if party_challan:
+            total_ordered = sum(float(item.quantity_ordered) for item in party_challan.items)
+            total_delivered = sum(float(item.quantity_delivered) for item in party_challan.items)
+            
+            if total_delivered == 0:
+                party_challan.status = "open"
+            elif total_delivered >= total_ordered:
+                party_challan.status = "completed"
+            else:
+                party_challan.status = "partial"
+        
+        # Create stock transaction
+        stock_tx = StockTransaction(
+            company_id=company_id,
+            financial_year_id=fy.id,
+            item_id=pc_item.item_id,
+            quantity=item_data.quantity,
+            transaction_type="OUT",
+            reference_type="DELIVERY_CHALLAN",
+            reference_id=challan.id
+        )
+        db.add(stock_tx)
+    
+    db.commit()
+    
+    # Reload with relationships
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.party),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.process),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
+    ).filter(DeliveryChallan.id == challan.id).first()
+    
+    # Manual serialization (same as create)
+    return {
+        "id": challan.id,
+        "challan_number": challan.challan_number,
+        "challan_date": challan.challan_date,
+        "party_id": challan.party_id,
+        "company_id": challan.company_id,
+        "financial_year_id": challan.financial_year_id,
+        "vehicle_number": challan.vehicle_number,
+        "notes": challan.notes,
+        "status": challan.status,
+        "is_active": challan.is_active,
+        "party": {
+            "id": challan.party.id,
+            "name": challan.party.name
+        } if challan.party else None,
+        "items": [
+            {
+                "id": item.id,
+                "party_challan_item_id": item.party_challan_item_id,
+                "ok_qty": float(item.ok_qty),
+                "cr_qty": float(item.cr_qty),
+                "mr_qty": float(item.mr_qty),
+                "quantity": float(item.quantity),
+                "item": {
+                    "id": item.party_challan_item.item.id,
+                    "name": item.party_challan_item.item.name
+                } if item.party_challan_item and item.party_challan_item.item else None,
+                "process": {
+                    "id": item.process.id,
+                    "name": item.process.name
+                } if item.process else None,
+                "party_challan_item": {
+                    "id": item.party_challan_item.id,
+                    "party_challan_id": item.party_challan_item.party_challan_id,
+                    "quantity_ordered": float(item.party_challan_item.quantity_ordered),
+                    "quantity_delivered": float(item.party_challan_item.quantity_delivered),
+                    "party_challan": {
+                        "challan_number": item.party_challan_item.party_challan.challan_number
+                    } if item.party_challan_item.party_challan else None
+                } if item.party_challan_item else None
+            }
+            for item in challan.items
+        ]
+    }
+
+
 @router.get("/", response_model=List[ChallanResponse])
 def list_challans(
     party_id: int = None,
@@ -493,13 +658,91 @@ async def print_challan(
     img.save(buffered, format="PNG")
     qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
     
+    # Prepare items data with calculated stats (Aggregated by Item Name)
+    grouped_data = {}
+
+    for item in challan.items:
+        pc_item = item.party_challan_item
+        # Group by Item ID to merge same items from different challans
+        item_id = pc_item.item_id if pc_item else (item.id if item else "Unknown")
+        
+        if item_id not in grouped_data:
+            grouped_data[item_id] = {
+                "item_obj": item, # Store first item for description
+                "pc_items": set(), # Track unique party challan items involved
+                "ref_challans": {}, # Track unique Ref Challans {pc_id: pc_obj}
+                "dispatch": 0.0,
+                "ok": 0.0,
+                "cr": 0.0,
+                "mr": 0.0
+            }
+        
+        # Track the pc_item to sum its ordered/delivered stats later
+        if pc_item:
+            grouped_data[item_id]["pc_items"].add(pc_item)
+            if pc_item.party_challan:
+                grouped_data[item_id]["ref_challans"][pc_item.party_challan_id] = pc_item.party_challan
+
+        # Accumulate quantities
+        grouped_data[item_id]["dispatch"] += float(item.quantity)
+        grouped_data[item_id]["ok"] += float(item.ok_qty)
+        grouped_data[item_id]["cr"] += float(item.cr_qty)
+        grouped_data[item_id]["mr"] += float(item.mr_qty)
+
+    items_data = []
+    # Sort groups by Item Name
+    sorted_keys = sorted(grouped_data.keys(), key=lambda k: grouped_data[k]["item_obj"].party_challan_item.item.name if grouped_data[k]["item_obj"].party_challan_item else "")
+
+    for key in sorted_keys:
+        data = grouped_data[key]
+        current_dispatch = data["dispatch"]
+        
+        # Calculate stats specific to this Item across ALL involved Party Challans
+        if data["pc_items"]:
+            # Sum the Ordered/Delivered from ALL referenced Party Challan Items for this product
+            item_ordered_total = sum(float(pci.quantity_ordered) for pci in data["pc_items"])
+            item_delivered_total = sum(float(pci.quantity_delivered) for pci in data["pc_items"])
+            
+            balance_qty = max(0, item_ordered_total - item_delivered_total)
+            opening_qty = balance_qty + current_dispatch
+        else:
+            balance_qty = 0
+            opening_qty = 0
+            
+        # Prepare Reference Strings List
+        ref_list = []
+        for pc_obj in data["ref_challans"].values():
+            # Grand Total of that specific Party Challan
+            pc_grand_total = int(sum(float(i.quantity_ordered) for i in pc_obj.items))
+            ref_str = f"{pc_obj.challan_number} | {pc_obj.challan_date.strftime('%d-%m-%Y')} | {pc_grand_total}"
+            ref_list.append(ref_str)
+            
+        # Proxy object
+        class ProxyItem:
+            def __init__(self, original, ok, cr, mr):
+                self.party_challan_item = original.party_challan_item
+                self.process = original.process
+                self.ok_qty = int(ok)
+                self.cr_qty = int(cr)
+                self.mr_qty = int(mr)
+        
+        proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
+
+        items_data.append({
+            "item_obj": proxy_item_obj,
+            "opening": int(opening_qty),
+            "dispatch": int(current_dispatch),
+            "balance": int(balance_qty),
+            "ref_list": ref_list # Pass list of ref strings
+        })
+
     # Render Template
     template = env.get_template("delivery_challan.html")
     html = template.render(
         challan=challan,
         company=company,
         party=challan.party,
-        items=challan.items,
+        items=items_data, # Pass calculated data
         total_qty=total_qty,
         qr_code=qr_code_b64
     )
