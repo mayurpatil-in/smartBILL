@@ -55,21 +55,91 @@ async def public_download_challan(
     # Calculate Total Qty
     total_qty = sum(float(item.quantity) for item in challan.items)
     
+    # Prepare items data with calculated stats (Aggregated by Item Name)
+    grouped_data = {}
+
+    for item in challan.items:
+        pc_item = item.party_challan_item
+        # Group by Item ID to merge same items from different challans
+        item_id = pc_item.item_id if pc_item else (item.id if item else "Unknown")
+        
+        if item_id not in grouped_data:
+            grouped_data[item_id] = {
+                "item_obj": item, # Store first item for description
+                "pc_items": set(), # Track unique party challan items involved
+                "ref_challans": {}, # Track unique Ref Challans {pc_id: pc_obj}
+                "dispatch": 0.0,
+                "ok": 0.0,
+                "cr": 0.0,
+                "mr": 0.0
+            }
+        
+        # Track the pc_item to sum its ordered/delivered stats later
+        if pc_item:
+            grouped_data[item_id]["pc_items"].add(pc_item)
+            if pc_item.party_challan:
+                grouped_data[item_id]["ref_challans"][pc_item.party_challan_id] = pc_item.party_challan
+
+        # Accumulate quantities
+        grouped_data[item_id]["dispatch"] += float(item.quantity)
+        grouped_data[item_id]["ok"] += float(item.ok_qty)
+        grouped_data[item_id]["cr"] += float(item.cr_qty)
+        grouped_data[item_id]["mr"] += float(item.mr_qty)
+
+    items_data = []
+    # Sort groups by Item Name
+    sorted_keys = sorted(grouped_data.keys(), key=lambda k: grouped_data[k]["item_obj"].party_challan_item.item.name if grouped_data[k]["item_obj"].party_challan_item else "")
+
+    for key in sorted_keys:
+        data = grouped_data[key]
+        current_dispatch = data["dispatch"]
+        
+        # Calculate stats specific to this Item across ALL involved Party Challans
+        if data["pc_items"]:
+            # Sum the Ordered/Delivered from ALL referenced Party Challan Items for this product
+            item_ordered_total = sum(float(pci.quantity_ordered) for pci in data["pc_items"])
+            item_delivered_total = sum(float(pci.quantity_delivered) for pci in data["pc_items"])
+            
+            balance_qty = max(0, item_ordered_total - item_delivered_total)
+            opening_qty = balance_qty + current_dispatch
+        else:
+            balance_qty = 0
+            opening_qty = 0
+            
+        # Prepare Reference Strings List
+        ref_list = []
+        for pc_obj in data["ref_challans"].values():
+            # Grand Total of that specific Party Challan
+            pc_grand_total = int(sum(float(i.quantity_ordered) for i in pc_obj.items))
+            ref_str = f"{pc_obj.challan_number} | {pc_obj.challan_date.strftime('%d-%m-%Y')} | {pc_grand_total}"
+            ref_list.append(ref_str)
+            
+        # Proxy object
+        class ProxyItem:
+            def __init__(self, original, ok, cr, mr):
+                self.party_challan_item = original.party_challan_item
+                self.process = original.process
+                self.ok_qty = int(ok)
+                self.cr_qty = int(cr)
+                self.mr_qty = int(mr)
+        
+        proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
+
+        items_data.append({
+            "item_obj": proxy_item_obj,
+            "opening": int(opening_qty),
+            "dispatch": int(current_dispatch),
+            "balance": int(balance_qty),
+            "ref_list": ref_list # Pass list of ref strings
+        })
+
     # Render Template
     # We pass qr_code=None to avoid recursive QR generation (or we could include it)
     # The printed version already has the QR. When downloading the "original", it should probably also have it.
-    # But for simplicity, let's include a static message or simpler QR if needed.
-    # Let's regenerate the QR so the downloaded PDF is identical to the printed one.
     
     import qrcode
     import io
     import base64
-
-    # Use the same PUBLIC URL for the QR code in the downloaded PDF
-    # In a real app, use settings.BASE_URL
-    # For now, we will just replicate the data content or the same URL
-    # qr_content = f"{request.base_url}public/challan/{challan.id}/download"
-    # To avoid 'request' dependency issues here, let's stick to the data content or similar
     
     qr_data = f"Challan: {challan.challan_number}\nDate: {challan.challan_date}\nParty: {challan.party.name if challan.party else 'N/A'}\nItems: {len(challan.items)}"
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -86,7 +156,7 @@ async def public_download_challan(
         challan=challan,
         company=company,
         party=challan.party,
-        items=challan.items,
+        items=items_data,
         total_qty=total_qty,
         qr_code=qr_code_b64
     )
