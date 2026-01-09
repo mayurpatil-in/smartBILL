@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session, joinedload
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 import os
 
 from app.database.session import get_db
@@ -14,7 +14,10 @@ router = APIRouter(prefix="/invoice", tags=["Invoice PDF"])
 
 # Set up Jinja2
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
-env = Environment(loader=FileSystemLoader(templates_dir))
+env = Environment(
+    loader=FileSystemLoader(templates_dir),
+    autoescape=select_autoescape(['html', 'xml'])
+)
 
 
 @router.get("/{invoice_id}/pdf")

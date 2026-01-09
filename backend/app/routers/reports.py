@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
 from typing import List, Optional
 from datetime import datetime
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from playwright.sync_api import sync_playwright
 from playwright.async_api import async_playwright
 from starlette.concurrency import run_in_threadpool
@@ -347,7 +347,10 @@ async def get_party_ledger_pdf(
     qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     # 5. Render HTML
-    env = Environment(loader=FileSystemLoader("app/templates"))
+    env = Environment(
+        loader=FileSystemLoader("app/templates"),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
     template = env.get_template("party_ledger.html")
     
     html_content = template.render(
@@ -663,7 +666,10 @@ async def get_party_statement_pdf(
     qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     # Render HTML
-    env = Environment(loader=FileSystemLoader("app/templates"))
+    env = Environment(
+        loader=FileSystemLoader("app/templates"),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
     template = env.get_template("party_statement.html")
     
     html_content = template.render(

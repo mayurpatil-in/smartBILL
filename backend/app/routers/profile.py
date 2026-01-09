@@ -111,14 +111,27 @@ def upload_company_logo(
     if user.role.value != "COMPANY_ADMIN":
         raise HTTPException(status_code=403, detail="Only Company Admins can upload logo")
 
+    # VALIDATION: Allowed types
+    ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+    ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+    # 1. Validate Extension
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PNG, JPG, and WEBP allowed.")
+
+    # 2. Validate MIME Type (Header check)
+    if file.content_type not in ALLOWED_MIME_TYPES:
+         raise HTTPException(status_code=400, detail="Invalid content type.")
+
     # Create directory if not exists
     upload_dir = "uploads/logos"
     os.makedirs(upload_dir, exist_ok=True)
     
-    # Generate filename (use company ID to avoid conflicts/orphans)
-    # Get extension
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"company_{user.company_id}_logo{ext}"
+    # Generate filename (use company ID + timestamp to avoid caching)
+    import time
+    timestamp = int(time.time())
+    filename = f"company_{user.company_id}_logo_{timestamp}{ext}"
     file_path = os.path.join(upload_dir, filename)
     
     # Save file

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_
 from fastapi.responses import Response
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from playwright.sync_api import sync_playwright
 from starlette.concurrency import run_in_threadpool
 from datetime import datetime
@@ -26,7 +26,10 @@ router = APIRouter(prefix="/public/reports", tags=["Public Reports"])
 
 # Set up Jinja2
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
-env = Environment(loader=FileSystemLoader(templates_dir))
+env = Environment(
+    loader=FileSystemLoader(templates_dir),
+    autoescape=select_autoescape(['html', 'xml'])
+)
 
 @router.get("/ledger/download")
 async def public_ledger_download(

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session, joinedload
 from fastapi.responses import Response
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 import os
 
 from app.database.session import get_db
@@ -15,7 +15,10 @@ router = APIRouter(prefix="/public/challan", tags=["Public Challan"])
 
 # Set up Jinja2 (Same as challan.py)
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
-env = Environment(loader=FileSystemLoader(templates_dir))
+env = Environment(
+    loader=FileSystemLoader(templates_dir),
+    autoescape=select_autoescape(['html', 'xml'])
+)
 
 from app.core.security import verify_url_signature
 

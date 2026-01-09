@@ -11,7 +11,7 @@ import os
 from num2words import num2words
 
 from fastapi.responses import Response
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.database.session import get_db
 from app.models.invoice import Invoice
@@ -32,7 +32,10 @@ router = APIRouter(prefix="/invoice", tags=["Invoice"])
 
 # Setup Jinja2
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
-env = Environment(loader=FileSystemLoader(templates_dir))
+env = Environment(
+    loader=FileSystemLoader(templates_dir),
+    autoescape=select_autoescape(['html', 'xml'])
+)
 
 
 def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
