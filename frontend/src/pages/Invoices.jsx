@@ -58,7 +58,7 @@ export default function Invoices() {
       ]);
       setInvoices(invoicesData);
       setStats(statsData);
-      setParties(partiesData.filter((p) => p.is_active));
+      setParties((partiesData || []).filter((p) => p.is_active));
     } catch (error) {
       console.error("Failed to fetch invoices", error);
       toast.error("Failed to load invoices");
