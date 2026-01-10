@@ -198,10 +198,10 @@
                     <td class="text-center font-mono">{{ item.grn_no or '-' }}</td>
                     
                     <!-- Qty Breakdown -->
-                    <td class="text-center text-gray-500">{{ item.delivery_challan_item.ok_qty if item.delivery_challan_item else '-' }}</td>
-                    <td class="text-center text-gray-500">{{ item.delivery_challan_item.cr_qty if item.delivery_challan_item else '-' }}</td>
-                    <td class="text-center text-gray-500">{{ item.delivery_challan_item.mr_qty if item.delivery_challan_item else '-' }}</td>
-                    <td class="text-center">{{ item.delivery_challan_item.quantity if item.delivery_challan_item else '-' }}</td>
+                    <td class="text-center text-gray-500">{{ item.ok_qty if item.ok_qty else '-' }}</td>
+                    <td class="text-center text-gray-500">{{ item.cr_qty if item.cr_qty else '-' }}</td>
+                    <td class="text-center text-gray-500">{{ item.mr_qty if item.mr_qty else '-' }}</td>
+                    <td class="text-center">{{ ((item.ok_qty or 0) + (item.cr_qty or 0) + (item.mr_qty or 0)) if (item.ok_qty or item.cr_qty or item.mr_qty) else '-' }}</td>
                     <td class="text-center font-bold">{{ item.quantity }}</td>
                     
                     <td class="text-center">₹{{ format_currency(item.rate) }}</td>

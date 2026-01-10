@@ -15,6 +15,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import { getInvoices, deleteInvoice, getInvoiceStats } from "../api/invoices";
+import { getParties } from "../api/parties";
 import PdfPreviewModal from "../components/PdfPreviewModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 
@@ -23,6 +24,9 @@ export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [partyFilter, setPartyFilter] = useState("ALL");
+  const [parties, setParties] = useState([]);
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({
     total: { count: 0, amount: 0 },
@@ -46,12 +50,15 @@ export default function Invoices() {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const [invoicesData, statsData] = await Promise.all([
+      setLoading(true);
+      const [invoicesData, statsData, partiesData] = await Promise.all([
         getInvoices(),
         getInvoiceStats(),
+        getParties(),
       ]);
       setInvoices(invoicesData);
       setStats(statsData);
+      setParties(partiesData.filter((p) => p.is_active));
     } catch (error) {
       console.error("Failed to fetch invoices", error);
       toast.error("Failed to load invoices");
@@ -109,11 +116,18 @@ export default function Invoices() {
     }
   };
 
-  const filteredInvoices = invoices.filter(
-    (inv) =>
+  const filteredInvoices = invoices.filter((inv) => {
+    const matchesSearch =
       inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.party?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      inv.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "ALL" || inv.status === statusFilter;
+
+    const matchesParty =
+      partyFilter === "ALL" || Number(inv.party_id) === Number(partyFilter);
+
+    return matchesSearch && matchesStatus && matchesParty;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -189,21 +203,50 @@ export default function Invoices() {
         </div>
       </div>
 
-      {/* Search & Filters (Optional enhancement) */}
-      <div className="relative max-w-md">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          size={20}
-        />
-        <input
-          type="text"
-          placeholder="Search invoices..."
-          name="invoice_search"
-          id="invoice_search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-        />
+      {/* Search & Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative w-full max-w-md">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={20}
+          />
+          <input
+            type="text"
+            placeholder="Search invoices..."
+            name="invoice_search"
+            id="invoice_search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+          />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Party Filter */}
+          <select
+            value={partyFilter}
+            onChange={(e) => setPartyFilter(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer min-w-[150px]"
+          >
+            <option value="ALL">All Parties</option>
+            {parties.map((party) => (
+              <option key={party.id} value={party.id}>
+                {party.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer"
+          >
+            <option value="ALL">All Status</option>
+            <option value="OPEN">Open</option>
+            <option value="PARTIAL">Partial</option>
+            <option value="PAID">Paid</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -247,7 +290,9 @@ export default function Invoices() {
                       className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate"
                       title={inv.items?.map((i) => i.item?.name).join(", ")}
                     >
-                      {inv.items?.map((i) => i.item?.name).join(", ")}
+                      {Array.from(
+                        new Set(inv.items?.map((i) => i.item?.name))
+                      ).join(", ")}
                     </td>
                     <td className="px-6 py-4 text-sm text-right font-bold text-gray-900 dark:text-white">
                       ₹{inv.grand_total}

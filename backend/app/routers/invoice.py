@@ -177,6 +177,31 @@ def create_invoice(
         amount = float(item.quantity) * float(item.rate)
         subtotal += amount
         
+        # Backfill quantities if they are 0 (e.g., from old invoice update)
+        ok_qty = item.ok_qty
+        cr_qty = item.cr_qty
+        mr_qty = item.mr_qty
+
+        if (not ok_qty and not cr_qty and not mr_qty) and (item.delivery_challan_item_id or item.delivery_challan_item_ids):
+            # Collect IDs to fetch
+            fetch_ids = []
+            if item.delivery_challan_item_id:
+                fetch_ids.append(item.delivery_challan_item_id)
+            if item.delivery_challan_item_ids:
+                fetch_ids.extend(item.delivery_challan_item_ids)
+            
+            if fetch_ids:
+                fetch_ids = list(set(fetch_ids))
+                # Fetch challan items
+                challan_items = db.query(DeliveryChallanItem).filter(
+                    DeliveryChallanItem.id.in_(fetch_ids)
+                ).all()
+
+                # Sum up quantities
+                ok_qty = sum(float(ci.ok_qty) for ci in challan_items)
+                cr_qty = sum(float(ci.cr_qty) for ci in challan_items)
+                mr_qty = sum(float(ci.mr_qty) for ci in challan_items)
+
         invoice_item = InvoiceItem(
             invoice_id=invoice.id,
             item_id=item.item_id,
@@ -184,12 +209,16 @@ def create_invoice(
             delivery_challan_item_id=item.delivery_challan_item_id,
             quantity=item.quantity,
             rate=item.rate,
-            amount=amount
+            amount=amount,
+            ok_qty=ok_qty,
+            cr_qty=cr_qty,
+            mr_qty=mr_qty,
+            challan_item_ids=item.delivery_challan_item_ids
         )
         db.add(invoice_item)
         
         # Stock Transaction (OUT) for Direct Invoice (Only if not from Challan)
-        if not item.delivery_challan_item_id:
+        if not item.delivery_challan_item_id and not item.delivery_challan_item_ids:
             stock_tx = StockTransaction(
                 company_id=company_id,
                 financial_year_id=fy.id,
@@ -208,11 +237,21 @@ def create_invoice(
     invoice.grand_total = grand_total
     
     # Update linked Delivery Challan Status
-    challan_item_ids = [item.delivery_challan_item_id for item in data.items if item.delivery_challan_item_id]
+    # Collect all challan item IDs (both single and list)
+    challan_item_ids = []
+    for item in data.items:
+        if item.delivery_challan_item_id:
+            challan_item_ids.append(item.delivery_challan_item_id)
+        if item.delivery_challan_item_ids:
+            challan_item_ids.extend(item.delivery_challan_item_ids)
+            
     if challan_item_ids:
         # Find Challan IDs using subquery strategy to avoid join issues
+        # Remove duplicates
+        unique_item_ids = list(set(challan_item_ids))
+        
         challan_ids = db.query(DeliveryChallan.id).join(DeliveryChallanItem).filter(
-            DeliveryChallanItem.id.in_(challan_item_ids)
+            DeliveryChallanItem.id.in_(unique_item_ids)
         ).distinct().all()
         ids = [c[0] for c in challan_ids]
         
@@ -288,11 +327,20 @@ def update_invoice(
             db.add(stock_tx)
 
     # 1.5 Revert Linked Challan Status to "sent" (Release them first)
-    old_challan_item_ids = [item.delivery_challan_item_id for item in old_items if item.delivery_challan_item_id]
+    old_challan_item_ids = []
+    for item in old_items:
+        if item.delivery_challan_item_id:
+            old_challan_item_ids.append(item.delivery_challan_item_id)
+        if item.challan_item_ids:
+            old_challan_item_ids.extend(item.challan_item_ids)
+
     if old_challan_item_ids:
         # Find unique Challan IDs
+        # Use simple distinct query on IDs first to be safe
+        unique_ids = list(set(old_challan_item_ids))
+        
         old_challan_ids_tuples = db.query(DeliveryChallan.id).join(DeliveryChallanItem).filter(
-            DeliveryChallanItem.id.in_(old_challan_item_ids)
+            DeliveryChallanItem.id.in_(unique_ids)
         ).distinct().all()
         
         old_challan_ids = [c[0] for c in old_challan_ids_tuples]
@@ -317,6 +365,31 @@ def update_invoice(
         amount = float(item.quantity) * float(item.rate)
         subtotal += amount
         
+        # Backfill quantities if they are 0 (e.g., from old invoice update)
+        ok_qty = item.ok_qty
+        cr_qty = item.cr_qty
+        mr_qty = item.mr_qty
+
+        if (not ok_qty and not cr_qty and not mr_qty) and (item.delivery_challan_item_id or item.delivery_challan_item_ids):
+            # Collect IDs to fetch
+            fetch_ids = []
+            if item.delivery_challan_item_id:
+                fetch_ids.append(item.delivery_challan_item_id)
+            if item.delivery_challan_item_ids:
+                fetch_ids.extend(item.delivery_challan_item_ids)
+            
+            if fetch_ids:
+                fetch_ids = list(set(fetch_ids))
+                # Fetch challan items
+                challan_items = db.query(DeliveryChallanItem).filter(
+                    DeliveryChallanItem.id.in_(fetch_ids)
+                ).all()
+
+                # Sum up quantities
+                ok_qty = sum(float(ci.ok_qty) for ci in challan_items)
+                cr_qty = sum(float(ci.cr_qty) for ci in challan_items)
+                mr_qty = sum(float(ci.mr_qty) for ci in challan_items)
+
         invoice_item = InvoiceItem(
             invoice_id=invoice.id,
             item_id=item.item_id,
@@ -324,12 +397,16 @@ def update_invoice(
             delivery_challan_item_id=item.delivery_challan_item_id,
             quantity=item.quantity,
             rate=item.rate,
-            amount=amount
+            amount=amount,
+            ok_qty=ok_qty,
+            cr_qty=cr_qty,
+            mr_qty=mr_qty,
+            challan_item_ids=item.delivery_challan_item_ids
         )
         db.add(invoice_item)
         
         # New Stock Transaction (OUT) - Only if not from Challan
-        if not item.delivery_challan_item_id:
+        if not item.delivery_challan_item_id and not item.delivery_challan_item_ids:
             stock_tx = StockTransaction(
                 company_id=company_id,
                 financial_year_id=fy.id,
@@ -349,11 +426,21 @@ def update_invoice(
     invoice.grand_total = grand_total
     
     # Update linked Delivery Challan Status
-    challan_item_ids = [item.delivery_challan_item_id for item in data.items if item.delivery_challan_item_id]
+    # Collect all challan item IDs (both single and list)
+    challan_item_ids = []
+    for item in data.items:
+        if item.delivery_challan_item_id:
+            challan_item_ids.append(item.delivery_challan_item_id)
+        if item.delivery_challan_item_ids:
+            challan_item_ids.extend(item.delivery_challan_item_ids)
+            
     if challan_item_ids:
         # Find Challan IDs using subquery strategy
+        # Remove duplicates
+        unique_item_ids = list(set(challan_item_ids))
+        
         challan_ids = db.query(DeliveryChallan.id).join(DeliveryChallanItem).filter(
-            DeliveryChallanItem.id.in_(challan_item_ids)
+            DeliveryChallanItem.id.in_(unique_item_ids)
         ).distinct().all()
         ids = [c[0] for c in challan_ids]
         
@@ -394,11 +481,20 @@ def delete_invoice(
 
     # Revert linked Delivery Challan Status to "sent"
     invoice_items = db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).all()
-    challan_item_ids = [item.delivery_challan_item_id for item in invoice_items if item.delivery_challan_item_id]
     
+    challan_item_ids = []
+    for item in invoice_items:
+        if item.delivery_challan_item_id:
+            challan_item_ids.append(item.delivery_challan_item_id)
+        if item.challan_item_ids:
+            challan_item_ids.extend(item.challan_item_ids)
+            
     if challan_item_ids:
+        # Unique IDs
+        unique_ids = list(set(challan_item_ids))
+        
         challans = db.query(DeliveryChallan).join(DeliveryChallanItem).filter(
-            DeliveryChallanItem.id.in_(challan_item_ids)
+            DeliveryChallanItem.id.in_(unique_ids)
         ).distinct().all()
         for challan in challans:
             challan.status = "sent"

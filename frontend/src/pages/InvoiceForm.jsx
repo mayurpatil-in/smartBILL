@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Plus,
@@ -30,6 +30,7 @@ export default function InvoiceForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
+  const itemsTableRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useState([]);
@@ -96,10 +97,20 @@ export default function InvoiceForm() {
               rate: i.rate,
               amount: i.amount,
               // Calculate derived fields or defaults if missing in backend response meant for view
-              ok_qty: i.delivery_challan_item?.ok_qty || 0,
-              cr_qty: i.delivery_challan_item?.cr_qty || 0,
-              mr_qty: i.delivery_challan_item?.mr_qty || 0,
+              ok_qty:
+                i.ok_qty !== undefined
+                  ? i.ok_qty
+                  : i.delivery_challan_item?.ok_qty || 0,
+              cr_qty:
+                i.cr_qty !== undefined
+                  ? i.cr_qty
+                  : i.delivery_challan_item?.cr_qty || 0,
+              mr_qty:
+                i.mr_qty !== undefined
+                  ? i.mr_qty
+                  : i.delivery_challan_item?.mr_qty || 0,
               billing_qty: i.quantity,
+              delivery_challan_item_ids: i.challan_item_ids || [],
             })),
           });
         } else {
@@ -175,14 +186,55 @@ export default function InvoiceForm() {
 
   // 2. Handle Challan Selection (Auto-fill details)
   const handleChallanSelect = (deliveryChallanItemId) => {
-    const selected = pendingItems.find(
+    // Recalculate grouped challans for the current item
+    const groupedChallans = filteredPendingItems
+      .filter((i) => i.item_id === Number(currentItem.item_id))
+      .reduce((acc, item) => {
+        const existingChallan = acc.find(
+          (c) => c.challan_id === item.challan_id
+        );
+
+        if (existingChallan) {
+          const prevQty = Number(existingChallan.quantity) || 0;
+          const newQty = Number(item.quantity) || 0;
+
+          existingChallan.ok_qty =
+            (Number(existingChallan.ok_qty) || 0) + (Number(item.ok_qty) || 0);
+          existingChallan.cr_qty =
+            (Number(existingChallan.cr_qty) || 0) + (Number(item.cr_qty) || 0);
+          existingChallan.mr_qty =
+            (Number(existingChallan.mr_qty) || 0) + (Number(item.mr_qty) || 0);
+          existingChallan.quantity = prevQty + newQty;
+
+          if (!existingChallan.delivery_challan_item_ids) {
+            existingChallan.delivery_challan_item_ids = [
+              existingChallan.delivery_challan_item_id,
+            ];
+          }
+          existingChallan.delivery_challan_item_ids.push(
+            item.delivery_challan_item_id
+          );
+          // Rate remains the same (fixed per item)
+        } else {
+          acc.push({
+            ...item,
+            delivery_challan_item_ids: [item.delivery_challan_item_id],
+          });
+        }
+
+        return acc;
+      }, []);
+
+    // Find from grouped data
+    const selected = groupedChallans.find(
       (i) => i.delivery_challan_item_id === Number(deliveryChallanItemId)
     );
+
     if (selected) {
-      const qty = Number(selected.quantity); // Challan Total
-      const rate = Number(selected.rate);
-      const ok = Number(selected.ok_qty) || 0;
-      const cr = Number(selected.cr_qty) || 0;
+      const qty = Number(selected.quantity); // Challan Total (summed)
+      const rate = Number(selected.rate); // Fixed rate per item
+      const ok = Number(selected.ok_qty) || 0; // Summed OK
+      const cr = Number(selected.cr_qty) || 0; // Summed CR
       const billQty = ok + cr; // Billable Quantity
 
       setCurrentItem({
@@ -190,6 +242,7 @@ export default function InvoiceForm() {
         challan_id: selected.challan_id,
         challan_number: selected.challan_number,
         delivery_challan_item_id: selected.delivery_challan_item_id,
+        delivery_challan_item_ids: selected.delivery_challan_item_ids, // Store all IDs
         grn_no: "", // Reset GRN when challan changes
         quantity: qty,
         billing_qty: billQty,
@@ -239,6 +292,8 @@ export default function InvoiceForm() {
       cr_qty: currentItem.cr_qty,
       mr_qty: currentItem.mr_qty,
 
+      delivery_challan_item_ids: currentItem.delivery_challan_item_ids, // To mark all as billed
+
       quantity: Number(currentItem.billing_qty), // Use Billing Qty for Invoice
       rate: Number(currentItem.rate),
       amount: Number(currentItem.amount), // Already calculated
@@ -265,6 +320,16 @@ export default function InvoiceForm() {
       rate: "",
       amount: "",
     });
+
+    // Auto-scroll to show the items table
+    setTimeout(() => {
+      if (itemsTableRef.current) {
+        itemsTableRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    }, 100);
   };
 
   const handleRemoveItem = (index) => {
@@ -285,42 +350,6 @@ export default function InvoiceForm() {
 
     try {
       setLoading(true);
-      // Backend expects generic list usually, but we might want to link challan_id?
-      // CURRENT BACKEND 'create_invoice' does NOT link challan_id per item, it links generic items.
-      // It creates a `StockTransaction` "OUT".
-      // BUT wait, if we are billing against a Delivery Challan, the stock is ALREADY "OUT" via the DC?
-      // Let's check `routers/challan.py`.
-      // `create_challan` creates StockTransaction "IN" (delivery FROM party back to us? wait).
-      // `routers/challan.py` line 118: transaction_type="IN".
-      // "items are being delivered back from party"?
-      // No, typically Delivery Challan is OUT (we send to party).
-      // Wait, line 113 says "IN because items are coming back".
-      // Is Delivery Challan for INWARD?
-      // Usually DC is OUTWARD.
-      // Let's assume standard flow: DC = Out to Party (Process). Invoice = Bill Party.
-
-      // If DC was OUT, stock is gone.
-      // Invoice should NOT deduct stock again if it's linked to DC.
-      // If Invoice is DIRECT, it deducts stock.
-
-      // My `create_invoice` (direct) does OUT.
-      // My `create_invoice_from_challan` does NOT deduct stock (items loop doesn't create StockTx).
-
-      // This hybrid approach (Select Items from Challans) is tricky.
-      // If I send these items to `create_invoice`, it WILL deduct stock again!
-      // I need to use a new endpoint or update `create_invoice` to handle "linked" items.
-
-      // For now, I will use `create_invoice` but I should probably flag these items as "from challan"
-      // so backend doesn't double-deduct?
-      // VALIDATION: `data: InvoiceCreate` doesn't have `challan_item_id`.
-      // I should stick to the requirements: "fetch delivery challan no... detail".
-      // If the backend doesn't support item-level challan linking yet, I only send generic items.
-      // BUT user effectively wants to bill these.
-      // The Invoice created via `POST /invoice` will be "Direct" status.
-      // It won't mark the Delivery Challan as "BILLED".
-      // This might be an issue.
-      // STARTING SIMPLE: Just UI population for now as requested.
-      // Linking backend logic properly is a bigger task (Partial billing of challans).
 
       const payload = {
         party_id: Number(formData.party_id),
@@ -333,6 +362,10 @@ export default function InvoiceForm() {
           delivery_challan_item_id: i.delivery_challan_item_id,
           quantity: i.quantity,
           rate: i.rate,
+          ok_qty: i.ok_qty,
+          cr_qty: i.cr_qty,
+          mr_qty: i.mr_qty,
+          delivery_challan_item_ids: i.delivery_challan_item_ids,
         })),
       };
 
@@ -354,14 +387,24 @@ export default function InvoiceForm() {
   };
 
   // Filter out items that are already added to the invoice
+  // Filter out items that are already added to the invoice
   const filteredPendingItems = pendingItems.filter(
     (pending) =>
-      !formData.items.some(
-        (added) =>
-          added.delivery_challan_item_id &&
-          Number(added.delivery_challan_item_id) ===
-            Number(pending.delivery_challan_item_id)
-      )
+      !formData.items.some((added) => {
+        const pendingId = Number(pending.delivery_challan_item_id);
+        const addedId = Number(added.delivery_challan_item_id);
+
+        if (addedId === pendingId) return true;
+
+        if (
+          added.delivery_challan_item_ids &&
+          added.delivery_challan_item_ids.includes(pendingId)
+        ) {
+          return true;
+        }
+
+        return false;
+      })
   );
 
   // Helper to get unique items from pending list
@@ -369,10 +412,46 @@ export default function InvoiceForm() {
     ...new Set(filteredPendingItems.map((i) => i.item_id)),
   ].map((id) => filteredPendingItems.find((i) => i.item_id === id));
 
-  // Helper to get challans for selected item
-  const availableChallans = filteredPendingItems.filter(
-    (i) => i.item_id === Number(currentItem.item_id)
-  );
+  // Helper to get challans for selected item (grouped by challan with summed quantities)
+  const availableChallans = filteredPendingItems
+    .filter((i) => i.item_id === Number(currentItem.item_id))
+    .reduce((acc, item) => {
+      // Find if this challan already exists in accumulator
+      const existingChallan = acc.find((c) => c.challan_id === item.challan_id);
+
+      if (existingChallan) {
+        // Sum up quantities for the same challan
+        const prevQty = Number(existingChallan.quantity) || 0;
+        const newQty = Number(item.quantity) || 0;
+
+        existingChallan.ok_qty =
+          (Number(existingChallan.ok_qty) || 0) + (Number(item.ok_qty) || 0);
+        existingChallan.cr_qty =
+          (Number(existingChallan.cr_qty) || 0) + (Number(item.cr_qty) || 0);
+        existingChallan.mr_qty =
+          (Number(existingChallan.mr_qty) || 0) + (Number(item.mr_qty) || 0);
+        existingChallan.quantity = prevQty + newQty;
+
+        // Store all delivery_challan_item_ids as an array
+        if (!existingChallan.delivery_challan_item_ids) {
+          existingChallan.delivery_challan_item_ids = [
+            existingChallan.delivery_challan_item_id,
+          ];
+        }
+        existingChallan.delivery_challan_item_ids.push(
+          item.delivery_challan_item_id
+        );
+        // Rate remains the same (fixed per item)
+      } else {
+        // Add new challan entry
+        acc.push({
+          ...item,
+          delivery_challan_item_ids: [item.delivery_challan_item_id],
+        });
+      }
+
+      return acc;
+    }, []);
 
   // Calculations
   const [gstRate, setGstRate] = useState(() => {
@@ -391,413 +470,474 @@ export default function InvoiceForm() {
   const grandTotal = subtotal + gst;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/invoices")}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-          >
-            <ArrowLeft size={24} className="text-gray-600 dark:text-gray-300" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {isEditMode ? `Edit Invoice ${nextInvoiceNumber}` : "New Invoice"}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {isEditMode
-                ? "Update invoice details and items"
-                : "Create invoice from delivery challans"}
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 py-6 px-4 animate-fade-in">
+      <div className="max-w-7xl mx-auto">
+        {/* Enhanced Header with Gradient */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 mb-6">
+          <div className="bg-gradient-to-r from-purple-500 via-purple-600 to-blue-600 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate("/invoices")}
+                  className="p-2.5 hover:bg-white/20 rounded-xl transition-all duration-200 group"
+                >
+                  <ArrowLeft
+                    size={22}
+                    className="text-white group-hover:-translate-x-1 transition-transform duration-200"
+                  />
+                </button>
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xl border border-white/30">
+                  <FileText size={24} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white drop-shadow-md">
+                    {isEditMode ? "Edit Invoice" : "Create Invoice"}
+                  </h1>
+                  <p className="text-sm text-white/80 font-medium mt-0.5">
+                    {nextInvoiceNumber
+                      ? `Invoice No: ${nextInvoiceNumber}`
+                      : "Loading..."}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Form Section */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Invoice Details Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-                <FileText size={20} className="text-purple-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Form Section */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Invoice Details Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+              {/* Section Header */}
+              <div className="flex items-center gap-2.5 text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 uppercase tracking-wide pb-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md">
+                  <Building2 size={16} className="text-white" />
+                </div>
                 Invoice Details
-              </h2>
-              <span className="font-mono text-sm font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-lg border border-purple-100 dark:border-purple-800">
-                Invoice No: {nextInvoiceNumber || "Loading..."}
-              </span>
-            </div>
-
-            {/* Basic Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Party
-                </label>
-                <select
-                  name="invoice_party_id"
-                  id="invoice_party_id"
-                  value={formData.party_id}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      party_id: e.target.value,
-                      items: [],
-                    })
-                  }
-                  className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Select Party</option>
-                  {parties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Invoice Date
-                </label>
-                <input
-                  type="date"
-                  name="invoice_date"
-                  id="invoice_date"
-                  value={formData.invoice_date}
-                  min={activeFY?.start_date}
-                  max={activeFY?.end_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, invoice_date: e.target.value })
-                  }
-                  className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
 
-            {/* Item Selection Section (Moved here as requested) */}
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                <Package size={16} /> Add Item from Challan
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                {/* 1. Select Item */}
+              {/* Basic Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Select Item
+                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Building2 size={14} className="text-purple-500" />
+                    Party <span className="text-red-500">*</span>
                   </label>
                   <select
-                    name="invoice_item_id"
-                    id="invoice_item_id"
-                    value={currentItem.item_id}
-                    onChange={(e) => handleItemSelect(e.target.value)}
-                    disabled={!formData.party_id}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white text-sm"
-                  >
-                    <option value="">
-                      {formData.party_id ? "Select Item" : "Select Party First"}
-                    </option>
-                    {uniqueItems.map((i) => (
-                      <option key={i.item_id} value={i.item_id}>
-                        {i.item_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 2. Select Challan */}
-                <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Select Delivery Challan
-                  </label>
-                  <select
-                    name="invoice_challan_id"
-                    id="invoice_challan_id"
-                    value={currentItem.delivery_challan_item_id}
-                    onChange={(e) => handleChallanSelect(e.target.value)}
-                    disabled={!currentItem.item_id}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white text-sm"
-                  >
-                    <option value="">Select Challan</option>
-                    {availableChallans.map((c) => (
-                      <option
-                        key={c.delivery_challan_item_id}
-                        value={c.delivery_challan_item_id}
-                      >
-                        {c.challan_number} (Qty: {c.quantity})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 3. GRN No. */}
-                <div>
-                  <label className="block text-xs font-medium mb-1">
-                    GRN No.
-                  </label>
-                  <input
-                    type="text"
-                    name="invoice_grn_no"
-                    id="invoice_grn_no"
-                    value={currentItem.grn_no}
+                    name="invoice_party_id"
+                    id="invoice_party_id"
+                    value={formData.party_id}
                     onChange={(e) =>
-                      setCurrentItem({
-                        ...currentItem,
-                        grn_no: e.target.value,
+                      setFormData({
+                        ...formData,
+                        party_id: e.target.value,
+                        items: [],
                       })
                     }
-                    placeholder="Enter GRN No"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Auto-filled Details Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-8 gap-3 mb-4">
-              {/* Reference Quantities Group */}
-              <div className="col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-2 p-1.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-green-600 pl-1">
-                    OK Qty
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentItem.ok_qty}
-                    className="w-full h-10 px-3 border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-right font-bold text-green-700 dark:text-green-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-red-600 pl-1">
-                    CR Qty
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentItem.cr_qty}
-                    className="w-full h-10 px-3 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-right font-bold text-red-700 dark:text-red-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-orange-600 pl-1">
-                    MR Qty
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentItem.mr_qty}
-                    className="w-full h-10 px-3 border border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm text-right font-bold text-orange-700 dark:text-orange-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-500 pl-1">
-                    Total Qty
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentItem.quantity}
-                    className="w-full h-10 px-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-medium text-gray-500"
-                  />
-                </div>
-              </div>
-              {/* Billing Group */}
-              <div className="col-span-2 lg:col-span-3 grid grid-cols-3 gap-2 p-1.5 bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-blue-600 pl-1">
-                    Bill Qty
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentItem.billing_qty}
-                    className="w-full h-10 px-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm font-bold text-blue-700 dark:text-blue-300 text-right"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1">
-                    Rate
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentItem.rate}
-                    className="w-full h-10 px-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-medium text-gray-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-900 dark:text-white pl-1">
-                    Amount
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={
-                      currentItem.amount
-                        ? `₹${currentItem.amount.toFixed(2)}`
-                        : ""
-                    }
-                    className="w-full h-10 px-3 border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-bold text-gray-900 dark:text-white text-right"
-                  />
-                </div>
-              </div>
-
-              {/* Action Group */}
-              <div className="col-span-2 lg:col-span-1 p-1.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl flex flex-col justify-end">
-                <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-500 dark:text-gray-400 text-center">
-                  Action
-                </label>
-                <button
-                  onClick={handleAddItem}
-                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-wide transition-colors shadow-sm cursor-pointer"
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Items Table Card */}
-          {formData.items.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-900 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    <tr>
-                      <th className="px-4 py-3">Item</th>
-                      <th className="px-4 py-3">Challan / GRN</th>
-                      <th className="px-4 py-3 text-right">Qty</th>
-                      <th className="px-4 py-3 text-right">Rate</th>
-                      <th className="px-4 py-3 text-right">Amount</th>
-                      <th className="px-4 py-3 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {formData.items.map((item, index) => (
-                      <tr key={index}>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                          {item.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          <div>{item.challan_number}</div>
-                          {item.grn_no && (
-                            <div className="text-xs text-purple-600 mt-0.5">
-                              GRN: {item.grn_no}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-300">
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold">{item.quantity}</span>
-                            <span className="text-xs text-gray-400">
-                              (OK:{item.ok_qty} CR:{item.cr_qty} MR:
-                              {item.mr_qty})
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-300">
-                          ₹{item.rate}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-white">
-                          ₹{item.amount.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => handleRemoveItem(index)}
-                            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer"
+                  >
+                    <option value="">Select Party</option>
+                    {parties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
                     ))}
-                  </tbody>
-                </table>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Calendar size={14} className="text-purple-500" />
+                    Invoice Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="invoice_date"
+                    id="invoice_date"
+                    value={formData.invoice_date}
+                    min={activeFY?.start_date}
+                    max={activeFY?.end_date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        invoice_date: e.target.value,
+                      })
+                    }
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Totals & Submit Section */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Summary
-              </h2>
-              <button
-                onClick={() => setShowGstEdit(!showGstEdit)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group"
-                title="Edit GST Rate"
-              >
-                <Edit
-                  size={18}
-                  className="text-gray-400 group-hover:text-purple-600 transition-colors"
-                />
-              </button>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                <span>Subtotal</span>
-                <span>₹{subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
-                <span>CGST ({gstRate / 2}%)</span>
-                <span>₹{(gst / 2).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                <span>SGST ({gstRate / 2}%)</span>
-                <span>₹{(gst / 2).toFixed(2)}</span>
+            {/* Add Items Card */}
+            <div className="sticky top-6 z-20 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+              {/* Items Section Header */}
+              <div className="flex items-center gap-2.5 text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 uppercase tracking-wide pb-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-md">
+                  <Package size={16} className="text-white" />
+                </div>
+                Add Items
               </div>
 
-              {/* GST Edit Modal/Input */}
-              {showGstEdit && (
-                <div className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800 animate-scale-in my-2">
-                  <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
-                    New Rate (%):
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      name="gst_rate_edit"
-                      id="gst_rate_edit"
-                      value={gstRate}
-                      onChange={(e) => setGstRate(Number(e.target.value))}
-                      className="w-16 px-2 py-1 text-sm font-bold text-center rounded border border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => setShowGstEdit(false)}
-                      className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+              {/* Item Selection Section */}
+              <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-5 rounded-2xl border-2 border-purple-200/50 dark:border-gray-700/50 shadow-md transition-shadow duration-200 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  {/* 1. Select Item */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Select Item <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="invoice_item_id"
+                      id="invoice_item_id"
+                      value={currentItem.item_id}
+                      onChange={(e) => handleItemSelect(e.target.value)}
+                      disabled={!formData.party_id}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50"
                     >
-                      <CheckCircle size={16} />
+                      <option value="">
+                        {formData.party_id
+                          ? "Select Item"
+                          : "Select Party First"}
+                      </option>
+                      {uniqueItems.map((i) => (
+                        <option key={i.item_id} value={i.item_id}>
+                          {i.item_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 2. Select Challan */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Select Delivery Challan{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="invoice_challan_id"
+                      id="invoice_challan_id"
+                      value={currentItem.delivery_challan_item_id}
+                      onChange={(e) => handleChallanSelect(e.target.value)}
+                      disabled={!currentItem.item_id}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50"
+                    >
+                      <option value="">Select Challan</option>
+                      {availableChallans.map((c) => (
+                        <option
+                          key={c.delivery_challan_item_id}
+                          value={c.delivery_challan_item_id}
+                        >
+                          {c.challan_number} (Qty: {c.quantity})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 3. GRN No. */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      GRN No.
+                    </label>
+                    <input
+                      type="text"
+                      name="invoice_grn_no"
+                      id="invoice_grn_no"
+                      value={currentItem.grn_no}
+                      onChange={(e) =>
+                        setCurrentItem({
+                          ...currentItem,
+                          grn_no: e.target.value,
+                        })
+                      }
+                      placeholder="Enter GRN No"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto-filled Details Row */}
+                <div className="grid grid-cols-2 lg:grid-cols-8 gap-3">
+                  {/* Reference Quantities Group */}
+                  <div className="col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-green-600 dark:text-green-400 pl-1">
+                        <CheckCircle className="h-3 w-3" />
+                        OK Qty
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentItem.ok_qty}
+                        className="w-full h-10 px-3 border-2 border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-right font-bold text-green-700 dark:text-green-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-red-600 dark:text-red-400 pl-1">
+                        <XCircle className="h-3 w-3" />
+                        CR Qty
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentItem.cr_qty}
+                        className="w-full h-10 px-3 border-2 border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-right font-bold text-red-700 dark:text-red-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-orange-600 dark:text-orange-400 pl-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        MR Qty
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentItem.mr_qty}
+                        className="w-full h-10 px-3 border-2 border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm text-right font-bold text-orange-700 dark:text-orange-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1">
+                        Total Qty
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentItem.quantity}
+                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-medium text-gray-600 dark:text-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Billing Group */}
+                  <div className="col-span-2 lg:col-span-3 grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-blue-600 dark:text-blue-400 pl-1">
+                        Bill Qty
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentItem.billing_qty}
+                        className="w-full h-10 px-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg text-sm font-bold text-blue-700 dark:text-blue-300 text-right"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1">
+                        Rate
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={currentItem.rate}
+                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-medium text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-900 dark:text-white pl-1">
+                        Amount
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={
+                          currentItem.amount
+                            ? `₹${currentItem.amount.toFixed(2)}`
+                            : ""
+                        }
+                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-bold text-gray-900 dark:text-white text-right"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Group */}
+                  <div className="col-span-2 lg:col-span-1 flex flex-col justify-end">
+                    <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-500 dark:text-gray-400 text-center">
+                      Action
+                    </label>
+                    <button
+                      onClick={handleAddItem}
+                      className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-wide transition-all shadow-md hover:shadow-lg cursor-pointer"
+                    >
+                      <Plus size={16} /> Add
                     </button>
                   </div>
                 </div>
-              )}
-
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between font-bold text-lg text-gray-900 dark:text-white">
-                <span>Grand Total</span>
-                <span>₹{grandTotal.toFixed(2)}</span>
               </div>
             </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full mt-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg shadow-purple-600/20 transition-all flex items-center justify-center gap-2"
-            >
-              <Save size={20} />
-              {loading
-                ? isEditMode
-                  ? "Updating..."
-                  : "Creating..."
-                : isEditMode
-                ? "Update Invoice"
-                : "Create Invoice"}
-            </button>
+            {/* Items Table Card */}
+            {formData.items.length > 0 && (
+              <div
+                ref={itemsTableRef}
+                className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg"
+              >
+                <div className="max-h-[400px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 text-white">
+                      <tr>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+                          Sr. No.
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                          Item
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                          Challan / GRN
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                          Qty
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                          Rate
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                          Amount
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+                          Delete
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {formData.items.map((item, index) => (
+                        <tr
+                          key={index}
+                          className="hover:bg-purple-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-sm text-center font-semibold text-gray-500 dark:text-gray-400">
+                            {index + 1}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                            {item.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                            <div>{item.challan_number}</div>
+                            {item.grn_no && (
+                              <div className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
+                                GRN: {item.grn_no}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-300">
+                            <div className="flex flex-col items-end">
+                              <span className="font-bold text-purple-600 dark:text-purple-400">
+                                {item.quantity}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                (OK:{item.ok_qty} CR:{item.cr_qty} MR:
+                                {item.mr_qty})
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                            ₹{item.rate}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right font-bold text-gray-900 dark:text-white">
+                            ₹{item.amount.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => handleRemoveItem(index)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Totals & Submit Section */}
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 sticky top-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                  Summary
+                </h2>
+                <button
+                  onClick={() => setShowGstEdit(!showGstEdit)}
+                  className="p-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors group"
+                  title="Edit GST Rate"
+                >
+                  <Edit
+                    size={18}
+                    className="text-gray-400 group-hover:text-purple-600 transition-colors"
+                  />
+                </button>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                  <span>Subtotal</span>
+                  <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-600 dark:text-gray-400">
+                  <span>CGST ({gstRate / 2}%)</span>
+                  <span className="font-semibold">₹{(gst / 2).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                  <span>SGST ({gstRate / 2}%)</span>
+                  <span className="font-semibold">₹{(gst / 2).toFixed(2)}</span>
+                </div>
+
+                {/* GST Edit Modal/Input */}
+                {showGstEdit && (
+                  <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 animate-scale-in my-2">
+                    <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                      New Rate (%):
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        name="gst_rate_edit"
+                        id="gst_rate_edit"
+                        value={gstRate}
+                        onChange={(e) => setGstRate(Number(e.target.value))}
+                        className="w-16 px-2 py-1 text-sm font-bold text-center rounded border-2 border-purple-300 dark:border-purple-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => setShowGstEdit(false)}
+                        className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm"
+                      >
+                        <CheckCircle size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-3 border-t-2 border-gray-200 dark:border-gray-700 flex justify-between font-bold text-lg">
+                  <span className="text-gray-900 dark:text-white">
+                    Grand Total
+                  </span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                    ₹{grandTotal.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full mt-6 py-3 bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-700 hover:via-purple-600 hover:to-blue-700 text-white rounded-xl font-bold shadow-xl shadow-purple-500/40 hover:shadow-2xl hover:shadow-purple-500/50 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Save size={20} strokeWidth={2.5} />
+                {loading
+                  ? isEditMode
+                    ? "Updating..."
+                    : "Creating..."
+                  : isEditMode
+                  ? "Update Invoice"
+                  : "Create Invoice"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

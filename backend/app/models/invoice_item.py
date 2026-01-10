@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Numeric, ForeignKey, String
+from sqlalchemy import Column, Integer, Numeric, ForeignKey, String, JSON
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
@@ -19,6 +19,12 @@ class InvoiceItem(Base):
     quantity = Column(Numeric(10, 2))
     rate = Column(Numeric(10, 2))
     amount = Column(Numeric(10, 2))
+    
+    ok_qty = Column(Numeric(10, 2), default=0)
+    cr_qty = Column(Numeric(10, 2), default=0)
+    mr_qty = Column(Numeric(10, 2), default=0)
+    
+    challan_item_ids = Column(JSON, nullable=True)
 
     item = relationship(Item)
     invoice = relationship("Invoice", back_populates="items")

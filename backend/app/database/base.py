@@ -16,3 +16,4 @@ from app.models.invoice_item import InvoiceItem
 from app.models.payment import Payment
 from app.models.payment_allocation import PaymentAllocation
 from app.models.expense import Expense
+from app.models.notification import Notification

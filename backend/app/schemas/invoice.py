@@ -9,6 +9,10 @@ class InvoiceItemCreate(BaseModel):
     delivery_challan_item_id: Optional[int] = None
     quantity: float
     rate: float
+    ok_qty: Optional[float] = 0
+    cr_qty: Optional[float] = 0
+    mr_qty: Optional[float] = 0
+    delivery_challan_item_ids: Optional[List[int]] = None
 
 
 class PartyResponse(BaseModel):
@@ -52,6 +56,10 @@ class InvoiceItemResponse(BaseModel):
     quantity: float
     rate: float
     amount: float
+    ok_qty: Optional[float] = 0
+    cr_qty: Optional[float] = 0
+    mr_qty: Optional[float] = 0
+    challan_item_ids: Optional[List[int]] = None
     item: Optional[ItemSimpleResponse] = None
     
     class Config:
