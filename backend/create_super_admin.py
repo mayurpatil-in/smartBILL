@@ -5,31 +5,22 @@ import sys
 # Ensure backend directory is in path
 sys.path.append(os.getcwd())
 
+# [CRITICAL] Setup Environment via Paths Module
+# This ensures we connect to the CORRECT database in AppData
+try:
+    import app.core.paths
+    if "DATABASE_URL" not in os.environ:
+         db_url = f"sqlite:///{app.core.paths.DB_PATH.replace(os.sep, '/')}"
+         os.environ["DATABASE_URL"] = db_url
+         print(f"Using Database: {db_url}")
+except ImportError:
+    print("Warning: Could not import app.core.paths. Using default environment.")
+
 from app.database.session import SessionLocal
 # Import all models to ensure they are registered with SQLAlchemy
 from app.models.user import User, UserRole
-from app.models.company import Company
-from app.models.financial_year import FinancialYear
-from app.models.party import Party
-from app.models.party_challan import PartyChallan
-from app.models.party_challan_item import PartyChallanItem
-from app.models.delivery_challan import DeliveryChallan
-from app.models.delivery_challan_item import DeliveryChallanItem
-from app.models.invoice import Invoice
-from app.models.invoice_item import InvoiceItem
-from app.models.item import Item
-from app.models.stock_transaction import StockTransaction
-from app.models.employee_profile import EmployeeProfile
-from app.models.attendance import Attendance
-from app.models.salary_advance import SalaryAdvance
-from app.models.audit_log import AuditLog
-from app.models.process import Process
-from app.models.payment import Payment
-from app.models.payment_allocation import PaymentAllocation
-from app.models.expense import Expense
-from app.models import * # safe catch-all if __init__ exposes them
-
 from app.core.security import get_password_hash
+from app.models import * # safe catch-all if __init__ exposes them
 
 def create_super_admin():
     print("====================================")
@@ -44,19 +35,37 @@ def create_super_admin():
         print("Error: Email and Password are required.")
         return
 
+    create_user_in_db(name, email, password)
+
+def create_default_super_admin():
+    """
+    Creates a default super admin if one doesn't exist.
+    Credentials: admin@smartbill.com / admin123
+    """
+    print("Checking for default Super Admin...")
+    create_user_in_db("Super Admin", "admin@smartbill.com", "admin123")
+
+def create_user_in_db(name: str, email: str, password: str):
     db = SessionLocal()
     try:
         # Check if user exists
         existing_user = db.query(User).filter(User.email == email).first()
         if existing_user:
-            print(f"Error: User with email {email} already exists.")
+            print(f"User with email {email} already exists. Skipping.")
+            # Ensure it is active/superuser just in case
+            if not existing_user.is_active:
+                existing_user.is_active = True
+                db.commit()
             return
 
         # Create User
+        print(f"Creating User: {email} with password: {password}")
+        hashed = get_password_hash(password)
+        
         user = User(
             name=name,
             email=email,
-            password_hash=get_password_hash(password),
+            password_hash=hashed,
             role=UserRole.SUPER_ADMIN,
             is_active=True,
             company_id=None # Super Admin has no specific company
@@ -64,10 +73,12 @@ def create_super_admin():
         
         db.add(user)
         db.commit()
-        print(f"\nSUCCESS: Super Admin '{name}' created successfully!")
+        print(f"SUCCESS: Super Admin '{name}' ({email}) created successfully!")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error creating super admin: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()

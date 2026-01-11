@@ -20,9 +20,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('invoice_items', sa.Column('ok_qty', sa.Numeric(10, 2), nullable=True))
-    op.add_column('invoice_items', sa.Column('cr_qty', sa.Numeric(10, 2), nullable=True))
-    op.add_column('invoice_items', sa.Column('mr_qty', sa.Numeric(10, 2), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing_columns = [col['name'] for col in inspector.get_columns('invoice_items')]
+
+    if 'ok_qty' not in existing_columns:
+        op.add_column('invoice_items', sa.Column('ok_qty', sa.Numeric(10, 2), nullable=True))
+    if 'cr_qty' not in existing_columns:
+        op.add_column('invoice_items', sa.Column('cr_qty', sa.Numeric(10, 2), nullable=True))
+    if 'mr_qty' not in existing_columns:
+        op.add_column('invoice_items', sa.Column('mr_qty', sa.Numeric(10, 2), nullable=True))
 
 
 def downgrade() -> None:

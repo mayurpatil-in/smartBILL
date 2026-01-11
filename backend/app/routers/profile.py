@@ -125,14 +125,17 @@ def upload_company_logo(
          raise HTTPException(status_code=400, detail="Invalid content type.")
 
     # Create directory if not exists
-    upload_dir = "uploads/logos"
-    os.makedirs(upload_dir, exist_ok=True)
+    from app.core.paths import UPLOAD_DIR
+    
+    # We want to store in {AppData}/SmartBill/uploads/logos
+    logos_dir = os.path.join(UPLOAD_DIR, "logos")
+    os.makedirs(logos_dir, exist_ok=True)
     
     # Generate filename (use company ID + timestamp to avoid caching)
     import time
     timestamp = int(time.time())
     filename = f"company_{user.company_id}_logo_{timestamp}{ext}"
-    file_path = os.path.join(upload_dir, filename)
+    file_path = os.path.join(logos_dir, filename)
     
     # Save file
     with open(file_path, "wb") as buffer:
@@ -140,8 +143,9 @@ def upload_company_logo(
         
     # Update company record
     # Store relative path for frontend to use with base URL
-    # e.g. /uploads/logos/company_1_logo.png
-    logo_url = f"/{upload_dir}/{filename}".replace("\\", "/") # Ensure forward slashes
+    # Backend serves static mount at /uploads -> UPLOAD_DIR
+    # So if file is at UPLOAD_DIR/logos/file.png, URL should be /uploads/logos/file.png
+    logo_url = f"/uploads/logos/{filename}"
     
     company = user.company
     company.logo = logo_url

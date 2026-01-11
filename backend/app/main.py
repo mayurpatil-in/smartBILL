@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import os
+import logging # [FIX] Import logging here
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -9,17 +10,94 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi.middleware.cors import CORSMiddleware
 
+
 from app.core.config import settings
 from app.auth.auth_router import router as auth_router
 from app.services.pdf_service import pdf_manager
 from app.services.backup_service import backup_manager
+from app.core.paths import APP_DATA_DIR, UPLOAD_DIR, LOG_DIR, BACKUP_DIR, DB_PATH, DATABASE_URL
+
+# [NEW] Import super admin creator
+from create_super_admin import create_default_super_admin
+
+# [NEW] Alembic for Migrations
+from alembic.config import Config
+from alembic import command
+
+# [CRITICAL] Database Configuration Logic
+# For Desktop App (frozen): FORCE AppData SQLite path to ensure write permissions.
+# For Dev Mode: Respect settings (loaded from .env or default), allowing Postgres.
+
+is_frozen = getattr(sys, 'frozen', False)
+
+if is_frozen:
+    # Desktop App: Always use safe AppData path
+    deployment_db_url = DATABASE_URL # Imported from app.core.paths
+    settings.DATABASE_URL = deployment_db_url
+    deployment_db_url = deployment_db_url # For migrations
+    logging.info(f"FROZEN MODE: Forced Database URL to AppData: {deployment_db_url}")
+else:
+    # Dev Mode: Trust Settings (from .env or default)
+    deployment_db_url = settings.DATABASE_URL
+    logging.info(f"DEV MODE: Using configured Database URL: {deployment_db_url}")
+
+# Setup basic file logging to debug startup issues
+import logging
+logging.basicConfig(
+    filename=os.path.join(LOG_DIR, "backend_startup.log"),
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logging.info(f"Starting SmartBill Backend. Data Dir: {APP_DATA_DIR}")
+
+def run_migrations():
+    """Run Alembic migrations to ensure DB schema is up to date."""
+    try:
+        logging.info("Running database migrations...")
+        # Point to alembic.ini in the current directory (dist root)
+        alembic_cfg = Config("alembic.ini")
+        # Force the config to use our computed AppData DB URL
+        alembic_cfg.set_main_option("sqlalchemy.url", deployment_db_url)
+        # Run upgrade head
+        command.upgrade(alembic_cfg, "head")
+        logging.info("Database migrations completed successfully.")
+    except Exception as e:
+        logging.error(f"Migration failed: {e}")
+        # We don't raise here to allow app to start even if migration fails (though risky)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
+# [NEW] Import init_db for fallback table creation
+from app.database.init_db import init_db
+
 @app.on_event("startup")
 async def startup_event():
-    await pdf_manager.start()
-    backup_manager.start_scheduler()
+    logging.info("Startup event triggered.")
+    print("STARTUP: Event triggered.") # Logs to backend_entry.log
+    
+    try:
+        # 1. Ensure Tables Exist (Fallback/Safety)
+        print("STARTUP: Running init_db() to create tables...")
+        init_db()
+        print("STARTUP: init_db() completed.")
+        
+        # 2. Run Migrations (Update schema if needed)
+        run_migrations()
+        print("STARTUP: Migrations completed/attempted.")
+
+        # 3. Start Services
+        await pdf_manager.start()
+        backup_manager.start_scheduler()
+        
+        # 4. Create Super Admin
+        print("STARTUP: Creating default Super Admin...")
+        create_default_super_admin()
+        print("STARTUP: Super Admin creation step done.")
+        
+        logging.info("Startup complete.")
+    except Exception as e:
+        logging.error(f"Startup error: {e}")
+        print(f"STARTUP ERROR: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -50,9 +128,7 @@ app.add_middleware(
 app.add_middleware(PrivateNetworkAccessMiddleware)
 
 # ===================== STATIC FILES =====================
-if not os.path.exists("uploads"):
-    os.makedirs("uploads")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 from app.routers.financial_year import router as fy_router
 from app.routers.party import router as party_router
 from app.routers.item import router as item_router
@@ -116,3 +192,8 @@ app.include_router(public_invoice_router)
 @app.get("/")
 def root():
     return {"status": "OK"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Explicitly run uvicorn when executed as a script/executable
+    uvicorn.run(app, host="127.0.0.1", port=8000)

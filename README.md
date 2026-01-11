@@ -87,7 +87,16 @@ npm run tauri dev
 
 npm run tauri icon app-icon.png # Change app-icon.png to your icon
 
+uv run build_desktop.py
+
 netstat -ano | findstr :8000 || echo Port 8000 is free
+```
+
+### VPS sql
+
+```bash
+sudo -i -u postgres
+psql
 ```
 
 ## Status: 🚧 In Progress

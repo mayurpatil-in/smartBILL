@@ -10,8 +10,8 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from app.core.config import settings
+from app.core.paths import BACKUP_DIR
 
-BACKUP_DIR = "backups"
 # PostgreSQL Binaries Path
 # Dynamic path resolution for cross-platform support
 if os.name == 'nt':  # Windows
@@ -27,13 +27,10 @@ else:  # Linux / VPS
 class BackupManager:
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
-        if not os.path.exists(BACKUP_DIR):
-            os.makedirs(BACKUP_DIR)
+        # Directory is ensured by app.core.paths
 
     def start_scheduler(self):
         # Default: Daily backup at 2:00 AM
-        # Changed format to 'dump' (Binary) as requested by user
-        # Job 1: Binary Dump at 2:00 AM
         self.scheduler.add_job(
             self.create_backup, 
             'cron', 
@@ -42,17 +39,6 @@ class BackupManager:
             id='daily_backup_dump', 
             replace_existing=True,
             kwargs={"format": "dump"}
-        )
-
-        # Job 2: Plain SQL at 2:05 AM
-        self.scheduler.add_job(
-            self.create_backup, 
-            'cron', 
-            hour=2, 
-            minute=5, 
-            id='daily_backup_sql', 
-            replace_existing=True,
-            kwargs={"format": "sql"}
         )
         self.scheduler.start()
 
@@ -80,10 +66,22 @@ class BackupManager:
         )
         return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
-    def _get_db_config(self):
-        """Parse DATABASE_URL to get connection details"""
+    def _get_db_type(self):
+        """Detect database type: 'sqlite' or 'postgresql'"""
+        if "sqlite" in settings.DATABASE_URL:
+            return "sqlite"
+        return "postgresql"
+
+    def _get_sqlite_path(self):
+        """Extract path from sqlite:///... url"""
         url = settings.DATABASE_URL
-        # Handle asyncpg or psycopg2 prefixes if present
+        if url.startswith("sqlite:///"):
+            return url.replace("sqlite:///", "")
+        return "sql_app.db"
+
+    def _get_db_config(self):
+        """Parse DATABASE_URL to get connection details for Postgres"""
+        url = settings.DATABASE_URL
         if "+psycopg2" in url:
             url = url.replace("+psycopg2", "")
         
@@ -96,25 +94,19 @@ class BackupManager:
             "dbname": parsed.path.lstrip('/')
         }
 
-    async def _get_pg_executable(self, name):
-        """
-        Get path to postgres executable.
-        """
-        if os.name == 'nt':
-            base_path = r"C:\Program Files\PostgreSQL\18\bin"
-            return os.path.join(base_path, f"{name}.exe")
-        return shutil.which(name) or name
-
     def create_backup(self, auto=True, password: str = None, format: str = "sql"):
         """
-        Create a backup of the PostgreSQL database.
-        format: 'sql' (Plain Text) or 'dump' (Custom Binary)
+        Create a backup of the database (SQLite or Postgres).
         """
-        print(f"Starting backup... Auto={auto}, Encrypted={bool(password)}, Format={format}")
+        db_type = self._get_db_type()
+        print(f"Starting backup ({db_type})... Auto={auto}, Encrypted={bool(password)}")
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         prefix = "auto_backup" if auto else "manual_backup"
-        ext = "dump" if format == "dump" else "sql"
+        
+        # SQLite always uses .db extension for raw copy, or .sql if we implemented dump (complex)
+        # For simplicity/reliability in Desktop app, we copy the .db file.
+        ext = "db" if db_type == "sqlite" else ("dump" if format == "dump" else "sql")
         filename = f"{prefix}_{timestamp}.{ext}"
         
         if not os.path.exists(BACKUP_DIR):
@@ -122,9 +114,40 @@ class BackupManager:
             
         file_path = os.path.join(BACKUP_DIR, filename)
         
+        try:
+            if db_type == "sqlite":
+                source_db = self._get_sqlite_path()
+                if not os.path.exists(source_db):
+                     raise Exception(f"Source DB not found at {source_db}")
+                # Simple file copy for SQLite
+                shutil.copy2(source_db, file_path)
+            else:
+                # PostgreSQL Logic
+                if not self._run_pg_dump(file_path, format):
+                    return None
+
+            # Encryption Logic (Shared)
+            if password:
+                return self._encrypt_file(file_path, filename, password, auto)
+            
+            if auto:
+                self.prune_backups()
+                
+            self._create_notification(
+                 "Auto Backup Successful" if auto else "Manual Backup Successful", 
+                 f"Backup created: {filename}",
+                 "success"
+            )
+            return filename
+            
+        except Exception as e:
+            print(f"Backup failed: {e}")
+            self._create_notification("Backup Failed", f"Error: {str(e)}", "error")
+            return None
+
+    def _run_pg_dump(self, file_path, format):
+        """Internal helper for running pg_dump"""
         db_conf = self._get_db_config()
-        
-        # Prepare Environment for Password
         env = os.environ.copy()
         if db_conf["password"]:
             env["PGPASSWORD"] = db_conf["password"]
@@ -139,87 +162,60 @@ class BackupManager:
         ]
         
         if format == "dump":
-            cmd.extend(["-F", "c"]) # Custom format (compressed binary)
+            cmd.extend(["-F", "c"])
         else:
-            cmd.extend(["-F", "p", "-c"]) # Plain text (default) and clean (DROP commands)
+            cmd.extend(["-F", "p", "-c"])
         
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"pg_dump failed: {result.stderr}")
+            return False
+        return True
+
+    def _encrypt_file(self, file_path, filename, password, auto):
+        """Encrypts a file and handles cleanup"""
         try:
-            print(f"Running pg_dump to {file_path}...")
-            # Run pg_dump
-            result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+            salt = os.urandom(16)
+            key = self._derive_key(password, salt)
+            f = Fernet(key)
             
-            if result.returncode != 0:
-                print(f"pg_dump failed: {result.stderr}")
-                return None
-
-            if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                 print("Backup file created but is empty.")
-                 return None
-
-            # Encryption Logic
-            if password:
-                salt = os.urandom(16)
-                key = self._derive_key(password, salt)
-                f = Fernet(key)
-                
-                with open(file_path, "rb") as db_file:
-                    data = db_file.read()
-                
-                encrypted_data = f.encrypt(data)
-                
-                enc_filename = filename.replace(f".{ext}", ".enc")
-                enc_path = os.path.join(BACKUP_DIR, enc_filename)
-                
-                # Prepend salt to the file for decryption later
-                with open(enc_path, "wb") as backup_file:
-                    backup_file.write(salt + encrypted_data)
-                
-                # Remove the plain .sql file
-                os.remove(file_path)
-                
-                if auto:
-                    self.prune_backups()
-                    
-                # NOTIFICATION: Success
-                self._create_notification(
-                    "Auto Backup Successful" if auto else "Manual Backup Successful", 
-                    f"Backup created: {enc_filename} (Encrypted)",
-                    "success"
-                )
-                return enc_filename
+            with open(file_path, "rb") as db_file:
+                data = db_file.read()
+            
+            encrypted_data = f.encrypt(data)
+            
+            # Determine extension for encrypted file
+            # e.g. .db -> .db.enc, .sql -> .sql.enc
+            enc_filename = filename + ".enc"
+            enc_path = os.path.join(BACKUP_DIR, enc_filename)
+            
+            # Prepend salt
+            with open(enc_path, "wb") as backup_file:
+                backup_file.write(salt + encrypted_data)
+            
+            os.remove(file_path) # Remove unencrypted
             
             if auto:
                 self.prune_backups()
                 
-            # NOTIFICATION: Success
             self._create_notification(
-                 "Auto Backup Successful" if auto else "Manual Backup Successful", 
-                 f"Backup created: {filename}",
-                 "success"
+                "Backup Successful (Encrypted)", 
+                f"File: {enc_filename}",
+                "success"
             )
-            return filename
-            
+            return enc_filename
         except Exception as e:
-            print(f"Backup failed: {e}")
-            # NOTIFICATION: Error
-            self._create_notification(
-                "Backup Failed", 
-                f"Error creating backup: {str(e)}",
-                "error"
-            )
+            print(f"Encryption failed: {e}")
             return None
 
     def decrypt_backup_file(self, file_path, password):
-        """
-        Decrypts a file and returns the temporary decrypted path.
-        """
+        """Decrypts a file and returns the temporary decrypted path."""
         if not os.path.exists(file_path):
             raise Exception("File not found")
             
         with open(file_path, "rb") as f:
             file_content = f.read()
             
-        # Extract salt (first 16 bytes)
         salt = file_content[:16]
         encrypted_data = file_content[16:]
         
@@ -228,70 +224,72 @@ class BackupManager:
         
         try:
             decrypted_data = fernet.decrypt(encrypted_data)
-            # Determine original extension from encrypted filename
-            original_ext = "sql"
-            if file_path.endswith(".dump.enc"):
-                original_ext = "dump"
-            temp_path = file_path.replace(".enc", f".{original_ext}")
+            # Restore original extension by removing .enc
+            # e.g. backup.db.enc -> backup.db
+            temp_path = file_path.replace(".enc", "")
             with open(temp_path, "wb") as out:
                 out.write(decrypted_data)
             return temp_path
         except:
              raise Exception("Invalid password or corrupted file")
 
-    def restore_database(self, sql_file_path, format: str = "sql"):
+    def restore_database(self, file_path, format: str = "sql"):
         """
-        Restore database from file (.sql using psql, .dump using pg_restore)
+        Restore database from file.
+        SQLite: Overwrites .db file.
+        Postgres: Uses pg_restore/psql.
         """
+        db_type = self._get_db_type()
+        
+        try:
+            if db_type == "sqlite":
+                target_db = self._get_sqlite_path()
+                # For SQLite, we just copy the backup over the current DB
+                # CAUTION: This replaces the file immediately.
+                # In a real app, might want to close connections first.
+                print(f"Restoring SQLite DB from {file_path} to {target_db}...")
+                shutil.copy2(file_path, target_db)
+                return True
+            else:
+                return self._restore_postgres(file_path, format)
+        except Exception as e:
+            raise Exception(f"Restore failed: {e}")
+
+    def _restore_postgres(self, sql_file_path, format):
+        """Internal helper for Postgres restore"""
         db_conf = self._get_db_config()
         env = os.environ.copy()
         if db_conf["password"]:
             env["PGPASSWORD"] = db_conf["password"]
 
-        # Determine if it's a binary dump
         is_binary = sql_file_path.endswith(".dump") or format == "dump"
-        
+        tool_name = "pg_restore" if is_binary else "psql"
+
         if is_binary:
-            # pg_restore: -c (clean), -d (dbname)
             cmd = [
-                PG_RESTORE_EXE,
-                "-h", str(db_conf["host"]),
-                "-p", str(db_conf["port"]),
-                "-U", str(db_conf["user"]),
-                "-c",
-                "-d", str(db_conf["dbname"]),
+                PG_RESTORE_EXE, "-h", str(db_conf["host"]), "-p", str(db_conf["port"]),
+                "-U", str(db_conf["user"]), "-c", "-d", str(db_conf["dbname"]),
                 sql_file_path
             ]
-            tool_name = "pg_restore"
         else:
             cmd = [
-                PSQL_EXE,
-                "-h", str(db_conf["host"]),
-                "-p", str(db_conf["port"]),
-                "-U", str(db_conf["user"]),
-                "-d", str(db_conf["dbname"]),
+                PSQL_EXE, "-h", str(db_conf["host"]), "-p", str(db_conf["port"]),
+                "-U", str(db_conf["user"]), "-d", str(db_conf["dbname"]),
                 "-f", sql_file_path
             ]
-            tool_name = "psql"
 
-        print(f"Restoring using {tool_name} from {sql_file_path}...")
         result = subprocess.run(cmd, env=env, capture_output=True, text=True)
-        
         if result.returncode != 0:
-            # pg_restore often emits warnings that look like errors but are non-fatal
-            # However, strictly it returns 0 on success.
-            # We will log it.
-            print(f"{tool_name} output: {result.stderr}")
             if "fatal" in result.stderr.lower() or "error" in result.stderr.lower():
                  raise Exception(f"Restore failed: {result.stderr}")
-
         return True
 
     def list_backups(self):
         files = glob.glob(os.path.join(BACKUP_DIR, "*")) 
         backups = []
         for f in files:
-            if not (f.endswith(".sql") or f.endswith(".enc") or f.endswith(".dump")): 
+            # Include .db backups for SQLite
+            if not (f.endswith(".sql") or f.endswith(".enc") or f.endswith(".dump") or f.endswith(".db")): 
                 continue
                 
             stat = os.stat(f)
@@ -301,7 +299,6 @@ class BackupManager:
                 "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
                 "is_encrypted": f.endswith(".enc")
             })
-        # Sort by creation time desc
         backups.sort(key=lambda x: x['created_at'], reverse=True)
         return backups
 
@@ -313,9 +310,6 @@ class BackupManager:
         return False
         
     def prune_backups(self):
-        """
-        Keep only the last 7 automatic backups.
-        """
         backups = self.list_backups()
         auto_backups = [b for b in backups if b['filename'].startswith("auto_")]
         

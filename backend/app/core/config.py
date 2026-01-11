@@ -1,14 +1,14 @@
 from typing import Any
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from app.core.paths import DATABASE_URL as DEFAULT_DB_URL
 
 class Settings(BaseSettings):
     # ================= BASIC =================
     PROJECT_NAME: str = "SmartBILL System"
 
     # ================= DATABASE =================
-    DATABASE_URL: str
+    DATABASE_URL: str = DEFAULT_DB_URL
 
     # ================= JWT =================
     JWT_SECRET_KEY: str
