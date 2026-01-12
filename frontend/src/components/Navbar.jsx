@@ -155,7 +155,7 @@ const NotificationDropdown = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className={`relative p-2.5 rounded-xl transition-all duration-300 hover:shadow-lg group ${
+        className={`relative p-2 sm:p-2.5 rounded-xl transition-all duration-300 hover:shadow-lg group shrink-0 ${
           unreadCount > 0
             ? "text-white"
             : "text-gray-500 hover:text-white dark:text-gray-400 dark:hover:text-white"
@@ -178,7 +178,7 @@ const NotificationDropdown = () => {
           }
         }}
       >
-        <Bell size={18} />
+        <Bell size={16} className="sm:w-[18px] sm:h-[18px]" />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[9px] font-bold text-red-600 shadow-lg border-2 border-red-500 animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -364,7 +364,7 @@ export default function Navbar({ onMenuClick }) {
         backdrop-blur-xl
         border-b-2 border-transparent
         bg-gradient-to-r from-transparent via-transparent to-transparent
-        px-6 py-4
+        px-3 sm:px-6 py-3 sm:py-4
         flex items-center justify-between
         shadow-lg shadow-gray-200/50 dark:shadow-black/30
       "
@@ -374,26 +374,27 @@ export default function Navbar({ onMenuClick }) {
       }}
     >
       {/* LEFT */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
         <button
           className="
             md:hidden
             text-gray-600 hover:text-gray-900
             dark:text-gray-300 dark:hover:text-white
             transition
+            shrink-0
           "
           onClick={onMenuClick}
           aria-label="Open menu"
         >
-          <Menu size={22} />
+          <Menu size={20} />
         </button>
 
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-              <LayoutDashboard size={16} className="text-white" />
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shrink-0">
+              <LayoutDashboard size={14} className="text-white sm:w-4 sm:h-4" />
             </div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h1 className="hidden sm:block text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent truncate">
               Dashboard
             </h1>
           </div>
@@ -402,17 +403,18 @@ export default function Navbar({ onMenuClick }) {
       </div>
 
       {/* RIGHT */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           className="
-            relative p-2.5 rounded-xl
+            relative p-2 sm:p-2.5 rounded-xl
             text-gray-500 hover:text-white
             dark:text-gray-400 dark:hover:text-white
             transition-all duration-300
             hover:shadow-lg
             group
+            shrink-0
           "
           style={{
             background: dark
@@ -423,9 +425,9 @@ export default function Navbar({ onMenuClick }) {
         >
           <div className="transform group-hover:rotate-180 transition-transform duration-500">
             {dark ? (
-              <Sun size={18} className="text-white" />
+              <Sun size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
             ) : (
-              <Moon size={18} className="text-white" />
+              <Moon size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
             )}
           </div>
         </button>
@@ -462,7 +464,7 @@ export default function Navbar({ onMenuClick }) {
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"></div>
             </div>
 
-            <span className="hidden md:block text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+            <span className="hidden sm:block text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors truncate max-w-[100px]">
               {user?.name || "Admin"}
             </span>
 
