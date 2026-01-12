@@ -16,6 +16,8 @@ import {
   X,
   Clock,
   Trash2,
+  Sparkles,
+  LayoutDashboard,
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
 import { setDarkMode } from "../utils/theme";
@@ -153,28 +155,58 @@ const NotificationDropdown = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition"
+        className={`relative p-2.5 rounded-xl transition-all duration-300 hover:shadow-lg group ${
+          unreadCount > 0
+            ? "text-white"
+            : "text-gray-500 hover:text-white dark:text-gray-400 dark:hover:text-white"
+        }`}
+        style={{
+          background:
+            unreadCount > 0
+              ? "linear-gradient(135deg, rgb(239, 68, 68), rgb(220, 38, 38))"
+              : "",
+        }}
+        onMouseEnter={(e) => {
+          if (unreadCount === 0) {
+            e.currentTarget.style.background =
+              "linear-gradient(135deg, rgb(59, 130, 246), rgb(147, 51, 234))";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (unreadCount === 0) {
+            e.currentTarget.style.background = "";
+          }
+        }}
       >
         <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm border border-white dark:border-gray-900">
+          <span className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[9px] font-bold text-red-600 shadow-lg border-2 border-red-500 animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden animate-fade-in origin-top-right">
-          <div className="p-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+        <div className="absolute right-0 mt-2 w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden animate-fade-in origin-top-right">
+          {/* Gradient Header */}
+          <div className="relative p-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200">
-                Notifications
-              </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Bell size={18} className="text-white" />
+                <h3 className="font-bold text-base text-white">
+                  Notifications
+                </h3>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium flex items-center gap-1"
+                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white transition-all"
                     title="Mark all read"
                   >
                     <CheckCheck size={14} />
@@ -183,7 +215,7 @@ const NotificationDropdown = () => {
                 {notifications.length > 0 && (
                   <button
                     onClick={handleClearAll}
-                    className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 font-medium flex items-center gap-1"
+                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white transition-all"
                     title="Clear All"
                   >
                     <Trash2 size={14} />
@@ -202,15 +234,20 @@ const NotificationDropdown = () => {
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id)}
-                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors ${
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
                     filter === tab.id
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 shadow-sm"
-                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                      ? "bg-white text-purple-600 shadow-md"
+                      : "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm"
                   }`}
                 >
                   {tab.label}
                 </button>
               ))}
+            </div>
+
+            {/* Decorative Element */}
+            <div className="absolute top-2 right-2 opacity-20">
+              <Sparkles size={20} className="text-white" />
             </div>
           </div>
 
@@ -323,13 +360,18 @@ export default function Navbar({ onMenuClick }) {
     <header
       className="
         sticky top-0 z-30
-        bg-white dark:bg-gray-800/95
-        backdrop-blur
-        border-b border-gray-200 dark:border-gray-700
+        bg-white/80 dark:bg-gray-800/80
+        backdrop-blur-xl
+        border-b-2 border-transparent
+        bg-gradient-to-r from-transparent via-transparent to-transparent
         px-6 py-4
         flex items-center justify-between
-        shadow-sm dark:shadow-black/30
+        shadow-lg shadow-gray-200/50 dark:shadow-black/30
       "
+      style={{
+        borderImage:
+          "linear-gradient(90deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153)) 1",
+      }}
     >
       {/* LEFT */}
       <div className="flex items-center gap-4">
@@ -347,9 +389,14 @@ export default function Navbar({ onMenuClick }) {
         </button>
 
         <div>
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            Dashboard
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+              <LayoutDashboard size={16} className="text-white" />
+            </div>
+            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+          </div>
           <Breadcrumbs />
         </div>
       </div>
@@ -360,14 +407,27 @@ export default function Navbar({ onMenuClick }) {
         <button
           onClick={toggleTheme}
           className="
-            p-2 rounded-lg
-            text-gray-500 hover:text-gray-900 hover:bg-gray-100
-            dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800
-            transition
+            relative p-2.5 rounded-xl
+            text-gray-500 hover:text-white
+            dark:text-gray-400 dark:hover:text-white
+            transition-all duration-300
+            hover:shadow-lg
+            group
           "
+          style={{
+            background: dark
+              ? "linear-gradient(135deg, rgb(251, 191, 36), rgb(245, 158, 11))"
+              : "linear-gradient(135deg, rgb(59, 130, 246), rgb(147, 51, 234))",
+          }}
           aria-label="Toggle theme"
         >
-          {dark ? <Sun size={18} /> : <Moon size={18} />}
+          <div className="transform group-hover:rotate-180 transition-transform duration-500">
+            {dark ? (
+              <Sun size={18} className="text-white" />
+            ) : (
+              <Moon size={18} className="text-white" />
+            )}
+          </div>
         </button>
 
         {/* Notifications */}
@@ -378,26 +438,37 @@ export default function Navbar({ onMenuClick }) {
           <button
             onClick={() => setOpen((v) => !v)}
             className="
-              flex items-center gap-2
-              px-2 py-1.5 rounded-lg
-              hover:bg-gray-100
-              dark:hover:bg-gray-800
-              transition
+              flex items-center gap-2.5
+              px-3 py-2 rounded-xl
+              hover:bg-gray-100/80
+              dark:hover:bg-gray-700/50
+              transition-all duration-300
+              hover:shadow-lg
+              group
             "
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
-              <User size={16} />
+            {/* Gradient Avatar with Initials */}
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white dark:ring-gray-800 transform group-hover:scale-110 transition-transform duration-300">
+                {user?.name
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase() || "A"}
+              </div>
+              {/* Online Status Indicator */}
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"></div>
             </div>
 
-            <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
+            <span className="hidden md:block text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
               {user?.name || "Admin"}
             </span>
 
             <ChevronDown
               size={14}
-              className={`text-gray-400 transition-transform ${
+              className={`text-gray-400 transition-transform duration-300 ${
                 open ? "rotate-180" : ""
               }`}
             />
@@ -406,45 +477,88 @@ export default function Navbar({ onMenuClick }) {
           {open && (
             <div
               className="
-                absolute right-0 mt-2 w-48 z-50
+                absolute right-0 mt-2 w-64 z-50
                 bg-white dark:bg-gray-800
                 border border-gray-200 dark:border-gray-700
-                rounded-xl shadow-xl
-                py-1 text-sm
+                rounded-2xl shadow-2xl
+                overflow-hidden
                 animate-fade-in
               "
             >
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  setShowProfileModal(true);
-                }}
-                className="dropdown-item"
-              >
-                <User size={16} />
-                Profile
-              </button>
+              {/* Gradient Header */}
+              <div className="relative p-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg shadow-lg ring-2 ring-white/30">
+                    {user?.name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase() || "A"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white truncate">
+                      {user?.name || "Admin"}
+                    </p>
+                    <p className="text-xs text-white/80 truncate">
+                      {user?.email || "admin@example.com"}
+                    </p>
+                  </div>
+                </div>
+                {/* Decorative Elements */}
+                <div className="absolute top-2 right-2 opacity-20">
+                  <Sparkles size={20} className="text-white" />
+                </div>
+              </div>
 
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/settings");
-                }}
-              >
-                <Settings size={16} />
-                Settings
-              </button>
+              {/* Menu Items */}
+              <div className="py-2">
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    setShowProfileModal(true);
+                  }}
+                  className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 transition-all"
+                >
+                  <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                    <User
+                      size={16}
+                      className="text-blue-600 dark:text-blue-400"
+                    />
+                  </div>
+                  <span className="font-medium">Profile</span>
+                </button>
 
-              <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                <button
+                  className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/settings");
+                  }}
+                >
+                  <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                    <Settings
+                      size={16}
+                      className="text-purple-600 dark:text-purple-400"
+                    />
+                  </div>
+                  <span className="font-medium">Settings</span>
+                </button>
 
-              <button
-                onClick={logout}
-                className="dropdown-item text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                <LogOut size={16} />
-                Logout
-              </button>
+                <hr className="my-2 border-gray-200 dark:border-gray-700" />
+
+                <button
+                  onClick={logout}
+                  className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-red-600 dark:text-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 dark:hover:from-red-900/20 dark:hover:to-pink-900/20 transition-all font-medium"
+                >
+                  <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/30">
+                    <LogOut
+                      size={16}
+                      className="text-red-600 dark:text-red-400"
+                    />
+                  </div>
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
