@@ -1403,6 +1403,7 @@ async def get_gst_report_pdf(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     type: str = "gstr1",
+    party_name: Optional[str] = None,
     company_id: int = Depends(get_company_id),
     fy=Depends(get_active_financial_year),
     db: Session = Depends(get_db),
@@ -1434,15 +1435,25 @@ async def get_gst_report_pdf(
     grouped_data = {}
 
     if type == "gstr1":
+        query = db.query(Invoice).options(joinedload(Invoice.party), joinedload(Invoice.items))
+        
+        filters = [
+            Invoice.company_id == company_id,
+            Invoice.invoice_date >= start,
+            Invoice.invoice_date <= end,
+            Invoice.status != "CANCELLED",
+        ]
+        
+        if party_name:
+            # We need to join Party to filter by name if it's not a direct column on Invoice (it filters via relationship usually if joined)
+            # But joinedload doesn't always allow filtering on it easily without explicit join.
+            # Let's use explicit join or has.
+            query = query.join(Party)
+            filters.append(Party.name == party_name)
+            
         invoices = (
-            db.query(Invoice)
-            .options(joinedload(Invoice.party), joinedload(Invoice.items))
-            .filter(
-                Invoice.company_id == company_id,
-                Invoice.invoice_date >= start,
-                Invoice.invoice_date <= end,
-                Invoice.status != "CANCELLED",
-            )
+            query
+            .filter(*filters)
             .order_by(Invoice.invoice_date.asc())
             .all()
         )

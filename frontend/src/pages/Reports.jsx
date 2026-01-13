@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import {
   FileText,
   Search,
@@ -10,6 +10,8 @@ import {
   ArrowRight,
   ClipboardList,
   Printer,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
@@ -36,6 +38,10 @@ export default function Reports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all"); // all, pending, completed
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   // Tab State
   const [activeTab, setActiveTab] = useState("jobwork"); // jobwork, ledger, statement, stock
   const [selectedJobWorkParty, setSelectedJobWorkParty] = useState("");
@@ -57,6 +63,7 @@ export default function Reports() {
   // GST Report State
   const [gstData, setGstData] = useState([]);
   const [gstLoading, setGstLoading] = useState(false);
+  const [selectedGSTParty, setSelectedGSTParty] = useState("");
 
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
@@ -199,6 +206,7 @@ export default function Reports() {
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
         type: "gstr1",
+        party_name: selectedGSTParty,
       });
 
       const url = window.URL.createObjectURL(
@@ -207,7 +215,9 @@ export default function Reports() {
 
       setPreviewDoc({
         url: url,
-        title: `GST_Report_GSTR1_${dateRange.start_date}`,
+        title: selectedGSTParty
+          ? `GST_Report_GSTR1_${selectedGSTParty}_${dateRange.start_date}`
+          : `GST_Report_GSTR1_${dateRange.start_date}`,
       });
 
       toast.dismiss(loadingToast);
@@ -361,8 +371,25 @@ export default function Reports() {
     const matchesStatus =
       filterStatus === "all" || item.status.toLowerCase() === filterStatus;
 
-    return matchesSearch && matchesStatus;
+    const matchesParty =
+      !selectedJobWorkParty || item.party_name === selectedJobWorkParty;
+
+    const matchesItem =
+      !selectedJobWorkItem || item.item_name === selectedJobWorkItem;
+
+    return matchesSearch && matchesStatus && matchesParty && matchesItem;
   });
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, selectedJobWorkParty, selectedJobWorkItem]);
 
   const stats = {
     totalJobs: data.length,
@@ -373,6 +400,17 @@ export default function Reports() {
 
   // --- LEDGER AGGREGATION ---
   const availableParties = [...new Set(data.map((i) => i.party_name))];
+
+  // Filter items based on selected party
+  const availableItems = [
+    ...new Set(
+      data
+        .filter(
+          (i) => !selectedJobWorkParty || i.party_name === selectedJobWorkParty
+        )
+        .map((i) => i.item_name)
+    ),
+  ];
 
   /* --- LEDGER AGGREGATION (Fixed for Date-Wise Opening) --- */
   const ledgerData = useMemo(() => {
@@ -578,155 +616,218 @@ export default function Reports() {
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
-                  <ClipboardList size={24} />
+            <div className="group relative bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-800/20 p-6 rounded-2xl shadow-lg shadow-blue-500/20 dark:shadow-blue-500/10 hover:shadow-blue-500/30 dark:hover:shadow-blue-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <ClipboardList size={28} className="text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    Total Jobs
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left">
                     {stats.totalJobs}
                   </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+                    Total Jobs
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl">
-                  <Clock size={24} />
+            <div className="group relative bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/30 dark:to-amber-800/20 p-6 rounded-2xl shadow-lg shadow-orange-500/20 dark:shadow-orange-500/10 hover:shadow-orange-500/30 dark:hover:shadow-orange-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <Clock size={28} className="text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    Pending Jobs
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left">
                     {stats.pendingJobs}
                   </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+                    Pending Jobs
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl">
-                  <CheckCircle size={24} />
+            <div className="group relative bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-800/20 p-6 rounded-2xl shadow-lg shadow-green-500/20 dark:shadow-green-500/10 hover:shadow-green-500/30 dark:hover:shadow-green-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <CheckCircle size={28} className="text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    Completed
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left">
                     {stats.completedJobs}
                   </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+                    Completed
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl">
-                  <AlertCircle size={24} />
+            <div className="group relative bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/30 dark:to-violet-800/20 p-6 rounded-2xl shadow-lg shadow-purple-500/20 dark:shadow-purple-500/10 hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <AlertCircle size={28} className="text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    Pending Qty
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-purple-600 dark:text-purple-400 tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left">
                     {stats.totalPendingQty}
                   </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+                    Pending Qty
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-96">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                name="report_search"
-                id="report_search"
-                placeholder="Search party, item or challan..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all dark:text-white"
-              />
-            </div>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+              {/* Left Side: Search and Dropdowns */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    name="report_search"
+                    id="report_search"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all dark:text-white"
+                  />
+                </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
-                {["all", "pending", "completed"].map((status) => (
+                <select
+                  value={selectedJobWorkParty}
+                  onChange={(e) => {
+                    setSelectedJobWorkParty(e.target.value);
+                    // Clear item selection when party changes
+                    if (e.target.value !== selectedJobWorkParty) {
+                      setSelectedJobWorkItem("");
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium w-full sm:w-48"
+                  name="job_work_party_filter"
+                  id="job_work_party_filter"
+                >
+                  <option value="">All Parties</option>
+                  {availableParties.map((party) => (
+                    <option key={party} value={party}>
+                      {party}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedJobWorkItem}
+                  onChange={(e) => setSelectedJobWorkItem(e.target.value)}
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium w-full sm:w-48"
+                  name="job_work_item_filter"
+                  id="job_work_item_filter"
+                >
+                  <option value="">All Items</option>
+                  {availableItems.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+
+                {(selectedJobWorkParty || selectedJobWorkItem) && (
                   <button
-                    key={status}
-                    onClick={() => setFilterStatus(status)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${
-                      filterStatus === status
-                        ? "bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                    }`}
+                    onClick={() => {
+                      setSelectedJobWorkParty("");
+                      setSelectedJobWorkItem("");
+                    }}
+                    className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all whitespace-nowrap"
                   >
-                    {status}
+                    Clear
                   </button>
-                ))}
+                )}
               </div>
-              <button
-                onClick={exportToExcel}
-                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-lg shadow-green-600/20 transition-all active:scale-95 whitespace-nowrap"
-              >
-                <Download size={18} />
-                Export
-              </button>
+
+              {/* Right Side: Status and Export */}
+              <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-xl border-2 border-gray-200 dark:border-gray-700">
+                  {["all", "pending", "completed"].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setFilterStatus(status)}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all capitalize ${
+                        filterStatus === status
+                          ? "bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-md"
+                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={exportToExcel}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                >
+                  <Download
+                    size={18}
+                    className="group-hover:-translate-y-0.5 transition-transform duration-300"
+                  />
+                  Export
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Date
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Party & Challan
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Item Details
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Inward
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Outward
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Balance
                     </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center whitespace-nowrap">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                   {loading ? (
                     <tr>
                       <td colSpan="7" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                          <p className="text-gray-500">Loading Report...</p>
+                          <p className="text-gray-500 font-medium">
+                            Loading Report...
+                          </p>
                         </div>
                       </td>
                     </tr>
-                  ) : filteredData.length === 0 ? (
+                  ) : currentItems.length === 0 ? (
                     <tr>
                       <td colSpan="7" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
@@ -740,60 +841,60 @@ export default function Reports() {
                       </td>
                     </tr>
                   ) : (
-                    filteredData.map((row) => (
+                    currentItems.map((row, index) => (
                       <tr
                         key={row.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-violet-50/30 dark:hover:from-purple-900/10 dark:hover:to-violet-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(147,51,234)]"
                       >
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap font-medium">
                           {row.date}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-5">
                           <p className="font-semibold text-gray-900 dark:text-white">
                             {row.party_name}
                           </p>
-                          <p className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-md inline-block mt-1">
+                          <p className="text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-md inline-block mt-1 font-semibold">
                             {row.challan_number}
                           </p>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-gray-800 dark:text-gray-200">
+                        <td className="px-6 py-5">
+                          <p className="font-semibold text-gray-800 dark:text-gray-200">
                             {row.item_name}
                           </p>
-                          <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
                             <ArrowRight size={12} /> {row.process_name}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg">
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg">
                             {row.in_qty}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="font-medium text-green-600 dark:text-green-400">
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded-lg">
                             {row.out_qty}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-5 text-right">
                           <span
-                            className={`font-bold px-2 py-1 rounded-lg ${
+                            className={`font-bold px-3 py-1.5 rounded-lg ${
                               row.pending_qty > 0
-                                ? "text-orange-600 bg-orange-50 dark:bg-orange-900/20"
+                                ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30"
                                 : "text-gray-400"
                             }`}
                           >
                             {row.pending_qty}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-6 py-5 text-center">
                           {row.status === "Completed" ? (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
-                              <CheckCircle size={12} />
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                              <CheckCircle size={14} />
                               Completed
                             </div>
                           ) : (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
-                              <Clock size={12} />
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                              <Clock size={14} />
                               Pending
                             </div>
                           )}
@@ -804,6 +905,73 @@ export default function Reports() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {filteredData.length > itemsPerPage && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {indexOfFirstItem + 1} to{" "}
+                  {Math.min(indexOfLastItem, filteredData.length)} of{" "}
+                  {filteredData.length} entries
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => {
+                      // Show first page, last page, current page, and pages around current
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`min-w-[40px] h-10 rounded-lg font-semibold transition-all duration-200 ${
+                              currentPage === page
+                                ? "bg-gradient-to-r from-purple-600 to-violet-700 text-white shadow-lg shadow-purple-600/30"
+                                : "border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (
+                        page === currentPage - 2 ||
+                        page === currentPage + 2
+                      ) {
+                        return (
+                          <span key={page} className="px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return null;
+                    }
+                  )}
+
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -811,139 +979,171 @@ export default function Reports() {
       {activeTab === "statement" && (
         /* Financial Statement */
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end">
-            <div>
-              <label
-                htmlFor="statement_party_id"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                Select Party
-              </label>
-              <select
-                name="statement_party_id"
-                id="statement_party_id"
-                value={selectedStatementPartyId}
-                onChange={(e) => setSelectedStatementPartyId(e.target.value)}
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
-              >
-                <option value="">-- Select Party --</option>
-                {parties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="statement_start_date"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="statement_start_date"
-                id="statement_start_date"
-                value={dateRange.start_date}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, start_date: e.target.value })
-                }
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-              />
-            </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col lg:flex-row gap-4 items-end">
+              <div className="w-full lg:w-auto">
+                <label
+                  htmlFor="statement_party_id"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Select Party
+                </label>
+                <select
+                  name="statement_party_id"
+                  id="statement_party_id"
+                  value={selectedStatementPartyId}
+                  onChange={(e) => setSelectedStatementPartyId(e.target.value)}
+                  className="w-full lg:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                >
+                  <option value="">-- Select Party --</option>
+                  {parties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="statement_start_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  name="statement_start_date"
+                  id="statement_start_date"
+                  value={dateRange.start_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, start_date: e.target.value })
+                  }
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="statement_end_date"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                End Date
-              </label>
-              <input
-                type="date"
-                name="statement_end_date"
-                id="statement_end_date"
-                value={dateRange.end_date}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, end_date: e.target.value })
-                }
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-              />
+              <div>
+                <label
+                  htmlFor="statement_end_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  name="statement_end_date"
+                  id="statement_end_date"
+                  value={dateRange.end_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, end_date: e.target.value })
+                  }
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
+              {selectedStatementPartyId && (
+                <button
+                  onClick={handlePrintStatement}
+                  disabled={pdfLoading}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                >
+                  <Printer
+                    size={18}
+                    className="group-hover:rotate-12 transition-transform duration-300"
+                  />
+                  {pdfLoading ? "Generating..." : "Print Statement"}
+                </button>
+              )}
             </div>
-            {selectedStatementPartyId && (
-              <button
-                onClick={handlePrintStatement}
-                disabled={pdfLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap mb-0.5"
-              >
-                <Printer size={18} />
-                {pdfLoading ? "Generating..." : "Print Statement"}
-              </button>
-            )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
-                <tr>
-                  <th className="px-6 py-4 font-semibold text-gray-500">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500">Ref</th>
-                  <th className="px-6 py-4 font-semibold text-gray-500">
-                    Description
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
-                    Debit
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
-                    Credit
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
-                    Balance
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {statementLoading ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-gray-500">Loading Statement...</p>
-                      </div>
-                    </td>
+                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Ref</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Description</th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Debit
+                    </th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Credit
+                    </th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Balance
+                    </th>
                   </tr>
-                ) : statementData.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-8 text-gray-500">
-                      No transactions found
-                    </td>
-                  </tr>
-                ) : (
-                  statementData.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <td className="px-6 py-4">{row.date}</td>
-                      <td className="px-6 py-4 font-mono text-xs">{row.ref}</td>
-                      <td className="px-6 py-4">{row.description}</td>
-                      <td className="px-6 py-4 text-right font-medium text-red-600">
-                        {row.debit ? `₹${row.debit.toFixed(2)}` : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-green-600">
-                        {row.credit ? `₹${row.credit.toFixed(2)}` : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold">
-                        ₹{row.balance.toFixed(2)}
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                  {statementLoading ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-gray-500 font-medium">
+                            Loading Statement...
+                          </p>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : statementData.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                          <p className="text-gray-500 font-medium">
+                            No transactions found
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    statementData.map((row, i) => (
+                      <tr
+                        key={i}
+                        className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
+                      >
+                        <td className="px-6 py-5 text-gray-600 dark:text-gray-400 font-medium">
+                          {row.date}
+                        </td>
+                        <td className="px-6 py-5 font-mono text-xs text-gray-500 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50">
+                          {row.ref}
+                        </td>
+                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300">
+                          {row.description}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          {row.debit ? (
+                            <span className="font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1.5 rounded-lg">
+                              ₹{row.debit.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          {row.credit ? (
+                            <span className="font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded-lg">
+                              ₹{row.credit.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
+                            ₹{row.balance.toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -951,82 +1151,89 @@ export default function Reports() {
       {activeTab === "ledger" && (
         /* Job Work Stock View */
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="w-full md:w-auto">
-              <label
-                htmlFor="jobwork_ledger_party"
-                className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
-              >
-                Select Party for Ledger
-              </label>
-              <select
-                name="jobwork_ledger_party"
-                id="jobwork_ledger_party"
-                value={selectedJobWorkParty}
-                onChange={(e) => setSelectedJobWorkParty(e.target.value)}
-                className="w-full md:w-96 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-              >
-                <option value="">All Parties</option>
-                {availableParties.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex gap-4 w-full md:w-auto">
-              <div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
+              <div className="w-full lg:w-auto">
                 <label
-                  htmlFor="jobwork_start_date"
+                  htmlFor="jobwork_ledger_party"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Start Date
+                  Select Party for Ledger
                 </label>
-                <input
-                  type="date"
-                  name="jobwork_start_date"
-                  id="jobwork_start_date"
-                  value={dateRange.start_date}
-                  onChange={(e) =>
-                    setDateRange({ ...dateRange, start_date: e.target.value })
-                  }
-                  className="w-full md:w-40 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="jobwork_end_date"
-                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                <select
+                  name="jobwork_ledger_party"
+                  id="jobwork_ledger_party"
+                  value={selectedJobWorkParty}
+                  onChange={(e) => setSelectedJobWorkParty(e.target.value)}
+                  className="w-full lg:w-96 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium"
                 >
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  name="jobwork_end_date"
-                  id="jobwork_end_date"
-                  value={dateRange.end_date}
-                  onChange={(e) =>
-                    setDateRange({ ...dateRange, end_date: e.target.value })
-                  }
-                  className="w-full md:w-40 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
+                  <option value="">All Parties</option>
+                  {availableParties.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                <div>
+                  <label
+                    htmlFor="jobwork_start_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                  >
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    name="jobwork_start_date"
+                    id="jobwork_start_date"
+                    value={dateRange.start_date}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, start_date: e.target.value })
+                    }
+                    className="w-full sm:w-40 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="jobwork_end_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                  >
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    name="jobwork_end_date"
+                    id="jobwork_end_date"
+                    value={dateRange.end_date}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, end_date: e.target.value })
+                    }
+                    className="w-full sm:w-40 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <button
+                  onClick={handlePrintJobWorkPDF}
+                  disabled={pdfLoading}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105 mt-auto"
+                >
+                  <Printer
+                    size={18}
+                    className="group-hover:rotate-12 transition-transform duration-300"
+                  />
+                  {pdfLoading ? "Generating..." : "Print PDF"}
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={handlePrintJobWorkPDF}
-              disabled={pdfLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap mt-6 md:mt-0"
-            >
-              <Printer size={18} />
-              {pdfLoading ? "Generating..." : "Print PDF"}
-            </button>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg text-white shadow-lg">
+                  <ClipboardList size={20} />
+                </div>
                 {selectedJobWorkParty
                   ? `${selectedJobWorkParty} - Stock Summary`
                   : "All Parties Stock Summary"}
@@ -1034,62 +1241,75 @@ export default function Reports() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Party Name
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Item Name
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Opening Balance
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Total Inward
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Total Outward
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Closing Balance
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                   {ledgerData.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-6 py-12 text-center">
-                        <p className="text-gray-500">No data available</p>
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                          <p className="text-gray-500 font-medium">
+                            No data available
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
                     ledgerData.map((row, idx) => (
                       <tr
                         key={idx}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
                       >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="px-6 py-5 text-sm font-semibold text-gray-900 dark:text-white">
                           {row.party}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        <td className="px-6 py-5 text-sm font-medium text-gray-700 dark:text-gray-300">
                           {row.item}
                         </td>
-                        <td className="px-6 py-4 text-sm text-right text-gray-500 font-mono">
-                          {row.opening.toFixed(2)}
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-semibold text-gray-600 dark:text-gray-400 font-mono bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
+                            {row.opening.toFixed(2)}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-right text-blue-600 dark:text-blue-400 font-bold font-mono">
-                          {row.in.toFixed(2)}
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-semibold text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg">
+                            {row.in.toFixed(2)}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-right text-green-600 dark:text-green-400 font-bold font-mono">
-                          {row.out.toFixed(2)}
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-semibold text-green-600 dark:text-green-400 font-mono bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded-lg">
+                            {row.out.toFixed(2)}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-5 text-right">
                           <span
-                            className={`font-bold font-mono px-2 py-1 rounded-lg ${
+                            className={`font-bold font-mono px-3 py-1.5 rounded-lg ${
                               row.balance > 0
-                                ? "text-orange-600 bg-orange-50 dark:bg-orange-900/20"
-                                : "text-gray-400"
+                                ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30"
+                                : "text-gray-400 bg-gray-100 dark:bg-gray-700"
                             }`}
                           >
                             {row.balance.toFixed(2)}
@@ -1107,376 +1327,485 @@ export default function Reports() {
 
       {activeTab === "stock" && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end">
-            <div>
-              <label
-                htmlFor="stock_ledger_party"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                Select Party (Optional)
-              </label>
-              <select
-                name="stock_ledger_party"
-                id="stock_ledger_party"
-                value={selectedStockParty}
-                onChange={(e) => setSelectedStockParty(e.target.value)}
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
-              >
-                <option value="">-- All Parties --</option>
-                {parties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="stock_ledger_item"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                Select Item
-              </label>
-              <select
-                name="stock_ledger_item"
-                id="stock_ledger_item"
-                value={selectedItem}
-                onChange={(e) => setSelectedItem(e.target.value)}
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 w-64"
-              >
-                <option value="">-- Select Item --</option>
-                {items
-                  .filter((i) =>
-                    selectedStockParty
-                      ? i.party_id === parseInt(selectedStockParty) ||
-                        !i.party_id
-                      : true
-                  )
-                  .map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col lg:flex-row flex-wrap gap-4 items-end">
+              <div>
+                <label
+                  htmlFor="stock_ledger_party"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Select Party (Optional)
+                </label>
+                <select
+                  name="stock_ledger_party"
+                  id="stock_ledger_party"
+                  value={selectedStockParty}
+                  onChange={(e) => setSelectedStockParty(e.target.value)}
+                  className="w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                >
+                  <option value="">-- All Parties --</option>
+                  {parties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
-              </select>
-            </div>
+                </select>
+              </div>
 
-            <div>
-              <label
-                htmlFor="stock_start_date"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="stock_start_date"
-                id="stock_start_date"
-                value={dateRange.start_date}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, start_date: e.target.value })
-                }
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-              />
-            </div>
+              <div>
+                <label
+                  htmlFor="stock_ledger_item"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Select Item
+                </label>
+                <select
+                  name="stock_ledger_item"
+                  id="stock_ledger_item"
+                  value={selectedItem}
+                  onChange={(e) => setSelectedItem(e.target.value)}
+                  className="w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                >
+                  <option value="">-- Select Item --</option>
+                  {items
+                    .filter((i) =>
+                      selectedStockParty
+                        ? i.party_id === parseInt(selectedStockParty) ||
+                          !i.party_id
+                        : true
+                    )
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-            <div>
-              <label
-                htmlFor="stock_end_date"
-                className="block text-sm font-medium mb-1 text-gray-500"
-              >
-                End Date
-              </label>
-              <input
-                type="date"
-                name="stock_end_date"
-                id="stock_end_date"
-                value={dateRange.end_date}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, end_date: e.target.value })
-                }
-                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-              />
-            </div>
+              <div>
+                <label
+                  htmlFor="stock_start_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  name="stock_start_date"
+                  id="stock_start_date"
+                  value={dateRange.start_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, start_date: e.target.value })
+                  }
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
 
-            {selectedItem && (
-              <button
-                onClick={handlePrintStockLedger}
-                disabled={pdfLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap mb-0.5"
-              >
-                <Printer size={18} />
-                {pdfLoading ? "Generating..." : "Print Ledger"}
-              </button>
-            )}
+              <div>
+                <label
+                  htmlFor="stock_end_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  name="stock_end_date"
+                  id="stock_end_date"
+                  value={dateRange.end_date}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, end_date: e.target.value })
+                  }
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
+
+              {selectedItem && (
+                <button
+                  onClick={handlePrintStockLedger}
+                  disabled={pdfLoading}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                >
+                  <Printer
+                    size={18}
+                    className="group-hover:rotate-12 transition-transform duration-300"
+                  />
+                  {pdfLoading ? "Generating..." : "Print Ledger"}
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
-                <tr>
-                  <th className="px-6 py-4 font-semibold text-gray-500">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500">
-                    Type
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500">Ref</th>
-                  <th className="px-6 py-4 font-semibold text-gray-500">
-                    Description
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500">
-                    Party
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
-                    In Qty
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
-                    Out Qty
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-gray-500 text-right">
-                    Balance
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {stockLedgerLoading ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-gray-500">Loading Stock Ledger...</p>
-                      </div>
-                    </td>
+                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Type</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Ref</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Description</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Party</th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      In Qty
+                    </th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Out Qty
+                    </th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Balance
+                    </th>
                   </tr>
-                ) : stockLedgerData.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="text-center py-8 text-gray-500">
-                      No records found
-                    </td>
-                  </tr>
-                ) : (
-                  stockLedgerData.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <td className="px-6 py-4">{row.date}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            row.type === "IN"
-                              ? "bg-blue-100 text-blue-700"
-                              : row.type === "OUT"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {row.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs">{row.ref}</td>
-                      <td className="px-6 py-4">{row.description}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        {row.party_name || "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-blue-600">
-                        {row.in_qty ? row.in_qty : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-green-600">
-                        {row.out_qty ? row.out_qty : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold">
-                        {row.balance}
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                  {stockLedgerLoading ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-gray-500 font-medium">
+                            Loading Stock Ledger...
+                          </p>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : stockLedgerData.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                          <p className="text-gray-500 font-medium">
+                            No records found
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    stockLedgerData.map((row, i) => (
+                      <tr
+                        key={i}
+                        className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
+                      >
+                        <td className="px-6 py-5 text-gray-600 dark:text-gray-400 font-medium">
+                          {row.date}
+                        </td>
+                        <td className="px-6 py-5">
+                          <span
+                            className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                              row.type === "IN"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                                : row.type === "OUT"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                            }`}
+                          >
+                            {row.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 font-mono text-xs text-gray-500 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50">
+                          {row.ref}
+                        </td>
+                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300">
+                          {row.description}
+                        </td>
+                        <td className="px-6 py-5 text-sm text-gray-600 dark:text-gray-400 font-medium">
+                          {row.party_name || "-"}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          {row.in_qty ? (
+                            <span className="font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg">
+                              {row.in_qty}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          {row.out_qty ? (
+                            <span className="font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded-lg">
+                              {row.out_qty}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
+                            {row.balance}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
       {activeTab === "gst" && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-end justify-between">
-            <div className="flex flex-wrap gap-4 items-end">
-              <div>
-                <label
-                  htmlFor="gst_start_date"
-                  className="block text-sm font-medium mb-1 text-gray-500"
-                >
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  name="gst_start_date"
-                  id="gst_start_date"
-                  value={dateRange.start_date}
-                  onChange={(e) =>
-                    setDateRange({ ...dateRange, start_date: e.target.value })
-                  }
-                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-                />
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col lg:flex-row flex-wrap gap-4 items-end justify-between">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div>
+                  <label
+                    htmlFor="gst_party"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                  >
+                    Select Party (Optional)
+                  </label>
+                  <select
+                    name="gst_party"
+                    id="gst_party"
+                    value={selectedGSTParty}
+                    onChange={(e) => setSelectedGSTParty(e.target.value)}
+                    className="w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  >
+                    <option value="">-- All Parties --</option>
+                    {parties.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="gst_start_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                  >
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    name="gst_start_date"
+                    id="gst_start_date"
+                    value={dateRange.start_date}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, start_date: e.target.value })
+                    }
+                    className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="gst_end_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                  >
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    name="gst_end_date"
+                    id="gst_end_date"
+                    value={dateRange.end_date}
+                    onChange={(e) =>
+                      setDateRange({ ...dateRange, end_date: e.target.value })
+                    }
+                    className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                </div>
               </div>
-              <div>
-                <label
-                  htmlFor="gst_end_date"
-                  className="block text-sm font-medium mb-1 text-gray-500"
+
+              <div className="flex gap-3">
+                <button
+                  onClick={exportGSTReport}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
                 >
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  name="gst_end_date"
-                  id="gst_end_date"
-                  value={dateRange.end_date}
-                  onChange={(e) =>
-                    setDateRange({ ...dateRange, end_date: e.target.value })
-                  }
-                  className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-                />
+                  <Download
+                    size={18}
+                    className="group-hover:-translate-y-0.5 transition-transform duration-300"
+                  />
+                  Export GSTR-1
+                </button>
+                <button
+                  onClick={handlePrintGSTReport}
+                  disabled={pdfLoading}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                >
+                  <Printer
+                    size={18}
+                    className="group-hover:rotate-12 transition-transform duration-300"
+                  />
+                  {pdfLoading ? "Generating..." : "Print PDF"}
+                </button>
               </div>
             </div>
-
-            <button
-              onClick={exportGSTReport}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-lg shadow-green-600/20 transition-all active:scale-95 whitespace-nowrap"
-            >
-              <Download size={18} />
-              Export GSTR-1
-            </button>
-            <button
-              onClick={handlePrintGSTReport}
-              disabled={pdfLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 whitespace-nowrap"
-            >
-              <Printer size={18} />
-              {pdfLoading ? "Generating..." : "Print PDF"}
-            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800/20">
-              <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
-                Total Taxable Value
-              </p>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                ₹
-                {gstData
-                  .reduce((sum, item) => sum + item.taxable_value, 0)
-                  .toLocaleString()}
-              </h3>
+            <div className="group relative bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-emerald-900/30 dark:to-teal-800/20 p-6 rounded-2xl shadow-lg shadow-emerald-500/20 dark:shadow-emerald-500/10 hover:shadow-emerald-500/30 dark:hover:shadow-emerald-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative">
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider">
+                  Total Taxable Value
+                </p>
+                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tabular-nums">
+                  ₹
+                  {gstData
+                    .filter(
+                      (item) =>
+                        !selectedGSTParty ||
+                        item.party_name === selectedGSTParty
+                    )
+                    .reduce((sum, item) => sum + item.taxable_value, 0)
+                    .toLocaleString()}
+                </h3>
+              </div>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/20">
-              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                Total Tax (IGST+CGST+SGST)
-              </p>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                ₹
-                {gstData
-                  .reduce(
-                    (sum, item) => sum + item.igst + item.cgst + item.sgst,
-                    0
-                  )
-                  .toLocaleString()}
-              </h3>
+            <div className="group relative bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/30 dark:to-orange-800/20 p-6 rounded-2xl shadow-lg shadow-amber-500/20 dark:shadow-amber-500/10 hover:shadow-amber-500/30 dark:hover:shadow-amber-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative">
+                <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">
+                  Total Tax (IGST+CGST+SGST)
+                </p>
+                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tabular-nums">
+                  ₹
+                  {gstData
+                    .filter(
+                      (item) =>
+                        !selectedGSTParty ||
+                        item.party_name === selectedGSTParty
+                    )
+                    .reduce(
+                      (sum, item) => sum + item.igst + item.cgst + item.sgst,
+                      0
+                    )
+                    .toLocaleString()}
+                </h3>
+              </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-              <p className="text-sm text-gray-500 font-medium">Invoice Count</p>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {gstData.length}
-              </h3>
+            <div className="group relative bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-indigo-900/30 dark:to-purple-800/20 p-6 rounded-2xl shadow-lg shadow-indigo-500/20 dark:shadow-indigo-500/10 hover:shadow-indigo-500/30 dark:hover:shadow-indigo-500/20 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative">
+                <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold uppercase tracking-wider">
+                  Invoice Count
+                </p>
+                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tabular-nums">
+                  {
+                    gstData.filter(
+                      (item) =>
+                        !selectedGSTParty ||
+                        item.party_name === selectedGSTParty
+                    ).length
+                  }
+                </h3>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 font-semibold text-gray-500">
-                      Date
-                    </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500">
-                      Invoice No
-                    </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500">
-                      Party Name
-                    </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500">
-                      GSTIN
-                    </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Invoice No</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
+                    <th className="px-6 py-4 whitespace-nowrap">GSTIN</th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Taxable
                     </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       SGST
                     </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       CGST
                     </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       IGST
                     </th>
-                    <th className="px-6 py-4 font-semibold text-gray-500 text-right">
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
                       Total
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                   {gstLoading ? (
                     <tr>
-                      <td colSpan="9" className="text-center py-8">
+                      <td colSpan="9" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
-                          <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                          <p className="text-gray-500">Loading GST Data...</p>
+                          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-gray-500 font-medium">
+                            Loading GST Data...
+                          </p>
                         </div>
                       </td>
                     </tr>
-                  ) : gstData.length === 0 ? (
+                  ) : gstData.filter(
+                      (item) =>
+                        !selectedGSTParty ||
+                        item.party_name === selectedGSTParty
+                    ).length === 0 ? (
                     <tr>
-                      <td
-                        colSpan="9"
-                        className="text-center py-8 text-gray-500"
-                      >
-                        No records found
+                      <td colSpan="9" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                          <p className="text-gray-500 font-medium">
+                            No records found
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    gstData.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                          {row.date}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-purple-600">
-                          {row.invoice_number}
-                        </td>
-                        <td className="px-6 py-4 text-gray-900 dark:text-gray-100 font-medium">
-                          {row.party_name}
-                        </td>
-                        <td className="px-6 py-4 text-gray-500">{row.gstin}</td>
-                        <td className="px-6 py-4 text-right font-medium">
-                          {row.taxable_value.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-right text-gray-500">
-                          {row.sgst.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-right text-gray-500">
-                          {row.cgst.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-right text-gray-500">
-                          {row.igst.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
-                          {row.total_amount.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))
+                    gstData
+                      .filter(
+                        (item) =>
+                          !selectedGSTParty ||
+                          item.party_name === selectedGSTParty
+                      )
+                      .map((row) => (
+                        <tr
+                          key={row.id}
+                          className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-violet-50/30 dark:hover:from-purple-900/10 dark:hover:to-violet-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(147,51,234)]"
+                        >
+                          <td className="px-6 py-5 text-gray-600 dark:text-gray-400 font-medium">
+                            {row.date}
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-lg">
+                              {row.invoice_number}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-gray-900 dark:text-gray-100 font-semibold">
+                            {row.party_name}
+                          </td>
+                          <td className="px-6 py-5 text-gray-500 dark:text-gray-500 font-mono text-xs">
+                            {row.gstin}
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <span className="font-semibold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
+                              {row.taxable_value.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                              {row.sgst.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                              {row.cgst.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                              {row.igst.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg">
+                              {row.total_amount.toFixed(2)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
                   )}
                 </tbody>
               </table>
