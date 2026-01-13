@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, Fragment } from "react";
 import {
   Plus,
   Search,
-  MoreVertical,
   FileText,
   Edit,
   Trash2,
@@ -16,20 +15,28 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Eye,
+  IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getPartyChallans, deletePartyChallan } from "../api/partyChallans";
+import { getParties } from "../api/parties";
+import { getItems } from "../api/items";
 import AddPartyChallanModal from "../components/AddPartyChallanModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
 
 export default function PartyChallans() {
   const [challans, setChallans] = useState([]);
+  const [parties, setParties] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [partyFilter, setPartyFilter] = useState("");
+  const [itemFilter, setItemFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [challansPerPage, setChallansPerPage] = useState(10);
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -41,8 +48,14 @@ export default function PartyChallans() {
   const loadChallans = async () => {
     try {
       setLoading(true);
-      const data = await getPartyChallans();
-      setChallans(data);
+      const [challansData, partiesData, itemsData] = await Promise.all([
+        getPartyChallans(),
+        getParties(),
+        getItems(),
+      ]);
+      setChallans(challansData);
+      setParties(partiesData);
+      setItems(itemsData);
     } catch (err) {
       console.error("Failed to load party challans", err);
     } finally {
@@ -77,7 +90,13 @@ export default function PartyChallans() {
         c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter ? c.status === statusFilter : true;
-      return matchesSearch && matchesStatus;
+      const matchesParty = partyFilter
+        ? c.party_id === Number(partyFilter)
+        : true;
+      const matchesItem = itemFilter
+        ? c.items?.some((item) => item.item_id === Number(itemFilter))
+        : true;
+      return matchesSearch && matchesStatus && matchesParty && matchesItem;
     })
     .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
 
@@ -89,7 +108,17 @@ export default function PartyChallans() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, partyFilter, itemFilter]);
+
+  // Reset item filter when party filter changes
+  useEffect(() => {
+    setItemFilter("");
+  }, [partyFilter]);
+
+  // Get items filtered by selected party
+  const filteredItems = partyFilter
+    ? items.filter((item) => item.party_id === Number(partyFilter))
+    : items;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -119,16 +148,25 @@ export default function PartyChallans() {
     return totalOrdered > 0 ? (totalDelivered / totalOrdered) * 100 : 0;
   };
 
+  // Calculate stats based on filtered challans
+  const totalOpen = filteredChallans.filter((c) => c.status === "open").length;
+  const totalPartial = filteredChallans.filter(
+    (c) => c.status === "partial"
+  ).length;
+  const totalCompleted = filteredChallans.filter(
+    (c) => c.status === "completed"
+  ).length;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Party Challans
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Manage work orders and track deliveries
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Manage work orders and track deliveries efficiently
           </p>
         </div>
         <button
@@ -136,73 +174,128 @@ export default function PartyChallans() {
             setEditingChallan(null);
             setShowAddModal(true);
           }}
-          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-purple-600/20"
+          className="group flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-purple-600/30 hover:shadow-xl hover:shadow-purple-600/40 hover:scale-105"
         >
-          <Plus size={20} />
+          <Plus
+            size={20}
+            className="group-hover:rotate-90 transition-transform duration-300"
+          />
           Create Party Challan
         </button>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
           label="Total Open"
-          value={challans.filter((c) => c.status === "open").length}
+          value={totalOpen}
           icon={Clock}
           color="blue"
         />
         <StatCard
           label="Total Partial"
-          value={challans.filter((c) => c.status === "partial").length}
+          value={totalPartial}
           icon={TrendingUp}
           color="yellow"
         />
         <StatCard
           label="Total Completed"
-          value={challans.filter((c) => c.status === "completed").length}
+          value={totalCompleted}
           icon={CheckCircle}
           color="green"
         />
       </div>
 
       {/* Content */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
         {/* Search and Filters */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-3">
-          <div className="flex-1 flex items-center gap-3 w-full bg-gray-50 dark:bg-gray-900/50 rounded-xl px-4 py-2 border border-gray-100 dark:border-gray-700 focus-within:ring-2 focus-within:ring-purple-500/20 focus-within:border-purple-500 transition-all">
-            <Search className="text-gray-400" size={20} />
-            <input
-              type="text"
-              name="challan_search"
-              id="challan_search"
-              placeholder="Search by challan number or party..."
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative group flex-1 w-full">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center gap-3 bg-white dark:bg-gray-900/80 rounded-xl px-5 py-3 border-2 border-gray-200 dark:border-gray-700 focus-within:border-purple-500 dark:focus-within:border-purple-500 transition-all duration-300 shadow-sm hover:shadow-md">
+                <Search
+                  className="text-gray-400 group-focus-within:text-purple-500 transition-colors duration-300"
+                  size={20}
+                />
+                <input
+                  type="text"
+                  name="challan_search"
+                  id="challan_search"
+                  placeholder="Search by challan number or party..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md">
+                    {filteredChallans.length} found
+                  </span>
+                )}
+              </div>
+            </div>
 
-          <div className="w-full sm:w-48">
-            <select
-              name="status_filter"
-              id="status_filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-            >
-              <option value="">All Status</option>
-              <option value="open">Open</option>
-              <option value="partial">Partial</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <div className="w-full sm:w-48">
+              <select
+                name="party_filter"
+                id="party_filter"
+                value={partyFilter}
+                onChange={(e) => setPartyFilter(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+              >
+                <option value="">All Parties</option>
+                {parties
+                  .filter((p) => p.is_active)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="w-full sm:w-48">
+              <select
+                name="item_filter"
+                id="item_filter"
+                value={itemFilter}
+                onChange={(e) => setItemFilter(e.target.value)}
+                disabled={!partyFilter}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">All Items</option>
+                {filteredItems
+                  .filter((item) => item.is_active)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="w-full sm:w-48">
+              <select
+                name="status_filter"
+                id="status_filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+              >
+                <option value="">All Status</option>
+                <option value="open">Open</option>
+                <option value="partial">Partial</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto h-[calc(100vh-420px)] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+        <div className="overflow-x-auto max-h-[calc(100vh-420px)] overflow-y-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700/95 text-gray-500 uppercase tracking-wider font-semibold sticky top-0 z-10 backdrop-blur-sm shadow-sm">
+            <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Challan No.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Date</th>
@@ -210,35 +303,50 @@ export default function PartyChallans() {
                 <th className="px-6 py-4 whitespace-nowrap">Items</th>
                 <th className="px-6 py-4 whitespace-nowrap">Progress</th>
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                <th className="px-6 py-4 text-right whitespace-nowrap">
-                  Actions
-                </th>
+                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
               {loading ? (
                 <tr>
                   <td
                     colSpan="7"
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-12 text-center text-gray-500"
                   >
-                    Loading party challans...
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                      <span className="text-sm font-medium">
+                        Loading party challans...
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : paginatedChallans.length === 0 ? (
                 <tr>
                   <td
                     colSpan="7"
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-12 text-center text-gray-500"
                   >
-                    No party challans found.
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText
+                        className="text-gray-300 dark:text-gray-600"
+                        size={48}
+                      />
+                      <span className="text-sm font-medium">
+                        No party challans found.
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Try adjusting your search or filters
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                paginatedChallans.map((challan) => (
+                paginatedChallans.map((challan, index) => (
                   <PartyChallanRow
                     key={challan.id}
                     challan={challan}
+                    index={index}
                     onEdit={() => {
                       setEditingChallan(challan);
                       setShowAddModal(true);
@@ -260,19 +368,19 @@ export default function PartyChallans() {
 
         {/* Pagination */}
         {filteredChallans.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50 dark:bg-gray-800/50">
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Showing{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
+                <span className="font-bold text-purple-600 dark:text-purple-400">
                   {startIndex + 1}
                 </span>{" "}
                 to{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
+                <span className="font-bold text-purple-600 dark:text-purple-400">
                   {Math.min(endIndex, filteredChallans.length)}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
+                <span className="font-bold text-gray-900 dark:text-white">
                   {filteredChallans.length}
                 </span>{" "}
                 challans
@@ -285,7 +393,7 @@ export default function PartyChallans() {
                   setChallansPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                className="px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
                 <option value={10}>10 per page</option>
                 <option value={25}>25 per page</option>
@@ -297,7 +405,7 @@ export default function PartyChallans() {
               <button
                 onClick={() => setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="p-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
               >
                 <ChevronLeft
                   size={18}
@@ -314,11 +422,11 @@ export default function PartyChallans() {
                     return false;
                   })
                   .map((page, index, array) => (
-                    <React.Fragment key={page}>
+                    <Fragment key={page}>
                       {index > 0 && array[index - 1] !== page - 1 && (
                         <span
                           key={`ellipsis-${page}`}
-                          className="px-2 text-gray-400"
+                          className="px-2 text-gray-400 font-bold"
                         >
                           ...
                         </span>
@@ -326,21 +434,21 @@ export default function PartyChallans() {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`min-w-[36px] h-9 px-3 rounded-lg font-medium text-sm transition ${
+                        className={`min-w-[40px] h-10 px-3 rounded-lg font-bold text-sm transition-all duration-200 ${
                           currentPage === page
-                            ? "bg-purple-600 text-white shadow-md"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/40 scale-110"
+                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105"
                         }`}
                       >
                         {page}
                       </button>
-                    </React.Fragment>
+                    </Fragment>
                   ))}
               </div>
               <button
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="p-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
               >
                 <ChevronRight
                   size={18}
@@ -366,6 +474,8 @@ export default function PartyChallans() {
         open={deleteConfirm.open}
         title="Delete Party Challan"
         message={`Are you sure you want to delete party challan ${deleteConfirm.challan?.challan_number}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        type="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirm({ open: false, challan: null })}
       />
@@ -375,133 +485,130 @@ export default function PartyChallans() {
 
 function PartyChallanRow({
   challan,
+  index,
   onEdit,
   onDelete,
   onCreateDelivery,
   getStatusColor,
   calculateProgress,
 }) {
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef(null);
   const progress = calculateProgress(challan);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
-    <tr className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-      <td className="px-6 py-4">
+    <tr
+      className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/10 transition-all duration-300 border-l-4 border-transparent hover:border-purple-500"
+      style={{
+        animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
+      }}
+    >
+      <td className="px-6 py-5">
         <div className="flex items-center gap-2">
-          <FileText size={16} className="text-purple-600" />
-          <span className="font-semibold text-gray-900 dark:text-white">
+          <div className="p-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-md">
+            <FileText
+              size={16}
+              className="text-purple-600 dark:text-purple-400"
+            />
+          </div>
+          <span className="font-bold text-gray-900 dark:text-white text-base group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
             {challan.challan_number}
           </span>
         </div>
       </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-          <Calendar size={14} className="text-gray-400" />
-          <span>{new Date(challan.challan_date).toLocaleDateString()}</span>
+      <td className="px-6 py-5">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+            <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
+          </div>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {new Date(challan.challan_date).toLocaleDateString()}
+          </span>
         </div>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-6 py-5">
         <div className="flex items-center gap-2">
-          <Building2 size={14} className="text-gray-400" />
-          <span className="font-medium text-gray-900 dark:text-white">
+          <div className="p-1.5 bg-green-50 dark:bg-green-900/30 rounded-md">
+            <Building2
+              size={14}
+              className="text-green-600 dark:text-green-400"
+            />
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
             {challan.party?.name || "N/A"}
           </span>
         </div>
       </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-          <Package size={14} className="text-gray-400" />
-          <span>{challan.items?.length || 0} items</span>
+      <td className="px-6 py-5">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-md">
+            <Package size={14} className="text-amber-600 dark:text-amber-400" />
+          </div>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {challan.items?.length || 0} items
+          </span>
         </div>
       </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 w-24">
+      <td className="px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 w-28 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 h-2.5 rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+          <span className="text-xs font-bold text-purple-600 dark:text-purple-400 min-w-[40px]">
             {progress.toFixed(0)}%
           </span>
         </div>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-6 py-5">
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${getStatusColor(
             challan.status
           )}`}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
+            className={`w-2 h-2 rounded-full animate-pulse ${
               challan.status === "completed"
-                ? "bg-green-500"
+                ? "bg-green-500 shadow-lg shadow-green-500/50"
                 : challan.status === "partial"
-                ? "bg-yellow-500"
+                ? "bg-yellow-500 shadow-lg shadow-yellow-500/50"
                 : challan.status === "open"
-                ? "bg-blue-500"
-                : "bg-red-500"
+                ? "bg-blue-500 shadow-lg shadow-blue-500/50"
+                : "bg-red-500 shadow-lg shadow-red-500/50"
             }`}
           ></span>
           {challan.status.charAt(0).toUpperCase() + challan.status.slice(1)}
         </span>
       </td>
-      <td className="px-6 py-4 text-right relative">
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-        >
-          <MoreVertical size={16} />
-        </button>
-
-        {showMenu && (
-          <div
-            ref={menuRef}
-            className="absolute right-8 top-8 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-10 animate-fade-in overflow-hidden"
+      <td className="px-6 py-5">
+        <div className="flex items-center justify-end gap-2">
+          {/* View/Create Delivery Button */}
+          <button
+            onClick={onCreateDelivery}
+            className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+            title="Create Delivery"
           >
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onCreateDelivery();
-              }}
-              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-            >
-              <Truck size={14} /> Create Delivery
-            </button>
-            <hr className="border-gray-100 dark:border-gray-700" />
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onEdit();
-              }}
-              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-            >
-              <Edit size={14} /> Edit
-            </button>
-            <hr className="border-gray-100 dark:border-gray-700" />
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                onDelete();
-              }}
-              className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-            >
-              <Trash2 size={14} /> Delete
-            </button>
-          </div>
-        )}
+            <Truck size={16} />
+          </button>
+
+          {/* Edit Button */}
+          <button
+            onClick={onEdit}
+            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+            title="Edit Challan"
+          >
+            <Edit size={16} />
+          </button>
+
+          {/* Delete Button */}
+          <button
+            onClick={onDelete}
+            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+            title="Delete Challan"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </td>
     </tr>
   );
@@ -509,26 +616,65 @@ function PartyChallanRow({
 
 function StatCard({ label, value, icon: Icon, color }) {
   const colors = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-    green:
-      "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
-    yellow:
-      "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400",
-    red: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+    purple: {
+      gradient: "from-purple-500 to-purple-600",
+      bg: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20",
+      iconBg: "bg-gradient-to-br from-purple-500 to-purple-600",
+      text: "text-purple-600 dark:text-purple-400",
+      shadow: "shadow-purple-500/20 dark:shadow-purple-500/10",
+      hoverShadow: "hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20",
+    },
+    blue: {
+      gradient: "from-blue-500 to-blue-600",
+      bg: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20",
+      iconBg: "bg-gradient-to-br from-blue-500 to-blue-600",
+      text: "text-blue-600 dark:text-blue-400",
+      shadow: "shadow-blue-500/20 dark:shadow-blue-500/10",
+      hoverShadow: "hover:shadow-blue-500/30 dark:hover:shadow-blue-500/20",
+    },
+    yellow: {
+      gradient: "from-yellow-500 to-amber-600",
+      bg: "bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/30 dark:to-amber-800/20",
+      iconBg: "bg-gradient-to-br from-yellow-500 to-amber-600",
+      text: "text-yellow-600 dark:text-yellow-400",
+      shadow: "shadow-yellow-500/20 dark:shadow-yellow-500/10",
+      hoverShadow: "hover:shadow-yellow-500/30 dark:hover:shadow-yellow-500/20",
+    },
+    green: {
+      gradient: "from-green-500 to-emerald-600",
+      bg: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-800/20",
+      iconBg: "bg-gradient-to-br from-green-500 to-emerald-600",
+      text: "text-green-600 dark:text-green-400",
+      shadow: "shadow-green-500/20 dark:shadow-green-500/10",
+      hoverShadow: "hover:shadow-green-500/30 dark:hover:shadow-green-500/20",
+    },
   };
 
+  const colorScheme = colors[color];
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colors[color] || colors.blue}`}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {value}
-        </h3>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-          {label}
-        </p>
+    <div
+      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+    >
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+
+      <div className="relative flex items-center gap-4">
+        <div
+          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+        >
+          <Icon size={28} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <h3
+            className={`text-3xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+          >
+            {value}
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wider mt-1">
+            {label}
+          </p>
+        </div>
       </div>
     </div>
   );
