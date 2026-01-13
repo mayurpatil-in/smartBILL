@@ -100,49 +100,56 @@ export default function EmployeeAttendance() {
   return (
     <div className="space-y-6">
       {/* Date Selection Header */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
-            <Calendar size={24} />
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl text-white shadow-lg">
+            <Calendar size={28} />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
               Daily Attendance
               {isMarked ? (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                  Saved
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                  ✓ Saved
                 </span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                  Not Marked
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                  ⚠ Not Marked
                 </span>
               )}
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Mark attendance for {format(new Date(date), "MMMM d, yyyy")}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
             name="attendance_date"
             id="attendance_date"
           />
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
+            className="group px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:scale-105"
           >
             {saving ? (
-              "Saving..."
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </>
             ) : (
               <>
-                <Save size={18} /> Save Changes
+                <Save
+                  size={18}
+                  className="group-hover:rotate-12 transition-transform duration-300"
+                />
+                Save Changes
               </>
             )}
           </button>
@@ -150,107 +157,125 @@ export default function EmployeeAttendance() {
       </div>
 
       {/* Attendance Grid */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden animate-fade-in-up">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+            <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Employee
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+                <th className="px-6 py-4 text-left whitespace-nowrap w-24">
                   OT (Hrs)
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+                <th className="px-6 py-4 text-left whitespace-nowrap w-24">
                   Bonus (₹)
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Note
-                </th>
+                <th className="px-6 py-4 text-left whitespace-nowrap">Note</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-500">
-                    Loading employees...
+                  <td colSpan="5" className="text-center py-12 text-gray-500">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="text-sm font-medium">
+                        Loading employees...
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-500">
-                    No employees found
+                  <td colSpan="5" className="text-center py-12 text-gray-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <AlertCircle
+                        className="text-gray-300 dark:text-gray-600"
+                        size={48}
+                      />
+                      <span className="text-sm font-medium">
+                        No active employees found
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Add employees to mark attendance
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                employees.map((emp) => (
+                employees.map((emp, index) => (
                   <tr
                     key={emp.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold shadow-lg">
                           {emp.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
+                          <p className="font-semibold text-gray-900 dark:text-white">
                             {emp.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {emp.employee_profile?.designation || "N/A"}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <div className="flex gap-2">
                         {[
                           {
                             id: "present",
                             label: "P",
+                            icon: CheckCircle,
                             color:
-                              "bg-green-100 text-green-700 border-green-200 hover:bg-green-200",
+                              "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-200 dark:hover:bg-green-900/50",
                           },
                           {
                             id: "absent",
                             label: "A",
+                            icon: XCircle,
                             color:
-                              "bg-red-100 text-red-700 border-red-200 hover:bg-red-200",
+                              "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-900/50",
                           },
                           {
                             id: "half_day",
                             label: "HD",
+                            icon: Clock,
                             color:
-                              "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200",
+                              "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-200 dark:hover:bg-yellow-900/50",
                           },
                           {
                             id: "leave",
                             label: "L",
+                            icon: Calendar,
                             color:
-                              "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200",
+                              "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900/50",
                           },
                         ].map((opt) => (
                           <button
                             key={opt.id}
                             onClick={() => handleStatusChange(emp.id, opt.id)}
-                            className={`w-8 h-8 rounded-lg border font-medium text-xs flex items-center justify-center transition-all ${
+                            className={`w-10 h-10 rounded-lg border-2 font-bold text-xs flex items-center justify-center transition-all duration-200 ${
                               attendance[emp.id]?.status === opt.id
-                                ? opt.color.replace("hover:", "") +
-                                  " ring-2 ring-offset-2 ring-blue-500/20 scale-105"
-                                : "bg-white dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50"
+                                ? opt.color +
+                                  " ring-2 ring-offset-2 ring-blue-500/30 dark:ring-blue-500/20 scale-110 shadow-md"
+                                : "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                             }`}
-                            title={opt.id}
+                            title={opt.id.replace("_", " ").toUpperCase()}
                           >
                             {opt.label}
                           </button>
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <input
                         type="number"
                         placeholder="0"
@@ -260,12 +285,12 @@ export default function EmployeeAttendance() {
                         onChange={(e) =>
                           handleChange(emp.id, "overtime_hours", e.target.value)
                         }
-                        className="w-20 px-2 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        className="w-20 px-3 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                         name={`overtime_hours_${emp.id}`}
                         id={`overtime_hours_${emp.id}`}
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <input
                         type="number"
                         placeholder="0"
@@ -274,12 +299,12 @@ export default function EmployeeAttendance() {
                         onChange={(e) =>
                           handleChange(emp.id, "bonus_amount", e.target.value)
                         }
-                        className="w-20 px-2 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        className="w-20 px-3 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                         name={`bonus_amount_${emp.id}`}
                         id={`bonus_amount_${emp.id}`}
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-5">
                       <input
                         type="text"
                         placeholder="Add note..."
@@ -287,7 +312,7 @@ export default function EmployeeAttendance() {
                         onChange={(e) =>
                           handleChange(emp.id, "notes", e.target.value)
                         }
-                        className="w-full min-w-[150px] px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                        className="w-full min-w-[150px] px-3 py-2 text-sm rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                         name={`attendance_note_${emp.id}`}
                         id={`attendance_note_${emp.id}`}
                       />

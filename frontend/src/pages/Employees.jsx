@@ -18,6 +18,8 @@ import {
   Download,
   History,
   CreditCard,
+  TrendingUp,
+  Building2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -41,25 +43,53 @@ import { getExpenses, deleteExpense } from "../api/expenses";
 
 function StatCard({ label, value, icon: Icon, color }) {
   const colors = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-    green:
-      "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
-    purple:
-      "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
+    blue: {
+      bg: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-800/20",
+      iconBg: "bg-gradient-to-br from-blue-500 to-cyan-600",
+      text: "text-blue-600 dark:text-blue-400",
+      shadow: "shadow-blue-500/20 dark:shadow-blue-500/10",
+      hoverShadow: "hover:shadow-blue-500/30 dark:hover:shadow-blue-500/20",
+    },
+    green: {
+      bg: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-800/20",
+      iconBg: "bg-gradient-to-br from-green-500 to-emerald-600",
+      text: "text-green-600 dark:text-green-400",
+      shadow: "shadow-green-500/20 dark:shadow-green-500/10",
+      hoverShadow: "hover:shadow-green-500/30 dark:hover:shadow-green-500/20",
+    },
+    purple: {
+      bg: "bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/30 dark:to-violet-800/20",
+      iconBg: "bg-gradient-to-br from-purple-500 to-violet-600",
+      text: "text-purple-600 dark:text-purple-400",
+      shadow: "shadow-purple-500/20 dark:shadow-purple-500/10",
+      hoverShadow: "hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20",
+    },
   };
 
+  const colorScheme = colors[color] || colors.blue;
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colors[color] || colors.blue}`}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {value}
-        </h3>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-          {label}
-        </p>
+    <div
+      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+
+      <div className="relative flex items-center gap-4">
+        <div
+          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+        >
+          <Icon size={28} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <h3
+            className={`text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+          >
+            {value}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+            {label}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -164,7 +194,7 @@ export default function Employees() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Employee Management
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -176,36 +206,63 @@ export default function Employees() {
             setSelectedEmployee(null);
             setIsAddModalOpen(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+          className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105"
         >
-          <Plus size={18} /> Add Employee
+          <Plus
+            size={20}
+            className="group-hover:rotate-90 transition-transform duration-300"
+          />
+          Add Employee
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 no-scrollbar">
-        {[
-          { id: "list", label: "All Employees", icon: Users },
-          { id: "attendance", label: "Attendance", icon: Calendar },
-          { id: "report", label: "Report", icon: FileText },
-          { id: "payroll", label: "Payroll", icon: IndianRupee },
-          { id: "history", label: "History", icon: History },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-          >
-            <tab.icon size={16} />
-            {tab.label}
-          </button>
-        ))}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {[
+            { id: "list", label: "All Employees", icon: Users },
+            { id: "attendance", label: "Attendance", icon: Calendar },
+            { id: "report", label: "Report", icon: FileText },
+            { id: "payroll", label: "Payroll", icon: IndianRupee },
+            { id: "history", label: "History", icon: History },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`group relative flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  isActive
+                    ? "bg-gradient-to-r from-blue-600 to-cyan-700 text-white shadow-lg shadow-blue-600/30"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-lg transition-all duration-300 ${
+                    isActive
+                      ? "bg-white/20 backdrop-blur-md"
+                      : "bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-200 dark:group-hover:bg-gray-600"
+                  }`}
+                >
+                  <Icon
+                    size={18}
+                    className={
+                      isActive
+                        ? "text-white"
+                        : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                    }
+                  />
+                </div>
+                <span className="whitespace-nowrap">{tab.label}</span>
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-full"></div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
-
       {activeTab === "list" && (
         <div className="space-y-6">
           {/* Stats */}
@@ -260,100 +317,130 @@ export default function Employees() {
 
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Name
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Designation
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Contact
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left whitespace-nowrap">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-4 whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                   {loading ? (
                     <tr>
                       <td
                         colSpan="5"
-                        className="px-6 py-8 text-center text-gray-500"
+                        className="px-6 py-12 text-center text-gray-500"
                       >
-                        Loading...
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <span className="text-sm font-medium">
+                            Loading employees...
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ) : filteredEmployees.length === 0 ? (
                     <tr>
                       <td
                         colSpan="5"
-                        className="px-6 py-8 text-center text-gray-500"
+                        className="px-6 py-12 text-center text-gray-500"
                       >
-                        No employees found
+                        <div className="flex flex-col items-center gap-2">
+                          <Users
+                            className="text-gray-300 dark:text-gray-600"
+                            size={48}
+                          />
+                          <span className="text-sm font-medium">
+                            No employees found
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            Add your first employee to get started
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    filteredEmployees.map((emp) => (
+                    filteredEmployees.map((emp, index) => (
                       <tr
                         key={emp.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
                               {emp.name.charAt(0)}
                             </div>
                             <div>
                               <p className="font-semibold text-gray-900 dark:text-white">
                                 {emp.name}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {emp.email}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                            <Briefcase size={14} className="text-gray-400" />
-                            <span>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-md">
+                              <Briefcase
+                                size={14}
+                                className="text-amber-600 dark:text-amber-400"
+                              />
+                            </div>
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">
                               {emp.employee_profile?.designation || "N/A"}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
+                        <td className="px-6 py-5">
+                          <div className="space-y-1.5">
                             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                              <Phone size={12} />{" "}
+                              <div className="p-1 bg-green-50 dark:bg-green-900/30 rounded">
+                                <Phone
+                                  size={12}
+                                  className="text-green-600 dark:text-green-400"
+                                />
+                              </div>
                               {emp.employee_profile?.phone || "N/A"}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                              <Mail size={12} /> {emp.email}
+                              <div className="p-1 bg-blue-50 dark:bg-blue-900/30 rounded">
+                                <Mail
+                                  size={12}
+                                  className="text-blue-600 dark:text-blue-400"
+                                />
+                              </div>
+                              {emp.email}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-5">
                           <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
                               emp.is_active
-                                ? "bg-green-50 text-green-700 border border-green-100"
-                                : "bg-red-50 text-red-700 border border-red-100"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800"
                             }`}
                           >
                             {emp.is_active ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleDownloadIDCard(emp)}
-                              className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              className="p-2 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
                               title="Download ID Card"
                             >
                               <CreditCard size={16} />
@@ -363,25 +450,26 @@ export default function Employees() {
                                 setSelectedEmployee(emp);
                                 setIsAddModalOpen(true);
                               }}
-                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                              title="Edit Employee"
                             >
                               <Edit size={16} />
                             </button>
                             <button
                               onClick={(e) => handleStatusToggle(e, emp)}
-                              className={`p-1.5 rounded-lg transition-colors ${
+                              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md ${
                                 emp.is_active
-                                  ? "text-green-600 hover:bg-green-50"
-                                  : "text-gray-400 hover:text-green-600 hover:bg-gray-50"
+                                  ? "bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400"
+                                  : "bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400"
                               }`}
                               title={emp.is_active ? "Deactivate" : "Activate"}
                             >
                               <Power size={16} />
                             </button>
-
                             <button
                               onClick={() => handleDelete(emp)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                              title="Delete Employee"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -497,144 +585,228 @@ function PayrollView({ employees }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Month:</span>
-          <select
-            name="payroll_month"
-            id="payroll_month"
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value))}
-            className="border rounded-lg px-2 py-1 bg-white dark:bg-gray-900 dark:border-gray-700"
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
+            <IndianRupee size={28} />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              Payroll Management
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Calculate and manage salaries for{" "}
+              {new Date(0, month - 1).toLocaleString("default", {
+                month: "long",
+              })}{" "}
+              {year}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Month:
+            </span>
+            <select
+              name="payroll_month"
+              id="payroll_month"
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value))}
+              className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>
+                  {new Date(0, m - 1).toLocaleString("default", {
+                    month: "long",
+                  })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Year:
+            </span>
+            <input
+              type="number"
+              name="payroll_year"
+              id="payroll_year"
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="w-24 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+            />
+          </div>
+          <button
+            onClick={calculateAll}
+            className="group px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 flex items-center gap-2 hover:scale-105"
           >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {new Date(0, m - 1).toLocaleString("default", {
-                  month: "long",
-                })}
-              </option>
-            ))}
-          </select>
+            <Calendar
+              size={18}
+              className="group-hover:rotate-12 transition-transform duration-300"
+            />
+            Refresh
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Year:</span>
-          <input
-            type="number"
-            name="payroll_year"
-            id="payroll_year"
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-            className="border rounded-lg px-2 py-1 w-20 bg-white dark:bg-gray-900 dark:border-gray-700"
-          />
-        </div>
-        <button
-          onClick={calculateAll}
-          className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
-        >
-          Refresh
-        </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+            <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Employee
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Base Salary
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Attendance
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   OT + Bonus
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Advances
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left whitespace-nowrap">
                   Net Pay
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">
-                    Calculating...
+                  <td colSpan="7" className="py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                      <span className="text-sm font-medium">
+                        Calculating payroll...
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 employees
                   .filter((emp) => emp.is_active)
-                  .map((emp) => {
+                  .map((emp, index) => {
                     const slip = salaries[emp.id];
                     return (
                       <tr
                         key={emp.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        className="group hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-teal-50/30 dark:hover:from-emerald-900/10 dark:hover:to-teal-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(16,185,129)]"
                       >
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                          {emp.name}
-                          <div className="text-xs text-gray-500 font-normal">
-                            {emp.employee_profile?.designation}
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
+                              {emp.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {emp.name}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {emp.employee_profile?.designation}
+                              </p>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                          ₹{emp.employee_profile?.base_salary}
-                          <div className="text-xs text-gray-400 capitalize">
-                            {emp.employee_profile?.salary_type}
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+                              <IndianRupee
+                                size={14}
+                                className="text-blue-600 dark:text-blue-400"
+                              />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                ₹{emp.employee_profile?.base_salary}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                                {emp.employee_profile?.salary_type}
+                              </p>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                          {slip?.present_days || 0} / {slip?.total_days || 30}{" "}
-                          Days
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-md">
+                              <Calendar
+                                size={14}
+                                className="text-purple-600 dark:text-purple-400"
+                              />
+                            </div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {slip?.present_days || 0} /{" "}
+                              {slip?.total_days || 30} Days
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-green-600">
+                        <td className="px-6 py-5">
                           {slip ? (
-                            <div className="flex flex-col text-xs">
-                              <span>OT: ₹{slip.total_overtime_pay}</span>
-                              <span>Bonus: ₹{slip.total_bonus}</span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md font-semibold">
+                                  OT: ₹{slip.total_overtime_pay}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md font-semibold">
+                                  Bonus: ₹{slip.total_bonus}
+                                </span>
+                              </div>
                             </div>
                           ) : (
-                            "-"
+                            <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
-                            <span className="text-red-600">
+                            <span className="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg font-semibold text-sm">
                               {slip ? `-₹${slip.total_advances_deducted}` : "-"}
                             </span>
                             <button
                               onClick={() => setSelectedEmpForAdvance(emp)}
-                              className="text-xs text-blue-600 hover:underline"
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105"
                             >
                               Manage
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white text-lg">
-                          {slip ? `₹${slip.final_payable}` : "-"}
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-md">
+                              <IndianRupee
+                                size={16}
+                                className="text-emerald-600 dark:text-emerald-400"
+                              />
+                            </div>
+                            <span className="font-bold text-gray-900 dark:text-white text-lg">
+                              {slip ? `₹${slip.final_payable}` : "-"}
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2">
                             {slip?.is_paid ? (
-                              <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-lg border border-green-200 shadow-sm flex items-center gap-1 cursor-default">
-                                <UserCheck size={12} /> Paid
+                              <span className="px-3 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold rounded-lg border border-green-200 dark:border-green-800 shadow-sm flex items-center gap-1.5">
+                                <UserCheck size={14} /> Paid
                               </span>
                             ) : (
                               <button
                                 onClick={() => handlePayClick(emp)}
-                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-1"
+                                className="group px-3 py-1.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 hover:scale-105"
                                 title="Pay Salary & Create Expense"
                               >
-                                <IndianRupee size={12} /> Pay
+                                <IndianRupee
+                                  size={14}
+                                  className="group-hover:rotate-12 transition-transform duration-200"
+                                />{" "}
+                                Pay
                               </button>
                             )}
 
@@ -643,7 +815,7 @@ function PayrollView({ employees }) {
                                 slip && handlePreviewSlip(slip, emp)
                               }
                               disabled={!slip}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Preview Slip"
                             >
                               <FileText size={18} />

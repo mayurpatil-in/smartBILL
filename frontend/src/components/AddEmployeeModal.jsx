@@ -237,16 +237,16 @@ export default function AddEmployeeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-scale-in flex flex-col">
-        <div className="flex-none flex items-center justify-between px-4 py-4 md:px-8 md:py-5 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 backdrop-blur-md z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
-              <User size={20} className="text-white" />
+        <div className="flex-none flex items-center justify-between px-4 py-4 md:px-8 md:py-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-cyan-700 dark:from-blue-700 dark:to-cyan-800">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/20 dark:bg-white/10 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/30">
+              <User size={24} className="text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-white">
                 {employee ? "Edit Employee" : "Add New Employee"}
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-blue-100 dark:text-cyan-100 mt-0.5">
                 {employee
                   ? `Employee ID: #${employee.id}`
                   : nextId
@@ -257,9 +257,12 @@ export default function AddEmployeeModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded-full transition-all"
+            className="p-2.5 hover:bg-white/20 dark:hover:bg-white/10 rounded-xl transition-all duration-200 group"
           >
-            <X size={20} className="text-gray-600 dark:text-gray-400" />
+            <X
+              size={22}
+              className="text-white group-hover:rotate-90 transition-transform duration-200"
+            />
           </button>
         </div>
 
@@ -271,7 +274,7 @@ export default function AddEmployeeModal({
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 items-start">
               {/* Basic Info Card */}
-              <div className="space-y-5 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+              <div className="space-y-5 bg-white dark:bg-gray-900/50 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
                 <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                     <User size={18} />
@@ -513,7 +516,7 @@ export default function AddEmployeeModal({
 
               <div className="space-y-6">
                 {/* Employment Details Card */}
-                <div className="space-y-5 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <div className="space-y-5 bg-white dark:bg-gray-900/50 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
                   <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 border-b border-gray-200 dark:border-gray-700 pb-3">
                     <Briefcase size={18} />
                     <h3 className="font-semibold uppercase tracking-wide text-xs">
@@ -667,7 +670,7 @@ export default function AddEmployeeModal({
                   </div>
                 </div>
 
-                <div className="space-y-5 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <div className="space-y-5 bg-white dark:bg-gray-900/50 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
                   <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 border-b border-gray-200 dark:border-gray-700 pb-3">
                     <FileText size={18} />
                     <h3 className="font-semibold uppercase tracking-wide text-xs">
