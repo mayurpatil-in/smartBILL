@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Fragment } from "react";
 import {
   Plus,
   Search,
@@ -13,6 +13,15 @@ import {
   FileText,
   X,
   ChevronDown,
+  TrendingDown,
+  Receipt,
+  Building2,
+  CreditCard,
+  IndianRupee,
+  Tag,
+  User,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useReactToPrint } from "react-to-print";
@@ -34,6 +43,8 @@ export default function Expenses() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expensesPerPage] = useState(10);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -112,10 +123,10 @@ export default function Expenses() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Expense Tracker
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Manage operational costs, bills, and cheques
           </p>
         </div>
@@ -124,20 +135,23 @@ export default function Expenses() {
             setEditingExpense(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-red-600/20 transition-all"
+          className="group flex items-center gap-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-red-600/30 hover:shadow-xl hover:shadow-red-600/40 hover:scale-105"
         >
-          <Plus size={20} />
+          <Plus
+            size={20}
+            className="group-hover:rotate-90 transition-transform duration-300"
+          />
           Add Expense
         </button>
       </div>
 
       {/* Stats (Only visible on All Expenses tab) */}
       {activeTab === "all" && stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <StatCard
             label="Total Expenses"
             value={`₹${Number(stats.total_amount).toLocaleString("en-IN")}`}
-            icon={Wallet}
+            icon={TrendingDown}
             color="red"
           />
           <StatCard
@@ -151,7 +165,7 @@ export default function Expenses() {
           <StatCard
             label="Total Count"
             value={stats.count}
-            icon={FileText}
+            icon={Receipt}
             color="orange"
           />
         </div>
@@ -244,123 +258,316 @@ export default function Expenses() {
 
 function StatCard({ label, value, icon: Icon, color }) {
   const colors = {
-    red: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-    orange:
-      "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400",
+    red: {
+      bg: "bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-900/30 dark:to-rose-800/20",
+      iconBg: "bg-gradient-to-br from-red-500 to-rose-600",
+      text: "text-red-600 dark:text-red-400",
+      shadow: "shadow-red-500/20 dark:shadow-red-500/10",
+      hoverShadow: "hover:shadow-red-500/30 dark:hover:shadow-red-500/20",
+    },
+    blue: {
+      bg: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-800/20",
+      iconBg: "bg-gradient-to-br from-blue-500 to-cyan-600",
+      text: "text-blue-600 dark:text-blue-400",
+      shadow: "shadow-blue-500/20 dark:shadow-blue-500/10",
+      hoverShadow: "hover:shadow-blue-500/30 dark:hover:shadow-blue-500/20",
+    },
+    orange: {
+      bg: "bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/30 dark:to-amber-800/20",
+      iconBg: "bg-gradient-to-br from-orange-500 to-amber-600",
+      text: "text-orange-600 dark:text-orange-400",
+      shadow: "shadow-orange-500/20 dark:shadow-orange-500/10",
+      hoverShadow: "hover:shadow-orange-500/30 dark:hover:shadow-orange-500/20",
+    },
   };
+
+  const colorScheme = colors[color];
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colors[color]}`}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {value}
-        </h3>
-        <p className="text-xs text-gray-500 uppercase font-bold tracking-wide">
-          {label}
-        </p>
+    <div
+      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+
+      <div className="relative flex items-center gap-4">
+        <div
+          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+        >
+          <Icon size={28} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <h3
+            className={`text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+          >
+            {value}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+            {label}
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
 function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expensesPerPage] = useState(10);
+
+  // Pagination
+  const totalPages = Math.ceil(expenses.length / expensesPerPage);
+  const startIndex = (currentPage - 1) * expensesPerPage;
+  const endIndex = startIndex + expensesPerPage;
+  const paginatedExpenses = expenses.slice(startIndex, endIndex);
+
+  // Reset to page 1 when expenses change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [expenses]);
+
   if (loading)
-    return <div className="p-8 text-center text-gray-500">Loading...</div>;
+    return (
+      <div className="p-12 text-center text-gray-500">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          <span className="text-sm font-medium">Loading expenses...</span>
+        </div>
+      </div>
+    );
   if (expenses.length === 0)
     return (
-      <div className="p-8 text-center text-gray-500">No expenses found.</div>
+      <div className="p-12 text-center text-gray-500">
+        <div className="flex flex-col items-center gap-2">
+          <Receipt className="text-gray-300 dark:text-gray-600" size={48} />
+          <span className="text-sm font-medium">No expenses found.</span>
+          <span className="text-xs text-gray-400">
+            Add your first expense to get started
+          </span>
+        </div>
+      </div>
     );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase tracking-wider font-semibold">
-          <tr>
-            <th className="px-6 py-4">Date</th>
-            <th className="px-6 py-4">Category</th>
-            <th className="px-6 py-4">Payee / Details</th>
-            <th className="px-6 py-4">Mode</th>
-            <th className="px-6 py-4 text-right">Amount</th>
-            <th className="px-6 py-4 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-          {expenses.map((ex) => (
-            <tr
-              key={ex.id}
-              className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <td className="px-6 py-4 text-gray-500">
-                {new Date(ex.date).toLocaleDateString()}
-              </td>
-              <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                {ex.category}
-                {ex.is_recurring && (
-                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                    Auto
-                  </span>
-                )}
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-gray-900 dark:text-white font-medium">
-                  {ex.party_name || ex.payee_name || "—"}
-                </div>
-                <div className="text-xs text-gray-500 truncate max-w-[200px]">
-                  {ex.description}
-                </div>
-              </td>
-              <td className="px-6 py-4">
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                    ex.payment_method === "Cheque"
-                      ? "bg-purple-100 text-purple-700"
-                      : ex.payment_method === "Cash"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {ex.payment_method}
-                </span>
-                {ex.payment_method === "Cheque" && ex.cheque_no && (
-                  <div className="text-xs text-gray-400 mt-1">
-                    No: {ex.cheque_no}
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
-                ₹{Number(ex.amount).toLocaleString("en-IN")}
-              </td>
-              <td className="px-6 py-4 text-right flex justify-end gap-2">
-                {ex.payment_method === "Cheque" && (
-                  <button
-                    onClick={() => onPrint(ex)}
-                    className="p-2 text-gray-400 hover:text-purple-600 transition"
-                    title="Print Cheque"
-                  >
-                    <Printer size={16} />
-                  </button>
-                )}
-                <button
-                  onClick={() => onEdit(ex)}
-                  className="p-2 text-gray-400 hover:text-blue-600 transition"
-                >
-                  <Edit size={16} />
-                </button>
-                <button
-                  onClick={() => onDelete(ex)}
-                  className="p-2 text-gray-400 hover:text-red-600 transition"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </td>
+    <>
+      <div className="overflow-x-auto max-h-[calc(100vh-420px)] overflow-y-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
+            <tr>
+              <th className="px-6 py-4 whitespace-nowrap">Date</th>
+              <th className="px-6 py-4 whitespace-nowrap">Category</th>
+              <th className="px-6 py-4 whitespace-nowrap">Payee / Details</th>
+              <th className="px-6 py-4 whitespace-nowrap">Mode</th>
+              <th className="px-6 py-4 whitespace-nowrap text-right">Amount</th>
+              <th className="px-6 py-4 whitespace-nowrap">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            {paginatedExpenses.map((ex, index) => (
+              <tr
+                key={ex.id}
+                className="group hover:bg-gradient-to-r hover:from-red-50/50 hover:to-rose-50/30 dark:hover:from-red-900/10 dark:hover:to-rose-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(239,68,68)]"
+              >
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+                      <Calendar
+                        size={14}
+                        className="text-blue-600 dark:text-blue-400"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {new Date(ex.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-md">
+                      <Tag
+                        size={14}
+                        className="text-purple-600 dark:text-purple-400"
+                      />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {ex.category}
+                      </span>
+                      {ex.is_recurring && (
+                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">
+                          Auto
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-md">
+                      <User
+                        size={14}
+                        className="text-amber-600 dark:text-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-gray-900 dark:text-white font-medium">
+                        {ex.party_name || ex.payee_name || "—"}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                        {ex.description}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-green-50 dark:bg-green-900/30 rounded-md">
+                      <CreditCard
+                        size={14}
+                        className="text-green-600 dark:text-green-400"
+                      />
+                    </div>
+                    <div>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                          ex.payment_method === "Cheque"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                            : ex.payment_method === "Cash"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {ex.payment_method}
+                      </span>
+                      {ex.payment_method === "Cheque" && ex.cheque_no && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          No: {ex.cheque_no}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-5 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <IndianRupee
+                      size={14}
+                      className="text-gray-500 dark:text-gray-400"
+                    />
+                    <span className="font-bold text-lg text-gray-900 dark:text-white">
+                      {Number(ex.amount).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2">
+                    {ex.payment_method === "Cheque" && (
+                      <button
+                        onClick={() => onPrint(ex)}
+                        className="p-2 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                        title="Print Cheque"
+                      >
+                        <Printer size={16} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onEdit(ex)}
+                      className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                      title="Edit Expense"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => onDelete(ex)}
+                      className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                      title="Delete Expense"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {expenses.length > 0 && (
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Showing{" "}
+              <span className="font-bold text-red-600 dark:text-red-400">
+                {startIndex + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-bold text-red-600 dark:text-red-400">
+                {Math.min(endIndex, expenses.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-bold text-gray-900 dark:text-white">
+                {expenses.length}
+              </span>{" "}
+              expenses
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <ChevronLeft
+                size={18}
+                className="text-gray-600 dark:text-gray-400"
+              />
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  if (totalPages <= 7) return true;
+                  if (page === 1 || page === totalPages) return true;
+                  if (page >= currentPage - 1 && page <= currentPage + 1)
+                    return true;
+                  return false;
+                })
+                .map((page, index, array) => (
+                  <Fragment key={page}>
+                    {index > 0 && array[index - 1] !== page - 1 && (
+                      <span
+                        key={`ellipsis-${page}`}
+                        className="px-2 text-gray-400 font-bold"
+                      >
+                        ...
+                      </span>
+                    )}
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`min-w-[40px] h-10 px-3 rounded-lg font-bold text-sm transition-all duration-200 ${
+                        currentPage === page
+                          ? "bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-lg shadow-red-500/40 scale-110"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </Fragment>
+                ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <ChevronRight
+                size={18}
+                className="text-gray-600 dark:text-gray-400"
+              />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -584,23 +791,38 @@ function AddExpenseModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-800 dark:to-black px-8 py-6 flex justify-between items-center text-white shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              {expense ? "Edit Expense" : "New Expense"}
-            </h2>
-            <p className="text-gray-400 text-sm mt-1">
-              {expense
-                ? "Update the details of this transaction"
-                : "Record a new transaction for your business"}
-            </p>
+        <div className="relative bg-gradient-to-r from-red-600 to-rose-700 px-8 py-6 overflow-hidden shrink-0">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24"></div>
+
+          <div className="relative flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                {expense ? (
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <Edit size={24} className="text-white" />
+                  </div>
+                ) : (
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <Plus size={24} className="text-white" />
+                  </div>
+                )}
+                {expense ? "Edit Expense" : "New Expense"}
+              </h2>
+              <p className="text-sm text-red-50 mt-2 ml-14">
+                {expense
+                  ? "Update the details of this transaction"
+                  : "Record a new transaction for your business"}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-xl transition-all duration-200 text-white hover:scale-110 backdrop-blur-sm"
+            >
+              <X size={24} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/60 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all"
-          >
-            <X size={24} />
-          </button>
         </div>
 
         <form

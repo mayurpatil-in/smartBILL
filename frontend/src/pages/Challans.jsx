@@ -571,7 +571,7 @@ function ChallanRow({
 }) {
   return (
     <tr
-      className="group hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/30 dark:hover:from-green-900/10 dark:hover:to-emerald-900/10 transition-all duration-300 border-l-4 border-transparent hover:border-green-500"
+      className="group hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/30 dark:hover:from-green-900/10 dark:hover:to-emerald-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(34,197,94)]"
       style={{
         animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
       }}

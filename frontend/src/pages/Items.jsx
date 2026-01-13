@@ -402,7 +402,7 @@ export default function Items() {
 function ItemRow({ item, index, onEdit, onDelete, onToggleStatus }) {
   return (
     <tr
-      className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/30 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-300 border-l-4 border-transparent hover:border-blue-500"
+      className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/30 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
       style={{
         animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
       }}

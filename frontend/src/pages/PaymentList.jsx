@@ -466,7 +466,7 @@ export default function PaymentList() {
                 paginatedPayments.map((payment, index) => (
                   <tr
                     key={payment.id}
-                    className="group hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-teal-50/30 dark:hover:from-emerald-900/10 dark:hover:to-teal-900/10 transition-all duration-300 border-l-4 border-transparent hover:border-emerald-500"
+                    className="group hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-teal-50/30 dark:hover:from-emerald-900/10 dark:hover:to-teal-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(16,185,129)]"
                     style={{
                       animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
                     }}

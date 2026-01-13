@@ -496,7 +496,7 @@ function PartyChallanRow({
 
   return (
     <tr
-      className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/10 transition-all duration-300 border-l-4 border-transparent hover:border-purple-500"
+      className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(168,85,247)]"
       style={{
         animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
       }}
