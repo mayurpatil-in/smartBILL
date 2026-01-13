@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database.session import get_db
 from app.models.item import Item
+from app.models.delivery_challan_item import DeliveryChallanItem
+from app.models.invoice_item import InvoiceItem
 from app.schemas.item import ItemCreate, ItemResponse
 from app.core.dependencies import get_company_id, get_active_financial_year
 
@@ -94,5 +96,28 @@ def delete_item(
             detail="Item not found"
         )
 
+    # Check if item is used in any delivery challan
+    challan_usage = db.query(DeliveryChallanItem).filter(
+        DeliveryChallanItem.item_id == item_id
+    ).first()
+
+    if challan_usage:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete item '{item.name}': It is used in one or more delivery challans. Please remove it from all challans first."
+        )
+
+    # Check if item is used in any invoice
+    invoice_usage = db.query(InvoiceItem).filter(
+        InvoiceItem.item_id == item_id
+    ).first()
+
+    if invoice_usage:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete item '{item.name}': It is used in one or more invoices. Please remove it from all invoices first."
+        )
+
+    # If no usage found, safe to delete
     db.delete(item)
     db.commit()

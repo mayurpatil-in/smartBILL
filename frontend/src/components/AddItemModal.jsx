@@ -9,7 +9,7 @@ import {
   Building2,
   Cog,
   Weight,
-  DollarSign,
+  IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { createItem, updateItem } from "../api/items";
@@ -122,31 +122,47 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scale-in max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 sticky top-0 backdrop-blur-md z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                <Package size={20} className="text-white" />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scale-in">
+          {/* Header with Gradient */}
+          <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <Package size={24} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    {item ? "Edit Item" : "Add New Item"}
+                  </h2>
+                  <p className="text-blue-100 text-sm mt-0.5">
+                    {item
+                      ? "Update item information"
+                      : "Create a new inventory item"}
+                  </p>
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {item ? "Edit Item" : "Add New Item"}
-              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/20 rounded-full transition-all duration-200"
+              >
+                <X size={22} className="text-white" />
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-gray-700 rounded-full transition-all"
-            >
-              <X size={20} className="text-gray-600 dark:text-gray-400" />
-            </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="p-6 space-y-5 max-h-[calc(100vh-250px)] overflow-y-auto"
+          >
             {/* Basic Information Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                <Package size={16} className="text-blue-600" />
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                <Package
+                  size={16}
+                  className="text-blue-600 dark:text-blue-400"
+                />
                 Basic Information
-              </div>
+              </h3>
               <Input
                 label="Item Name"
                 icon={<Tag size={16} />}
@@ -160,16 +176,19 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
               />
             </div>
 
-            {/* Linking Section */}
+            {/* Linking & Process Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                <Building2 size={16} className="text-blue-600" />
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                <Building2
+                  size={16}
+                  className="text-blue-600 dark:text-blue-400"
+                />
                 Linking & Process
-              </div>
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 {/* Party Selection */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Building2 size={14} className="text-gray-400" />
                     Linked Party
                   </label>
@@ -180,7 +199,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                     onChange={(e) =>
                       setForm({ ...form, party_id: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-200"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all duration-200 font-medium"
                   >
                     <option value="">General Item (All Parties)</option>
                     {parties
@@ -195,7 +214,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
 
                 {/* Process Selection */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Cog size={14} className="text-gray-400" />
                     Process
                   </label>
@@ -207,7 +226,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                       onChange={(e) =>
                         setForm({ ...form, process_id: e.target.value })
                       }
-                      className="flex-1 w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-200"
+                      className="flex-1 w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all duration-200 font-medium"
                     >
                       <option value="">None</option>
                       {processes
@@ -221,7 +240,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                     <button
                       type="button"
                       onClick={() => setShowProcessModal(true)}
-                      className="px-3 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all shadow-md hover:shadow-lg"
+                      className="px-3 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all shadow-md hover:shadow-lg"
                       title="Add New Process"
                     >
                       <Plus size={18} />
@@ -233,10 +252,13 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
 
             {/* Additional Details Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                <FileText size={16} className="text-blue-600" />
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                <FileText
+                  size={16}
+                  className="text-blue-600 dark:text-blue-400"
+                />
                 Additional Details
-              </div>
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="HSN Code"
@@ -261,10 +283,13 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
 
             {/* Measurements & Pricing Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                <Weight size={16} className="text-blue-600" />
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                <Weight
+                  size={16}
+                  className="text-blue-600 dark:text-blue-400"
+                />
                 Measurements & Pricing
-              </div>
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="Casting Weight"
@@ -293,7 +318,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
               </div>
               <Input
                 label="Rate"
-                icon={<DollarSign size={16} />}
+                icon={<IndianRupee size={16} />}
                 type="number"
                 name="item_rate"
                 id="item_rate"
@@ -307,16 +332,34 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
             </div>
 
             {/* Status Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-              <div>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white block">
-                  Active Status
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {form.is_active
-                    ? "Item is currently active"
-                    : "Item is currently inactive"}
-                </span>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900/20 rounded-xl border-2 border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`p-2 rounded-lg ${
+                    form.is_active
+                      ? "bg-green-100 dark:bg-green-900/30"
+                      : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+                >
+                  <Package
+                    size={18}
+                    className={
+                      form.is_active
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-gray-500"
+                    }
+                  />
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white block">
+                    Item Status
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {form.is_active
+                      ? "Active and visible"
+                      : "Inactive and hidden"}
+                  </span>
+                </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -329,28 +372,29 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                     setForm({ ...form, is_active: e.target.checked })
                   }
                 />
-                <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-gradient-to-r peer-checked:from-green-500 peer-checked:to-green-600 shadow-inner"></div>
+                <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-gradient-to-r peer-checked:from-green-500 peer-checked:to-emerald-600 shadow-inner"></div>
               </label>
             </div>
-
-            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-2.5 rounded-xl text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold transition-all border border-gray-200 dark:border-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
-              >
-                <Save size={18} />
-                {loading ? "Saving..." : item ? "Update Item" : "Save Item"}
-              </button>
-            </div>
           </form>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 p-6 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold transition-all border-2 border-gray-300 dark:border-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <Save size={18} />
+              {loading ? "Saving..." : item ? "Update Item" : "Save Item"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -383,14 +427,14 @@ function Input({
     <div>
       <label
         htmlFor={id || name}
-        className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+        className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
       >
         {icon && <span className="text-gray-400">{icon}</span>}
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-semibold">
             {prefix}
           </span>
         )}
@@ -407,16 +451,16 @@ function Input({
           className={`
             w-full ${prefix ? "pl-10" : "pl-4"} ${
             suffix ? "pr-12" : "pr-4"
-          } py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
-            bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white
-            focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
+          } py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700
+            bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+            focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500
             outline-none transition-all duration-200
             placeholder:text-gray-400 dark:placeholder:text-gray-600
             font-medium
           `}
         />
         {suffix && (
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-medium">
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm font-semibold">
             {suffix}
           </span>
         )}
