@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import {
   Plus,
   Search,
@@ -14,6 +14,11 @@ import {
   CheckCircle,
   Briefcase,
   Calculator,
+  Building2,
+  TrendingUp,
+  Wallet,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import toast from "react-hot-toast";
@@ -30,6 +35,9 @@ export default function PaymentList() {
   const [payments, setPayments] = useState([]);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paymentsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
 
   // Filters
@@ -160,7 +168,7 @@ export default function PaymentList() {
         getPayments(filters),
         getParties(),
       ]);
-      setPayments(paymentsData);
+      setPayments(paymentsData.sort((a, b) => b.id - a.id));
       setParties(partiesData);
     } catch (error) {
       console.error(error);
@@ -255,155 +263,388 @@ export default function PaymentList() {
     }
   };
 
+  // Calculate stats
+  const totalPayments = payments.length;
+  const totalAmount = payments.reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0
+  );
+  const thisMonthAmount = payments
+    .filter((p) => {
+      const paymentDate = new Date(p.payment_date);
+      const now = new Date();
+      return (
+        paymentDate.getMonth() === now.getMonth() &&
+        paymentDate.getFullYear() === now.getFullYear()
+      );
+    })
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+  // Apply search filter
+  const filteredPayments = payments.filter((payment) => {
+    const matchesSearch =
+      payment.party?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.reference_number
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPayments.length / paymentsPerPage);
+  const startIndex = (currentPage - 1) * paymentsPerPage;
+  const endIndex = startIndex + paymentsPerPage;
+  const paginatedPayments = filteredPayments.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm]);
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Payments
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Track Inward and Outward Payments
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Track inward and outward payments
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          className="group flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:scale-105"
         >
-          <Plus size={20} /> Record Payment
+          <Plus
+            size={20}
+            className="group-hover:rotate-90 transition-transform duration-300"
+          />
+          Record Payment
         </button>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <StatCard
+          label="Total Payments"
+          value={totalPayments}
+          icon={Wallet}
+          color="blue"
+        />
+        <StatCard
+          label="Total Amount"
+          value={`₹${totalAmount.toLocaleString()}`}
+          icon={IndianRupee}
+          color="green"
+        />
+        <StatCard
+          label="This Month"
+          value={`₹${thisMonthAmount.toLocaleString()}`}
+          icon={TrendingUp}
+          color="purple"
+        />
+      </div>
+
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-end">
-        <div>
-          <label
-            htmlFor="filter_party_id"
-            className="block text-xs font-medium mb-1 text-gray-500"
-          >
-            Party
-          </label>
-          <select
-            name="filter_party_id"
-            id="filter_party_id"
-            value={filters.party_id}
-            onChange={(e) =>
-              setFilters({ ...filters, party_id: e.target.value })
-            }
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
-          >
-            <option value="">All Parties</option>
-            {parties.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative group flex-1 w-full">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative flex items-center gap-3 bg-white dark:bg-gray-900/80 rounded-xl px-5 py-3 border-2 border-gray-200 dark:border-gray-700 focus-within:border-emerald-500 dark:focus-within:border-emerald-500 transition-all duration-300 shadow-sm hover:shadow-md">
+              <Search
+                className="text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-300"
+                size={20}
+              />
+              <input
+                type="text"
+                name="payment_search"
+                id="payment_search"
+                placeholder="Search by party name or reference..."
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-md">
+                  {filteredPayments.length} found
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className="w-full sm:w-48">
+            <select
+              name="filter_party_id"
+              id="filter_party_id"
+              value={filters.party_id}
+              onChange={(e) =>
+                setFilters({ ...filters, party_id: e.target.value })
+              }
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+            >
+              <option value="">All Parties</option>
+              {parties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="w-full sm:w-48">
+            <select
+              name="filter_payment_type"
+              id="filter_payment_type"
+              value={filters.payment_type}
+              onChange={(e) =>
+                setFilters({ ...filters, payment_type: e.target.value })
+              }
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+            >
+              <option value="">All Types</option>
+              <option value="RECEIVED">Received (In)</option>
+              <option value="PAID">Paid (Out)</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label
-            htmlFor="filter_payment_type"
-            className="block text-xs font-medium mb-1 text-gray-500"
-          >
-            Type
-          </label>
-          <select
-            name="filter_payment_type"
-            id="filter_payment_type"
-            value={filters.payment_type}
-            onChange={(e) =>
-              setFilters({ ...filters, payment_type: e.target.value })
-            }
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
-          >
-            <option value="">All Types</option>
-            <option value="RECEIVED">Received (In)</option>
-            <option value="PAID">Paid (Out)</option>
-          </select>
-        </div>
-        {/* Date Filter could go here */}
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-gray-900 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-              <th className="px-6 py-4">Date</th>
-              <th className="px-6 py-4">Party</th>
-              <th className="px-6 py-4">Mode / Ref</th>
-              <th className="px-6 py-4">Type</th>
-              <th className="px-6 py-4 text-right">Amount</th>
-              <th className="px-6 py-4 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {payments.length === 0 ? (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-sm">
+        <div className="overflow-x-auto max-h-[calc(100vh-520px)] overflow-y-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                  No payments found.
-                </td>
+                <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                <th className="px-6 py-4 whitespace-nowrap">Party</th>
+                <th className="px-6 py-4 whitespace-nowrap">Mode / Ref</th>
+                <th className="px-6 py-4 whitespace-nowrap">Type</th>
+                <th className="px-6 py-4 whitespace-nowrap text-right">
+                  Amount
+                </th>
+                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
               </tr>
-            ) : (
-              payments.map((payment) => (
-                <tr
-                  key={payment.id}
-                  className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">
-                    {new Date(payment.payment_date).toLocaleDateString("en-IN")}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                    {payment.party?.name}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                      {payment.payment_mode}
-                    </span>
-                    {payment.reference_number && (
-                      <div className="text-xs mt-1">
-                        Ref: {payment.reference_number}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        payment.payment_type === "RECEIVED"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                          : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                      }`}
-                    >
-                      {payment.payment_type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-right font-bold text-gray-900 dark:text-white">
-                    ₹
-                    {Number(payment.amount).toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEdit(payment)}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-blue-600"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(payment.id)}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                      <span className="text-sm font-medium">
+                        Loading payments...
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : paginatedPayments.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Wallet
+                        className="text-gray-300 dark:text-gray-600"
+                        size={48}
+                      />
+                      <span className="text-sm font-medium">
+                        No payments found.
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Try adjusting your filters
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedPayments.map((payment, index) => (
+                  <tr
+                    key={payment.id}
+                    className="group hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-teal-50/30 dark:hover:from-emerald-900/10 dark:hover:to-teal-900/10 transition-all duration-300 border-l-4 border-transparent hover:border-emerald-500"
+                    style={{
+                      animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
+                    }}
+                  >
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-md">
+                          <Calendar
+                            size={14}
+                            className="text-blue-600 dark:text-blue-400"
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {new Date(payment.payment_date).toLocaleDateString(
+                            "en-IN"
+                          )}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-purple-50 dark:bg-purple-900/30 rounded-md">
+                          <Building2
+                            size={14}
+                            className="text-purple-600 dark:text-purple-400"
+                          />
+                        </div>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {payment.party?.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-md">
+                          <CreditCard
+                            size={14}
+                            className="text-amber-600 dark:text-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <span className="font-semibold text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                            {payment.payment_mode}
+                          </span>
+                          {payment.reference_number && (
+                            <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
+                              Ref: {payment.reference_number}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          payment.payment_type === "RECEIVED"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                        }`}
+                      >
+                        {payment.payment_type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <IndianRupee
+                          size={14}
+                          className="text-gray-500 dark:text-gray-400"
+                        />
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {Number(payment.amount).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(payment)}
+                          className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                          title="Edit Payment"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(payment.id)}
+                          className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                          title="Delete Payment"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {payments.length > 0 && (
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Showing{" "}
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  {startIndex + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  {Math.min(endIndex, payments.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {payments.length}
+                </span>{" "}
+                payments
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-300 dark:hover:border-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <ChevronLeft
+                  size={18}
+                  className="text-gray-600 dark:text-gray-400"
+                />
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    if (totalPages <= 7) return true;
+                    if (page === 1 || page === totalPages) return true;
+                    if (page >= currentPage - 1 && page <= currentPage + 1)
+                      return true;
+                    return false;
+                  })
+                  .map((page, index, array) => (
+                    <Fragment key={page}>
+                      {index > 0 && array[index - 1] !== page - 1 && (
+                        <span
+                          key={`ellipsis-${page}`}
+                          className="px-2 text-gray-400 font-bold"
+                        >
+                          ...
+                        </span>
+                      )}
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`min-w-[40px] h-10 px-3 rounded-lg font-bold text-sm transition-all duration-200 ${
+                          currentPage === page
+                            ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg shadow-emerald-500/40 scale-110"
+                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </Fragment>
+                  ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-300 dark:hover:border-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <ChevronRight
+                  size={18}
+                  className="text-gray-600 dark:text-gray-400"
+                />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -422,28 +663,38 @@ export default function PaymentList() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl border border-gray-200 dark:border-gray-700 animate-scale-in overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  {editId ? (
-                    <Edit size={20} className="text-purple-500" />
-                  ) : (
-                    <Plus size={20} className="text-purple-500" />
-                  )}
-                  {editId ? "Edit Payment" : "Record New Payment"}
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {editId
-                    ? "Update payment details and allocations"
-                    : "Enter payment details and allocate to invoices"}
-                </p>
+            <div className="relative p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-emerald-600 to-teal-700 overflow-hidden">
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24"></div>
+
+              <div className="relative flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    {editId ? (
+                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <Edit size={24} className="text-white" />
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <Plus size={24} className="text-white" />
+                      </div>
+                    )}
+                    {editId ? "Edit Payment" : "Record New Payment"}
+                  </h2>
+                  <p className="text-sm text-emerald-50 mt-2 ml-14">
+                    {editId
+                      ? "Update payment details and allocations"
+                      : "Enter payment details and allocate to invoices"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-white/20 rounded-xl transition-all duration-200 text-white hover:scale-110 backdrop-blur-sm"
+                >
+                  <X size={24} />
+                </button>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              >
-                <X size={20} />
-              </button>
             </div>
 
             <form
@@ -827,6 +1078,60 @@ export default function PaymentList() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color }) {
+  const colors = {
+    blue: {
+      bg: "bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-800/20",
+      iconBg: "bg-gradient-to-br from-blue-500 to-cyan-600",
+      text: "text-blue-600 dark:text-blue-400",
+      shadow: "shadow-blue-500/20 dark:shadow-blue-500/10",
+      hoverShadow: "hover:shadow-blue-500/30 dark:hover:shadow-blue-500/20",
+    },
+    green: {
+      bg: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-800/20",
+      iconBg: "bg-gradient-to-br from-green-500 to-emerald-600",
+      text: "text-green-600 dark:text-green-400",
+      shadow: "shadow-green-500/20 dark:shadow-green-500/10",
+      hoverShadow: "hover:shadow-green-500/30 dark:hover:shadow-green-500/20",
+    },
+    purple: {
+      bg: "bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-800/20",
+      iconBg: "bg-gradient-to-br from-purple-500 to-indigo-600",
+      text: "text-purple-600 dark:text-purple-400",
+      shadow: "shadow-purple-500/20 dark:shadow-purple-500/10",
+      hoverShadow: "hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20",
+    },
+  };
+
+  const colorScheme = colors[color];
+
+  return (
+    <div
+      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+
+      <div className="relative flex items-center gap-4">
+        <div
+          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+        >
+          <Icon size={28} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <h3
+            className={`text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+          >
+            {value}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+            {label}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
