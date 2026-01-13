@@ -15,6 +15,13 @@ router = APIRouter(
 
 DB_FILE_PATH = "sql_app.db" # This variable is no longer used for live copy, but kept if needed for legacy compatibility check.
 
+@router.get("/config")
+async def get_backup_config():
+    """Return current backup configuration including DB type."""
+    return {
+        "db_type": backup_manager._get_db_type()
+    }
+
 
 @router.get("/list")
 async def list_backups():

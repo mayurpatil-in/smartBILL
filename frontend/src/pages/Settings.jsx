@@ -9,6 +9,8 @@ import {
   activateFinancialYear,
   deleteFinancialYear,
 } from "../api/financialYear";
+import { getProfile } from "../api/profile";
+import SubscriptionCard from "../components/SubscriptionCard";
 import { Settings as SettingsIcon, Database, LayoutGrid } from "lucide-react";
 
 export default function Settings() {
@@ -17,20 +19,25 @@ export default function Settings() {
   // -- Financial Year State --
   const [activeFY, setActiveFY] = useState(null);
   const [allFY, setAllFY] = useState([]);
+  const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
 
-  // 🔄 Load FY data
-  const loadFY = async () => {
+  // 🔄 Load Data
+  const loadData = async () => {
     try {
       setLoading(true);
-      const [active, all] = await Promise.all([
+      const [active, all, profileData] = await Promise.all([
         getActiveFinancialYear(),
         getAllFinancialYears(),
+        getProfile(),
       ]);
       setActiveFY(active);
       setAllFY(all);
+      if (profileData?.company) {
+        setCompany(profileData.company);
+      }
     } catch {
       setActiveFY(null);
       setAllFY([]);
@@ -40,7 +47,7 @@ export default function Settings() {
   };
 
   useEffect(() => {
-    loadFY();
+    loadData();
   }, []);
 
   // ➕ Create FY
@@ -51,7 +58,7 @@ export default function Settings() {
         end_date: endDate,
       });
       setShowModal(false);
-      loadFY();
+      loadData();
     } catch {
       setError("Failed to create financial year");
     }
@@ -62,7 +69,7 @@ export default function Settings() {
     try {
       await activateFinancialYear(fy.id);
       setShowModal(false);
-      loadFY();
+      loadData();
     } catch {
       setError("Failed to activate financial year");
     }
@@ -73,7 +80,7 @@ export default function Settings() {
     if (!window.confirm("Delete this financial year?")) return;
     try {
       await deleteFinancialYear(fy.id);
-      loadFY();
+      loadData();
     } catch {
       setError("Failed to delete financial year");
     }
@@ -131,15 +138,16 @@ export default function Settings() {
       {/* CONTENT AREA */}
       <div className="min-h-[400px]">
         {activeTab === "general" && (
-          <div className="max-w-3xl animate-fade-in">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-              Financial Year Configuration
-            </h2>
-            <FinancialYearCard
-              fy={activeFY}
-              loading={loading}
-              onAddFY={() => setShowModal(true)}
-            />
+          <div className="max-w-6xl animate-fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SubscriptionCard company={company} loading={loading} />
+
+              <FinancialYearCard
+                fy={activeFY}
+                loading={loading}
+                onAddFY={() => setShowModal(true)}
+              />
+            </div>
             {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
           </div>
         )}

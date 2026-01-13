@@ -2,7 +2,6 @@ import api from "./axios";
 
 // Original Export (Direct Download)
 
-
 // Original Import (Upload) - Updated to support password
 export const importBackup = async (file, password = null) => {
   const formData = new FormData();
@@ -10,7 +9,7 @@ export const importBackup = async (file, password = null) => {
   if (password) {
     formData.append("password", password);
   }
-  
+
   const res = await api.post("/backup/import", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
@@ -26,18 +25,23 @@ export const getBackupList = async () => {
   return res.data;
 };
 
+export const getBackupConfig = async () => {
+  const res = await api.get("/backup/config");
+  return res.data;
+};
+
 export const createManualBackup = async (password = null, format = "sql") => {
   const formData = new FormData();
   formData.append("format", format);
   if (password) {
-      formData.append("password", password);
+    formData.append("password", password);
   }
   // Note: Even though it's 'create', we use Form data if sending password
   // Standard axios post with data object works for JSON, but Router expects Form for password if mixed?
   // Actually Router defines `password: Optional[str] = Form(None)`. So we must send form-data.
-  
+
   const res = await api.post("/backup/create", formData, {
-      headers: { "Content-Type": "multipart/form-data" } 
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
 };
@@ -48,7 +52,7 @@ export const deleteBackup = async (filename) => {
 };
 
 export const downloadBackupFile = async (filename) => {
-   const res = await api.get(`/backup/download/${filename}`, {
+  const res = await api.get(`/backup/download/${filename}`, {
     responseType: "blob",
   });
   return res.data;

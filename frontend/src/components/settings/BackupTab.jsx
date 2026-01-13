@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import {
   importBackup,
   getBackupList,
+  getBackupConfig,
   createManualBackup,
   deleteBackup,
   downloadBackupFile,
@@ -24,6 +25,7 @@ import ConfirmDialog from "../ConfirmDialog";
 const BackupTab = () => {
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [dbType, setDbType] = useState(null);
 
   // Dialog State
   const [dialog, setDialog] = useState({
@@ -38,7 +40,17 @@ const BackupTab = () => {
 
   useEffect(() => {
     loadBackups();
+    loadConfig();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const config = await getBackupConfig();
+      setDbType(config.db_type);
+    } catch (e) {
+      console.error("Failed to load backup config");
+    }
+  };
 
   const closeDialog = () => {
     setDialog({ ...dialog, open: false });
@@ -58,6 +70,61 @@ const BackupTab = () => {
       setLoading(false);
     }
   };
+
+  // ... (rest of the code until around line 243)
+
+  {
+    /* FORMAT SELECTION */
+  }
+  {
+    dbType === "sqlite" ? (
+      <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
+          Backup Format
+        </label>
+        <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
+            .db
+          </span>
+          <span>SQLite Database File (Direct Copy)</span>
+        </div>
+      </div>
+    ) : (
+      <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
+          Backup Format
+        </label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="format"
+              value="sql"
+              checked={backupFormat === "sql"}
+              onChange={(e) => setBackupFormat(e.target.value)}
+              className="text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              Plain SQL (.sql)
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="format"
+              value="dump"
+              checked={backupFormat === "dump"}
+              onChange={(e) => setBackupFormat(e.target.value)}
+              className="text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              Binary (.dump)
+            </span>
+          </label>
+        </div>
+      </div>
+    );
+  }
 
   // --- CREATE BACKUP ---
   const openCreateDialog = () => {

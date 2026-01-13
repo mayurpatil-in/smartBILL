@@ -27,10 +27,16 @@ else:  # Linux / VPS
 class BackupManager:
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
+        print(f"BACKUP_MANAGER: Initialized in PID {os.getpid()}")
         # Directory is ensured by app.core.paths
 
     def start_scheduler(self):
         # Default: Daily backup at 2:00 AM
+        if self.scheduler.running:
+             print(f"BACKUP_MANAGER: Scheduler already running in PID {os.getpid()}")
+             return
+
+        print(f"BACKUP_MANAGER: Starting Scheduler in PID {os.getpid()}")
         self.scheduler.add_job(
             self.create_backup, 
             'cron', 
@@ -43,13 +49,29 @@ class BackupManager:
         self.scheduler.start()
 
     def _create_notification(self, title: str, message: str, type: str):
-        """Helper to safely create a DB notification"""
+        """Helper to safely create a DB notification with deduplication"""
         try:
             # Lazy import to avoid circular dep if any
             from app.database.session import SessionLocal
             from app.models.notification import Notification
+            from datetime import timedelta
             
             db = SessionLocal()
+            
+            # Deduplication: Check if similar notification exists from last 60s
+            # This handles cases where multiple workers might trigger the same scheduled job
+            cutoff = datetime.utcnow() - timedelta(seconds=60)
+            existing = db.query(Notification).filter(
+                Notification.title == title,
+                Notification.type == type,
+                Notification.created_at >= cutoff
+            ).first()
+            
+            if existing:
+                print(f"Skipping duplicate notification: {title}")
+                db.close()
+                return
+
             notif = Notification(title=title, message=message, type=type)
             db.add(notif)
             db.commit()
@@ -57,7 +79,29 @@ class BackupManager:
         except Exception as e:
             print(f"Failed to create notification: {e}")
 
+    # --- HELPER METHODS ---
+    def _get_db_type(self):
+        if settings.DATABASE_URL.startswith("sqlite"):
+            return "sqlite"
+        return "postgresql"
+
+    def _get_sqlite_path(self):
+        # sqlite:///C:/path/to.db  -> C:/path/to.db
+        return settings.DATABASE_URL.replace("sqlite:///", "")
+
+    def _get_db_config(self):
+        """Parse DATABASE_URL for Postgres params"""
+        u = urlparse(settings.DATABASE_URL)
+        return {
+            "user": u.username,
+            "password": u.password,
+            "host": u.hostname,
+            "port": u.port or 5432,
+            "dbname": u.path.lstrip("/")
+        }
+
     def _derive_key(self, password: str, salt: bytes) -> bytes:
+        """Derive a 32-byte key from password using PBKDF2"""
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -66,40 +110,12 @@ class BackupManager:
         )
         return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
-    def _get_db_type(self):
-        """Detect database type: 'sqlite' or 'postgresql'"""
-        if "sqlite" in settings.DATABASE_URL:
-            return "sqlite"
-        return "postgresql"
-
-    def _get_sqlite_path(self):
-        """Extract path from sqlite:///... url"""
-        url = settings.DATABASE_URL
-        if url.startswith("sqlite:///"):
-            return url.replace("sqlite:///", "")
-        return "sql_app.db"
-
-    def _get_db_config(self):
-        """Parse DATABASE_URL to get connection details for Postgres"""
-        url = settings.DATABASE_URL
-        if "+psycopg2" in url:
-            url = url.replace("+psycopg2", "")
-        
-        parsed = urlparse(url)
-        return {
-            "user": parsed.username,
-            "password": parsed.password,
-            "host": parsed.hostname,
-            "port": parsed.port or 5432,
-            "dbname": parsed.path.lstrip('/')
-        }
-
     def create_backup(self, auto=True, password: str = None, format: str = "sql"):
         """
         Create a backup of the database (SQLite or Postgres).
         """
         db_type = self._get_db_type()
-        print(f"Starting backup ({db_type})... Auto={auto}, Encrypted={bool(password)}")
+        print(f"BACKUP_MANAGER: Starting backup ({db_type})... Auto={auto}, PID={os.getpid()}")
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         prefix = "auto_backup" if auto else "manual_backup"
@@ -135,7 +151,7 @@ class BackupManager:
                 
             self._create_notification(
                  "Auto Backup Successful" if auto else "Manual Backup Successful", 
-                 f"Backup created: {filename}",
+                 f"Backup created: {filename} (PID: {os.getpid()})",
                  "success"
             )
             return filename

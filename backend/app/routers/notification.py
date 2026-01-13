@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from ..database.session import get_db
 from ..models.notification import Notification
+from ..models.user import User  # Added
+from ..core.dependencies import get_current_user # Added
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -29,18 +31,42 @@ class NotificationOut(BaseModel):
 def get_notifications(
     skip: int = 0, 
     limit: int = 20, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user) # Require auth to check subscription
 ):
     """Get recent notifications ordered by date desc"""
-    return db.query(Notification)\
+    notifications = db.query(Notification)\
         .order_by(Notification.created_at.desc())\
         .offset(skip)\
         .limit(limit)\
         .all()
+    
+    # 🔔 INJECT SUBSCRIPTION WARNING
+    if user.company and user.company.subscription_end:
+        today = datetime.now().date()
+        days_left = (user.company.subscription_end - today).days
+
+        if 0 <= days_left <= 7:
+            warning_notif = NotificationOut(
+                id=-1, # Virtual ID
+                title="Subscription Expiring Soon",
+                message=f"Your subscription expires in {days_left} days. Please renew to avoid interruption.",
+                type="warning",
+                is_read=False,
+                created_at=datetime.now()
+            )
+            # Prepend to list
+            notifications.insert(0, warning_notif)
+
+    return notifications
 
 @router.put("/{id}/read")
 def mark_as_read(id: int, db: Session = Depends(get_db)):
     """Mark a single notification as read"""
+    # Handle virtual notifications
+    if id == -1:
+         return {"status": "success"}
+
     notif = db.query(Notification).filter(Notification.id == id).first()
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")
