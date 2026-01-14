@@ -24,10 +24,11 @@ def build_backend():
     datas_as, binaries_as, hiddenimports_as = collect_all('apscheduler')
     datas_ev, binaries_ev, hiddenimports_ev = collect_all('email_validator')
     datas_bc, binaries_bc, hiddenimports_bc = collect_all('bcrypt')
+    datas_pw, binaries_pw, hiddenimports_pw = collect_all('playwright')
     
-    datas = datas_ps + datas_pl + datas_as + datas_ev + datas_bc
-    binaries = binaries_ps + binaries_pl + binaries_as + binaries_ev + binaries_bc
-    hiddenimports = hiddenimports_ps + hiddenimports_pl + hiddenimports_as + hiddenimports_ev + hiddenimports_bc
+    datas = datas_ps + datas_pl + datas_as + datas_ev + datas_bc + datas_pw
+    binaries = binaries_ps + binaries_pl + binaries_as + binaries_ev + binaries_bc + binaries_pw
+    hiddenimports = hiddenimports_ps + hiddenimports_pl + hiddenimports_as + hiddenimports_ev + hiddenimports_bc + hiddenimports_pw
     
     # Add other needed hidden imports
     hiddenimports.extend([

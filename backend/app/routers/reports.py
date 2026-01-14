@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response, HTTPException
 import qrcode
 import io
 import base64
@@ -7,10 +7,13 @@ from sqlalchemy import func, or_, and_
 from typing import List, Optional
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from playwright.sync_api import sync_playwright
-from playwright.async_api import async_playwright
-from starlette.concurrency import run_in_threadpool
+# from playwright.sync_api import sync_playwright # REMOVED
+# from playwright.async_api import async_playwright # REMOVED
+# from starlette.concurrency import run_in_threadpool # REMOVED
 import traceback
+
+from app.services.pdf_service import generate_pdf # ADDED
+
 
 from app.database.session import get_db
 from app.models.company import Company
@@ -35,8 +38,15 @@ from app.schemas.report import DashboardStats
 
 from starlette.templating import Jinja2Templates
 
+import os
 router = APIRouter(prefix="/reports", tags=["Reports"])
-templates = Jinja2Templates(directory="app/templates")
+
+# Fix for Frozen App: Resolve templates directory relative to this file
+# reports.py is in app/routers, so we go up one level to app, then into templates
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @router.post("/recalculate-stock")
 def recalculate_stock(
@@ -347,11 +357,8 @@ async def get_party_ledger_pdf(
     qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     # 5. Render HTML
-    env = Environment(
-        loader=FileSystemLoader("app/templates"),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
-    template = env.get_template("party_ledger.html")
+    # 5. Render HTML
+    template = templates.get_template("party_ledger.html")
     
     html_content = template.render(
         company=company,
@@ -364,17 +371,10 @@ async def get_party_ledger_pdf(
         qr_code=qr_code_b64
     )
 
-    # 5. Generate PDF with Playwright (Sync in Thread)
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(format="A4", margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"})
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # 5. Generate PDF with Shared Service
+    pdf_data = await generate_pdf(html_content, options={
+        "margin": {"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"}
+    })
 
     # 6. Return Response
     filename = f"Stock_Ledger_{party_name.replace(' ', '_')}.pdf" if party_name else "Stock_Ledger_All.pdf"
@@ -666,11 +666,8 @@ async def get_party_statement_pdf(
     qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     # Render HTML
-    env = Environment(
-        loader=FileSystemLoader("app/templates"),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
-    template = env.get_template("party_statement.html")
+    # Render HTML
+    template = templates.get_template("party_statement.html")
     
     html_content = template.render(
         company=company,
@@ -688,26 +685,16 @@ async def get_party_statement_pdf(
     )
     
     # Generate PDF
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(
-                format="A4",
-                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-                display_header_footer=True,
-                footer_template="""
-                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                    </div>
-                """,
-                header_template="<div></div>"
-            )
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    pdf_data = await generate_pdf(html_content, options={
+        "margin": {"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
+        "display_header_footer": True,
+        "footer_template": """
+            <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
+                Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+            </div>
+        """,
+        "header_template": "<div></div>"
+    })
     
     filename = f"Statement_{party.name.replace(' ', '_')}_{start}_{end}.pdf"
     
@@ -1100,26 +1087,18 @@ async def get_stock_ledger_pdf(
 
     # Generate PDF
     # ------------
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(
-                format="A4",
-                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-                display_header_footer=True,
-                footer_template="""
-                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                    </div>
-                """,
-                header_template="<div></div>"
-            )
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # Generate PDF
+    # ------------
+    pdf_data = await generate_pdf(html_content, options={
+         "margin": {"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
+         "display_header_footer": True,
+         "footer_template": """
+            <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
+                Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+            </div>
+         """,
+         "header_template": "<div></div>"
+    })
     
     # Sanitize Filename
     safe_item_name = "".join([c if c.isalnum() or c in (' ', '-', '_') else '_' for c in item.name]).strip()
@@ -1420,6 +1399,8 @@ async def get_gst_report_pdf(
         datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else fy.end_date
     )
 
+    print(f"[REPORTS DEBUG] Generating GST PDF for range: {start} to {end}, Type: {type}")
+
     company = db.query(Company).filter(Company.id == company_id).first()
 
     report_rows = []
@@ -1557,27 +1538,24 @@ async def get_gst_report_pdf(
         total_amount=total_grand
     )
 
-    # 3. Generate PDF using run_in_threadpool
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.set_content(html)
-            pdf_data = page.pdf(
-                format="A4",
-                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-                display_header_footer=True,
-                footer_template="""
-                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                    </div>
-                """,
-                header_template="<div></div>"
-            )
-            browser.close()
-            return pdf_data
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # 3. Generate PDF using shared service
+    print(f"[REPORTS DEBUG] Calling generate_pdf service...")
+    try:
+        pdf_data = await generate_pdf(html_content, options={
+            "margin": {"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
+            "display_header_footer": True,
+            "footer_template": """
+                <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
+                    Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+                </div>
+            """,
+            "header_template": "<div></div>"
+        })
+        print(f"[REPORTS DEBUG] PDF Service returned {len(pdf_data)} bytes.")
+    except Exception as e:
+        print(f"[REPORTS ERROR] PDF Generation Failed: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF Generation Failed: {str(e)}")
 
     return Response(
         content=pdf_data,

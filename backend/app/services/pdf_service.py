@@ -21,37 +21,42 @@ class PDFManager:
 
     async def _init_browser(self):
         """Initialize browser inside the worker loop"""
+        print("[PDF DEBUG] Initializing PDF Service Browser...")
         try:
+            print("[PDF DEBUG] Starting Playwright engine...")
             self._playwright = await async_playwright().start()
+            print("[PDF DEBUG] Playwright engine started successfully.")
             
-            # Try 1: Bundled/Default
+            # Try 1: Microsoft Edge (Optimized for Windows Desktop)
             try:
-                print("INFO:    Attempting to launch default/bundled Chromium...")
-                self._browser = await self._playwright.chromium.launch(headless=True)
-                print("INFO:    PDF Service: Using Bundled/Default Chromium.")
-            except Exception as e_bundled:
-                print(f"WARN:    Default browser failed: {e_bundled}")
+                print("[PDF DEBUG] Attempting to launch Microsoft Edge (channel='msedge')...")
+                self._browser = await self._playwright.chromium.launch(channel="msedge", headless=True)
+                print("INFO:    PDF Service: Using Microsoft Edge.")
+            except Exception as e_edge:
+                print(f"[PDF DEBUG] Edge launch failed: {e_edge}")
                 
-                # Try 2: Microsoft Edge
+                # Try 2: Google Chrome
                 try:
-                    print("INFO:    Attempting to launch Microsoft Edge...")
-                    self._browser = await self._playwright.chromium.launch(channel="msedge", headless=True)
-                    print("INFO:    PDF Service: Using Microsoft Edge.")
-                except Exception as e_edge:
-                    print(f"WARN:    Edge failed: {e_edge}")
+                    print("[PDF DEBUG] Attempting to launch Google Chrome (channel='chrome')...")
+                    self._browser = await self._playwright.chromium.launch(channel="chrome", headless=True)
+                    print("INFO:    PDF Service: Using Google Chrome.")
+                except Exception as e_chrome:
+                    print(f"[PDF DEBUG] Chrome launch failed: {e_chrome}")
                     
-                    # Try 3: Google Chrome
+                    # Try 3: Bundled/Default (Last Resort, likely to fail in frozen app if not bundled)
                     try:
-                        print("INFO:    Attempting to launch Google Chrome...")
-                        self._browser = await self._playwright.chromium.launch(channel="chrome", headless=True)
-                        print("INFO:    PDF Service: Using Google Chrome.")
-                    except Exception as e_chrome:
+                        print("[PDF DEBUG] Attempting to launch default/bundled Chromium...")
+                        self._browser = await self._playwright.chromium.launch(headless=True)
+                        print("INFO:    PDF Service: Using Bundled/Default Chromium.")
+                    except Exception as e_bundled:
                         print(f"ERROR:   All browser launch attempts failed. PDF generation will be unavailable.")
-                        print(f"ERROR:   Chrome failed: {e_chrome}")
+                        print(f"ERROR:   Bundled failed: {e_bundled}")
                         self._browser = None
                         
         except Exception as e:
             print(f"CRITICAL PDF SERVICE ERROR: {e}")
+            import traceback
+            traceback.print_exc()
             self._browser = None
 
     async def start(self):
@@ -104,10 +109,10 @@ class PDFManager:
         self._thread = None
         print("INFO:    PDF Service stopped.")
 
-    async def _generate_task(self, html_content: str) -> bytes:
+    async def _generate_task(self, html_content: str, options: dict = None) -> bytes:
         """Task running in the worker loop"""
         if not self._browser:
-            # Try to init again if it failed previously (maybe user installed browser?)
+            # Try to init again if it failed previously
             await self._init_browser()
             
         if not self._browser:
@@ -117,28 +122,36 @@ class PDFManager:
         page = await context.new_page()
         try:
             await page.set_content(html_content)
-            pdf_data = await page.pdf(
-                format="A4",
-                print_background=True,
-                margin={"top": "20px", "right": "20px", "bottom": "20px", "left": "20px"}
-            )
+            
+            # Default Options
+            pdf_options = {
+                "format": "A4",
+                "print_background": True,
+                "margin": {"top": "20px", "right": "20px", "bottom": "20px", "left": "20px"}
+            }
+            
+            # Merge provided options
+            if options:
+                pdf_options.update(options)
+                
+            pdf_data = await page.pdf(**pdf_options)
             return pdf_data
         finally:
             await page.close()
             await context.close()
 
-    async def generate(self, html_content: str) -> bytes:
+    async def generate(self, html_content: str, options: dict = None) -> bytes:
         """Public API: Dispatch to worker loop"""
         if not self._loop:
              await self.start()
              
         future = asyncio.run_coroutine_threadsafe(
-            self._generate_task(html_content), 
+            self._generate_task(html_content, options), 
             self._loop
         )
         return await asyncio.wrap_future(future)
 
 pdf_manager = PDFManager()
 
-async def generate_pdf(html_content: str) -> bytes:
-    return await pdf_manager.generate(html_content)
+async def generate_pdf(html_content: str, options: dict = None) -> bytes:
+    return await pdf_manager.generate(html_content, options)

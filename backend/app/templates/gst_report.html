@@ -129,14 +129,15 @@
         }
 
         .party-header {
-            background: linear-gradient(to right, #475569, #334155);
-            color: #fff;
+            background: #f8fafc;
+            color: #1e293b;
             padding: 10px 15px;
             font-weight: 600;
             font-size: 11px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         .party-name {
@@ -156,12 +157,12 @@
         }
         
         th {
-            background: #f8fafc;
+            background: #fff;
             padding: 10px;
             text-align: left;
             font-weight: 600;
             color: #475569;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
             text-transform: uppercase;
             font-size: 9px;
             letter-spacing: 0.5px;
@@ -183,20 +184,21 @@
         .font-bold { font-weight: 700; }
         
         .summary-row td {
-            background-color: #f8fafc;
+            background-color: #fff;
             font-weight: 700;
             color: #0f172a;
-            border-top: 2px solid #e2e8f0;
+            border-top: 1px solid #cbd5e1;
         }
         
         .grand-total-section {
             margin-top: 40px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: #fff;
+            background: #fff;
+            color: #1e293b;
             padding: 20px;
             page-break-inside: avoid;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
+            border: 2px solid #e2e8f0;
         }
 
         .grand-total-header {
@@ -204,9 +206,9 @@
             font-size: 14px;
             font-weight: 700;
             text-transform: uppercase;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid #e2e8f0;
             padding-bottom: 10px;
-            color: #94a3b8;
+            color: #475569;
         }
 
         .grand-total-table {
@@ -215,7 +217,7 @@
 
         .grand-total-table th {
             background: transparent;
-            color: #94a3b8;
+            color: #64748b;
             border: none;
             padding-bottom: 8px;
         }
@@ -225,12 +227,12 @@
             padding: 8px 10px;
             font-size: 16px;
             font-weight: 700;
-            color: #fff;
+            color: #0f172a;
         }
         
         .grand-total-amount {
             font-size: 20px !important;
-            color: #4ade80 !important;
+            color: #16a34a !important;
         }
 
         .header-qr {
@@ -318,7 +320,7 @@
                 <span style="opacity: 0.8; font-weight: 400;">PARTY:</span>
                 <span>{{ group.party_name }}</span>
             </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 10px;">
+            <div style="background: #fff; border: 1px solid #e2e8f0; color: #64748b; padding: 4px 8px; border-radius: 4px; font-size: 10px;">
                 GSTIN: {{ group.gstin }}
             </div>
         </div>
