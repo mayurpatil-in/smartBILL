@@ -552,6 +552,7 @@ def pay_salary(
         description=f"Salary for {emp_name} - {month_name} {year}",
         amount=slip.final_payable,
         payment_method=payment_method,
+        payee_name=emp_name,  # Add employee name for cheque printing
         status="PAID"
     )
     

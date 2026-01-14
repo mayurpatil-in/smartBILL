@@ -15,6 +15,7 @@ import {
   ChevronDown,
   TrendingDown,
   Receipt,
+  ReceiptIndianRupee,
   Building2,
   CreditCard,
   IndianRupee,
@@ -165,7 +166,7 @@ export default function Expenses() {
           <StatCard
             label="Total Count"
             value={stats.count}
-            icon={Receipt}
+            icon={ReceiptIndianRupee}
             color="orange"
           />
         </div>

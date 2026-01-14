@@ -249,31 +249,26 @@ export default function Challans() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           label="Total Challans"
           value={totalChallans}
           icon={BarChart3}
           color="purple"
         />
-        <StatCard label="Sent" value={totalSent} icon={Send} color="blue" />
+        <StatCard
+          label="Sent"
+          value={totalSent}
+          icon={Send}
+          color="blue"
+          subtext={`${totalQuantitySent} units sent`}
+        />
         <StatCard
           label="Delivered"
           value={totalDelivered}
           icon={CheckCircle}
           color="green"
-        />
-        <StatCard
-          label="Qty Sent"
-          value={totalQuantitySent}
-          icon={Package}
-          color="blue"
-        />
-        <StatCard
-          label="Qty Delivered"
-          value={totalQuantityDelivered}
-          icon={Truck}
-          color="green"
+          subtext={`${totalQuantityDelivered} units delivered`}
         />
       </div>
 
@@ -699,7 +694,7 @@ function ChallanRow({
   );
 }
 
-function StatCard({ label, value, icon: Icon, color }) {
+function StatCard({ label, value, icon: Icon, color, subtext }) {
   const colors = {
     blue: {
       bg: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20",
@@ -747,6 +742,11 @@ function StatCard({ label, value, icon: Icon, color }) {
           <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wider mt-1">
             {label}
           </p>
+          {subtext && (
+            <p className="text-xs text-gray-500 dark:text-gray-500 font-medium mt-1">
+              {subtext}
+            </p>
+          )}
         </div>
       </div>
     </div>
