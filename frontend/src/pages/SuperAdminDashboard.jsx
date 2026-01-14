@@ -217,34 +217,37 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* 👑 HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-800 p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 dark:from-purple-950/30 dark:via-blue-950/20 dark:to-cyan-950/20 p-6 md:p-8 rounded-3xl shadow-xl border-2 border-purple-200 dark:border-purple-800">
+        {/* Decorative Background */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-cyan-400/10 dark:from-purple-500/5 dark:to-cyan-500/5 rounded-full blur-3xl -mr-48 -mt-48"></div>
+
+        <div className="relative z-10">
+          <h1 className="text-3xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 dark:from-purple-400 dark:via-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
             Super Admin Portal
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 font-medium">
             Manage tenants, subscriptions, and system health
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="relative z-10 flex gap-3">
           <button
             onClick={() => setActiveTab("companies")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
               activeTab === "companies"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/40 scale-105"
+                : "text-gray-700 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-700"
             }`}
           >
             Companies
           </button>
           <button
             onClick={() => handleTabChange("audit")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
               activeTab === "audit"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/40 scale-105"
+                : "text-gray-700 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-700"
             }`}
           >
             <Activity size={16} /> Audit Logs
@@ -253,9 +256,12 @@ export default function SuperAdminDashboard() {
         {activeTab === "companies" && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-600/20"
+            className="relative z-10 flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 hover:scale-105"
           >
-            <Plus size={20} />
+            <Plus
+              size={20}
+              className="group-hover:rotate-90 transition-transform duration-300"
+            />
             Add Company
           </button>
         )}
@@ -367,15 +373,25 @@ export default function SuperAdminDashboard() {
       )}
 
       {activeTab === "audit" && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Recent Admin Activity
-            </h3>
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-lg">
+                <Activity size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-purple-900 to-blue-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  Recent Admin Activity
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Track all administrative actions and changes
+                </p>
+              </div>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase tracking-wider font-semibold">
+              <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                 <tr>
                   <th className="px-6 py-4">Timestamp</th>
                   <th className="px-6 py-4">Action</th>
@@ -389,53 +405,96 @@ export default function SuperAdminDashboard() {
                   <tr>
                     <td
                       colSpan="5"
-                      className="px-6 py-8 text-center text-gray-500"
+                      className="px-6 py-12 text-center text-gray-500"
                     >
-                      Loading logs...
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <span className="text-sm font-medium">
+                          Loading logs...
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ) : auditLogs.length === 0 ? (
                   <tr>
                     <td
                       colSpan="5"
-                      className="px-6 py-8 text-center text-gray-500"
+                      className="px-6 py-12 text-center text-gray-500"
                     >
-                      No activity recorded yet
+                      <div className="flex flex-col items-center gap-2">
+                        <Activity
+                          className="text-gray-300 dark:text-gray-600"
+                          size={48}
+                        />
+                        <span className="text-sm font-medium">
+                          No activity recorded yet
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   auditLogs.map((log) => (
                     <tr
                       key={log.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/5 transition-all duration-300"
                     >
-                      <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
-                        {new Date(
-                          log.created_at.endsWith("Z")
-                            ? log.created_at
-                            : log.created_at + "Z"
-                        ).toLocaleString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <Clock
+                              size={14}
+                              className="text-gray-500 dark:text-gray-400"
+                            />
+                          </div>
+                          <span className="text-gray-600 dark:text-gray-300 font-medium text-xs">
+                            {new Date(
+                              log.created_at.endsWith("Z")
+                                ? log.created_at
+                                : log.created_at + "Z"
+                            ).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      <td className="px-6 py-5">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-blue-600 text-white shadow-md uppercase tracking-wider">
                           {log.action}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                        {log.user_name}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <User
+                              size={14}
+                              className="text-blue-600 dark:text-blue-400"
+                            />
+                          </div>
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {log.user_name}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {log.company_name || "-"}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                            <Building2
+                              size={14}
+                              className="text-purple-600 dark:text-purple-400"
+                            />
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">
+                            {log.company_name || "-"}
+                          </span>
+                        </div>
                       </td>
                       <td
-                        className="px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate"
+                        className="px-6 py-5 text-gray-600 dark:text-gray-400 max-w-xs truncate text-sm"
                         title={log.details}
                       >
                         {log.details}
@@ -559,22 +618,29 @@ export default function SuperAdminDashboard() {
 // -----------------------------------------
 function CompanyRow({ company, onManage }) {
   return (
-    <tr className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-      <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
-        {company.name}
+    <tr className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/5 transition-all duration-300">
+      <td className="px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl shadow-md group-hover:scale-110 transition-transform duration-300">
+            <Building2 size={18} className="text-white" />
+          </div>
+          <span className="font-bold text-gray-900 dark:text-gray-100">
+            {company.name}
+          </span>
+        </div>
       </td>
-      <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
+      <td className="px-6 py-5 text-gray-600 dark:text-gray-300 font-medium">
         {company.email}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-6 py-5 whitespace-nowrap">
         <span
-          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-black shadow-md uppercase tracking-wider ${
             company.is_active
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+              : "bg-gradient-to-r from-red-500 to-rose-600 text-white"
           }`}
         >
-          {company.is_active ? "Active" : "Inactive"}
+          {company.is_active ? "ACTIVE" : "INACTIVE"}
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
@@ -596,15 +662,13 @@ function CompanyRow({ company, onManage }) {
           return <span className={colorClass}>{end.toLocaleDateString()}</span>;
         })()}
       </td>
-      <td className="px-6 py-4 text-right whitespace-nowrap">
+      <td className="px-6 py-5 text-right whitespace-nowrap">
         <button
           onClick={() => onManage(company)}
-          className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-2 ml-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg hover:scale-110 transition-all duration-200"
         >
-          <span className="text-sm font-medium hidden group-hover:block transition-all">
-            Manage
-          </span>
-          <Settings size={18} />
+          <Settings size={16} />
+          <span>Manage</span>
         </button>
       </td>
     </tr>
@@ -616,26 +680,60 @@ function CompanyRow({ company, onManage }) {
 // -----------------------------------------
 function Stat({ label, value, icon: Icon, color }) {
   const colors = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-    green:
-      "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
-    orange:
-      "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400",
-    red: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+    blue: {
+      bg: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20",
+      iconBg: "bg-gradient-to-br from-blue-500 to-blue-600",
+      text: "text-blue-600 dark:text-blue-400",
+      shadow: "shadow-blue-500/20 dark:shadow-blue-500/10",
+      hoverShadow: "hover:shadow-blue-500/30 dark:hover:shadow-blue-500/20",
+    },
+    green: {
+      bg: "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-800/20",
+      iconBg: "bg-gradient-to-br from-green-500 to-emerald-600",
+      text: "text-green-600 dark:text-green-400",
+      shadow: "shadow-green-500/20 dark:shadow-green-500/10",
+      hoverShadow: "hover:shadow-green-500/30 dark:hover:shadow-green-500/20",
+    },
+    orange: {
+      bg: "bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/30 dark:to-amber-800/20",
+      iconBg: "bg-gradient-to-br from-orange-500 to-amber-600",
+      text: "text-orange-600 dark:text-orange-400",
+      shadow: "shadow-orange-500/20 dark:shadow-orange-500/10",
+      hoverShadow: "hover:shadow-orange-500/30 dark:hover:shadow-orange-500/20",
+    },
+    red: {
+      bg: "bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-900/30 dark:to-rose-800/20",
+      iconBg: "bg-gradient-to-br from-red-500 to-rose-600",
+      text: "text-red-600 dark:text-red-400",
+      shadow: "shadow-red-500/20 dark:shadow-red-500/10",
+      hoverShadow: "hover:shadow-red-500/30 dark:hover:shadow-red-500/20",
+    },
   };
 
+  const colorScheme = colors[color];
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colors[color]}`}>
-        <Icon size={22} />
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {value}
-        </h3>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-          {label}
-        </p>
+    <div
+      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+
+      <div className="relative flex items-center gap-4">
+        <div
+          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+        >
+          <Icon size={28} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <h3
+            className={`text-3xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+          >
+            {value}
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wider mt-1">
+            {label}
+          </p>
+        </div>
       </div>
     </div>
   );
