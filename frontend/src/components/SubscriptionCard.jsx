@@ -27,89 +27,194 @@ export default function SubscriptionCard({ company, loading }) {
   const isExpired = daysRemaining < 0;
   const isWarning = daysRemaining <= 7 && !isExpired;
 
+  // Calculate total subscription days and progress
+  const totalDays = Math.ceil(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)
+  );
+  const daysElapsed = totalDays - daysRemaining;
+  const progressPercentage = Math.max(
+    0,
+    Math.min(100, (daysElapsed / totalDays) * 100)
+  );
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 h-full relative overflow-hidden">
-      {/* Background Decorative Blob */}
-      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+    <div className="relative overflow-hidden rounded-3xl shadow-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:shadow-3xl transition-all duration-500 group">
+      {/* Premium Background Pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-pink-950/20"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 dark:from-indigo-500/5 dark:to-purple-500/5 rounded-full blur-3xl -mr-48 -mt-48 group-hover:scale-110 transition-transform duration-700"></div>
 
       <div className="relative z-10">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Clock size={20} className="text-blue-500" />
-              Subscription Details
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Your current plan status and duration
-            </p>
+        {/* Header Section */}
+        <div className="p-8 pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-50"></div>
+                <div className="relative p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl">
+                  <Clock size={28} className="text-white" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-2xl font-black bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  Subscription Plan
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                  Active license management
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={`px-5 py-2.5 rounded-2xl text-sm font-black flex items-center gap-2 shadow-xl backdrop-blur-sm border-2 ${
+                isExpired
+                  ? "bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300 dark:border-red-700 shadow-red-500/30"
+                  : isWarning
+                  ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 dark:border-orange-700 shadow-orange-500/30 animate-pulse"
+                  : "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-300 dark:border-green-700 shadow-green-500/30"
+              }`}
+            >
+              {isExpired ? (
+                <>
+                  <AlertCircle size={18} />
+                  <span>EXPIRED</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={18} />
+                  <span>ACTIVE</span>
+                </>
+              )}
+            </div>
           </div>
 
-          <div
-            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
-              isExpired
-                ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                : isWarning
-                ? "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400"
-                : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
-            }`}
-          >
-            {isExpired ? (
-              <>
-                <AlertCircle size={14} /> EXPIRED
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={14} /> ACTIVE
-              </>
-            )}
+          {/* Days Remaining - Large Display */}
+          <div className="text-center py-4">
+            <div className="inline-flex flex-col items-center gap-1.5">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                {isExpired ? "Subscription Ended" : "Days Remaining"}
+              </span>
+              <div
+                className={`text-5xl font-black tracking-tight ${
+                  isExpired
+                    ? "text-red-600 dark:text-red-400"
+                    : isWarning
+                    ? "text-orange-600 dark:text-orange-400"
+                    : "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent"
+                }`}
+              >
+                {daysRemaining > 0 ? daysRemaining : 0}
+              </div>
+              {!isExpired && (
+                <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
+                  <span>out of {totalDays} days</span>
+                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                  <span>{progressPercentage.toFixed(0)}% elapsed</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+            <div
+              className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out ${
+                isExpired
+                  ? "bg-gradient-to-r from-red-500 to-rose-600"
+                  : isWarning
+                  ? "bg-gradient-to-r from-orange-500 to-amber-600"
+                  : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+              }`}
+              style={{ width: `${progressPercentage}%` }}
+            >
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
-              Start Date
-            </span>
-            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-200 font-medium">
-              <Calendar size={16} className="text-gray-400" />
-              {startDate.toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
+        {/* Details Grid */}
+        <div className="p-6 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Start Date Card */}
+            <div className="group/card relative overflow-hidden p-3 bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl border-2 border-blue-200/50 dark:border-blue-800/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-md hover:shadow-lg">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-400/10 dark:bg-blue-500/5 rounded-full blur-xl -mr-8 -mt-8 group-hover/card:scale-150 transition-transform duration-500"></div>
+              <div className="relative flex items-start gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg shadow-md shadow-blue-500/30">
+                  <Calendar size={16} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block mb-1">
+                    Start Date
+                  </span>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
+                    {startDate.toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* End Date Card */}
+            <div className="group/card relative overflow-hidden p-3 bg-gradient-to-br from-white to-indigo-50/50 dark:from-gray-800 dark:to-indigo-950/20 rounded-xl border-2 border-indigo-200/50 dark:border-indigo-800/30 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-md hover:shadow-lg">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-400/10 dark:bg-indigo-500/5 rounded-full blur-xl -mr-8 -mt-8 group-hover/card:scale-150 transition-transform duration-500"></div>
+              <div className="relative flex items-start gap-3">
+                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-md shadow-indigo-500/30">
+                  <Calendar size={16} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block mb-1">
+                    End Date
+                  </span>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
+                    {endDate.toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
-              End Date
-            </span>
-            <div className="flex items-center gap-2 text-gray-900 dark:text-gray-200 font-medium">
-              <Calendar size={16} className="text-gray-400" />
-              {endDate.toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
+          {/* Warning Message */}
+          {isWarning && !isExpired && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800 rounded-xl flex items-start gap-3 animate-pulse">
+              <AlertCircle
+                size={20}
+                className="text-orange-600 dark:text-orange-400 shrink-0 mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-bold text-orange-900 dark:text-orange-200">
+                  Subscription Expiring Soon
+                </p>
+                <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                  Your subscription will expire in {daysRemaining} days. Please
+                  renew to continue using the service.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
-              Duration Left
-            </span>
-            <div
-              className={`text-xl font-bold ${
-                isExpired
-                  ? "text-red-500"
-                  : isWarning
-                  ? "text-orange-500"
-                  : "text-blue-600 dark:text-blue-400"
-              }`}
-            >
-              {daysRemaining > 0 ? `${daysRemaining} Days` : "Overview"}
+          {isExpired && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-2 border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
+              <AlertCircle
+                size={20}
+                className="text-red-600 dark:text-red-400 shrink-0 mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-bold text-red-900 dark:text-red-200">
+                  Subscription Expired
+                </p>
+                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                  Your subscription has expired. Please contact support to renew
+                  your license.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

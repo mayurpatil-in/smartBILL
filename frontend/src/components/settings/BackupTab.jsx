@@ -389,48 +389,56 @@ const BackupTab = () => {
       {/* Hero Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Create Backup Card */}
-        <div className="bg-gradient-to-br from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 p-6 rounded-2xl border border-blue-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Archive size={100} className="text-blue-500" />
-          </div>
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 p-8 rounded-3xl border border-blue-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 group">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-cyan-400/15 to-blue-400/15 dark:from-cyan-500/8 dark:to-blue-500/8 rounded-full blur-2xl -ml-16 -mb-16"></div>
+
           <div className="relative z-10">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <Archive className="text-blue-600" size={20} />
-              Create Backup
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-6">
-              Create a secure copy of your database. You can optionally encrypt
-              it with a password.
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30">
+                <Archive className="text-white" size={24} />
+              </div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Create Backup
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              Create a secure snapshot of your database. Optionally encrypt it
+              with a password for enhanced security.
             </p>
             <button
               onClick={openCreateDialog}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-2"
             >
               <RefreshCw size={18} />
-              Create New Backup
+              <span>Create New Backup</span>
             </button>
           </div>
         </div>
 
         {/* Restore Card */}
-        <div className="bg-gradient-to-br from-amber-50 to-white dark:from-gray-800 dark:to-gray-900 p-6 rounded-2xl border border-amber-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Upload size={100} className="text-amber-500" />
-          </div>
+        <div className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 p-8 rounded-3xl border border-amber-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 group">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-amber-400/20 to-orange-400/20 dark:from-amber-500/10 dark:to-orange-500/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-orange-400/15 to-amber-400/15 dark:from-orange-500/8 dark:to-amber-500/8 rounded-full blur-2xl -ml-16 -mb-16"></div>
+
           <div className="relative z-10">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <Upload className="text-amber-600" size={20} />
-              Restore Database
-            </h3>
-            <div className="mt-2 mb-4 bg-amber-100/50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-700/50">
-              <p className="text-xs text-amber-800 dark:text-amber-200 flex gap-2">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                Warning: Restoring will replace all current data.
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg shadow-amber-500/30">
+                <Upload className="text-white" size={24} />
+              </div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Restore Database
+              </h3>
+            </div>
+            <div className="mb-6 bg-amber-100/80 dark:bg-amber-900/30 p-4 rounded-xl border border-amber-200 dark:border-amber-700/50 backdrop-blur-sm">
+              <p className="text-xs text-amber-800 dark:text-amber-200 flex gap-2 font-medium">
+                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                <span>Warning: Restoring will replace all current data.</span>
               </p>
             </div>
-            <label className="inline-flex cursor-pointer bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors items-center gap-2">
+            <label className="w-full inline-flex cursor-pointer bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-2 border-gray-300 dark:border-gray-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-300 items-center justify-center gap-2 shadow-md hover:shadow-lg">
               <FileDown size={18} />
-              Select Backup File
+              <span>Select Backup File</span>
               <input
                 type="file"
                 className="hidden"
@@ -443,20 +451,24 @@ const BackupTab = () => {
       </div>
 
       {/* History Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[400px]">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <Clock size={20} className="text-gray-500" />
-              Backup History
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Server-side backups. Automated daily at 2:00 AM.
-            </p>
+      <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden flex-1 flex flex-col min-h-[400px]">
+        <div className="p-8 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-gray-600 to-gray-800 dark:from-gray-700 dark:to-gray-900 rounded-xl shadow-lg">
+              <Clock size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Backup History
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Server-side backups • Automated daily at 2:00 AM
+              </p>
+            </div>
           </div>
           <button
             onClick={loadBackups}
-            className="p-2 text-gray-400 hover:text-blue-600 transition-colors bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow"
+            className="p-3 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg hover:scale-105"
             title="Refresh List"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -509,81 +521,86 @@ const BackupTab = () => {
                   return (
                     <tr
                       key={b.filename}
-                      className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors duration-200"
+                      className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/5 transition-all duration-300"
                     >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
                           <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-sm ${
+                            className={`relative w-12 h-12 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 ${
                               isDump
-                                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                                ? "bg-gradient-to-br from-purple-500 to-pink-600 text-white"
+                                : "bg-gradient-to-br from-blue-500 to-cyan-600 text-white"
                             }`}
                           >
                             {isDump ? (
-                              <Archive size={20} />
+                              <Archive size={22} />
                             ) : (
-                              <FileDown size={20} />
+                              <FileDown size={22} />
                             )}
                           </div>
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <p
-                              className="font-medium text-gray-900 dark:text-white truncate max-w-[200px] sm:max-w-xs"
+                              className="font-bold text-gray-900 dark:text-white truncate max-w-[250px] sm:max-w-md text-sm"
                               title={b.filename}
                             >
                               {b.filename}
                             </p>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-2 mt-1.5">
                               {isAuto && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 uppercase tracking-wide">
-                                  Auto
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-sm uppercase tracking-wider">
+                                  AUTO
+                                </span>
+                              )}
+                              {!isAuto && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-sm uppercase tracking-wider">
+                                  MANUAL
                                 </span>
                               )}
                               {isEnc && (
-                                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-800">
-                                  <Lock size={10} /> Encrypted
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 px-2 py-0.5 rounded-lg border border-amber-300 dark:border-amber-700 shadow-sm">
+                                  <Lock size={10} /> ENCRYPTED
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-5">
                         <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-md border ${
+                          className={`inline-flex items-center text-xs font-black px-3 py-1.5 rounded-xl shadow-md uppercase tracking-wider ${
                             isDump
-                              ? "bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800"
-                              : "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+                              ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+                              : "bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
                           }`}
                         >
-                          {isDump ? "BINARY DUMP" : "SQL TEXT"}
+                          {isDump ? "BINARY" : "SQL"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 text-sm">
+                      <td className="px-6 py-5 text-gray-700 dark:text-gray-200 text-sm">
                         <div className="flex flex-col">
-                          <span className="font-medium">
+                          <span className="font-bold">
                             {new Date(b.created_at).toLocaleDateString()}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             {new Date(b.created_at).toLocaleTimeString()}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-mono text-sm">
+                      <td className="px-6 py-5 text-gray-700 dark:text-gray-200 font-mono text-sm font-bold">
                         {(b.size / 1024 / 1024).toFixed(2)} MB
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleDownloadBackup(b.filename)}
-                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                            className="p-2.5 text-white bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 rounded-xl transition-all shadow-md hover:shadow-lg hover:scale-110 duration-200"
                             title="Download"
                           >
                             <Download size={18} />
                           </button>
                           <button
                             onClick={() => openDeleteDialog(b.filename)}
-                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                            className="p-2.5 text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl transition-all shadow-md hover:shadow-lg hover:scale-110 duration-200"
                             title="Delete"
                           >
                             <Trash2 size={18} />
