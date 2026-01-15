@@ -47,6 +47,41 @@ class BackupManager:
             kwargs={"format": "dump"}
         )
         self.scheduler.start()
+        
+        # [SMART BACKUP] Check if we missed today's backup (e.g. app was closed)
+        # Run safely in background after 60s to avoid slowing down startup
+        self.scheduler.add_job(
+            self.check_and_run_missed_backup,
+            'date',
+            run_date=datetime.now(), # Run "now" (async)
+            id='smart_startup_check'
+        )
+
+    def check_and_run_missed_backup(self):
+        """
+        Check if an auto-backup exists for today. 
+        If not, create one immediately (Smart Catch-up).
+        """
+        try:
+            today_str = datetime.now().strftime("%Y%m%d")
+            backups = self.list_backups()
+            
+            # Check if any auto backup starts with today's date
+            has_backup_today = any(
+                b['filename'].startswith(f"auto_backup_{today_str}") 
+                for b in backups
+            )
+            
+            if not has_backup_today:
+                print(f"BACKUP_MANAGER: No backup found for today ({today_str}). Triggering Smart Catch-up...")
+                # We use a slight delay or just run it. 
+                # Since this is async job, it won't block main thread.
+                self.create_backup(auto=True, format="dump")
+            else:
+                print(f"BACKUP_MANAGER: Backup for today ({today_str}) already exists. Skipping.")
+                
+        except Exception as e:
+            print(f"BACKUP_MANAGER: Smart check failed: {e}")
 
     def _create_notification(self, title: str, message: str, type: str):
         """Helper to safely create a DB notification with deduplication"""

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Smart Bill Desktop",
+  "productName": "SmartBILL Desktop",
   "version": "0.1.0",
   "identifier": "com.smartbill.desktop",
   "build": {
@@ -13,11 +13,14 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Smart Bill",
+        "title": "SmartBILL",
         "width": 1200,
         "height": 800,
+        "maximized": true,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "transparent": false,
+        "backgroundColor": "#1a1a2e"
       }
     ],
     "security": {

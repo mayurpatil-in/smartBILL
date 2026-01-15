@@ -7,6 +7,156 @@
     <title>SmartBILL</title>
   </head>
   <body>
+    <!-- Premium Splash Screen -->
+    <div id="splash-screen" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+    ">
+      <style>
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(102, 126, 234, 0.2)); }
+          50% { transform: scale(1.05); filter: drop-shadow(0 0 25px rgba(102, 126, 234, 0.4)); }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        
+        /* Container for the logo and spinner */
+        .spinner-container {
+          position: relative;
+          width: 180px;
+          height: 180px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 2.5rem;
+        }
+        
+        .splash-logo-img {
+          height: 80px; /* Adjusted size to fit inside ring */
+          width: auto;
+          z-index: 2;
+          animation: pulse 3s ease-in-out infinite;
+          /* Ensure logo stays centered and doesn't rotate */
+        }
+        
+        /* The Spinner Ring */
+        .splash-spinner {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border: 3px solid rgba(255, 255, 255, 0.05);
+          border-radius: 50%;
+          /* Gradient Border Effect */
+          border-top-color: #667eea;
+          border-right-color: transparent;
+          border-bottom-color: #764ba2; 
+          border-left-color: transparent;
+          
+          animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+          box-shadow: 0 0 20px rgba(118, 75, 162, 0.1);
+        }
+        
+        /* Inner Ring for extra detail */
+        .splash-spinner::before {
+          content: '';
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          bottom: 10px;
+          border-radius: 50%;
+          border: 2px solid transparent;
+          border-top-color: rgba(255, 255, 255, 0.1);
+          border-bottom-color: rgba(255, 255, 255, 0.1);
+          animation: spin 2s linear infinite reverse;
+        }
+        
+        .splash-text {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 1.1rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.9);
+          letter-spacing: 0.5px;
+          animation: fadeIn 1s ease-out;
+          background: linear-gradient(90deg, #fff, #a5b4fc, #fff);
+          background-size: 200% auto;
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmer 3s linear infinite;
+        }
+        
+        .footer-text {
+          margin: 0;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.4);
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+        }
+        
+        .footer-link {
+          text-decoration: none;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 1.1rem;
+          font-weight: 600;
+          background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          transition: opacity 0.3s;
+        }
+        
+        .footer-link:hover {
+          opacity: 0.8;
+          filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.4));
+        }
+      </style>
+      
+      <!-- Logo inside Spinner -->
+      <div class="spinner-container">
+        <div class="splash-spinner"></div>
+        <img 
+          src="/logo2.png" 
+          alt="SmartBILL Logo" 
+          class="splash-logo-img"
+        />
+      </div>
+      
+      <div class="splash-text" id="splash-status">Loading SmartBILL...</div>
+      
+      <div style="position: absolute; bottom: 50px; text-align: center; width: 100%; animation: fadeIn 1.5s ease-out;">
+        <p class="footer-text">Designed by</p>
+        <a href="https://www.mayurpatil.in" target="_blank" class="footer-link">www.mayurpatil.in</a>
+      </div>
+    </div>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
