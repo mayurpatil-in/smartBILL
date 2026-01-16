@@ -19,6 +19,7 @@ class EmployeeProfileBase(BaseModel):
     pan_doc_path: Optional[str] = None
     aadhar_doc_path: Optional[str] = None
     resume_doc_path: Optional[str] = None
+    photo_path: Optional[str] = None
 
     joining_date: Optional[date] = None
     salary_type: SalaryType = SalaryType.MONTHLY

@@ -22,6 +22,7 @@ import {
   getNextEmployeeId,
 } from "../api/employees";
 import toast from "react-hot-toast";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 export default function AddEmployeeModal({
   open,
@@ -33,6 +34,7 @@ export default function AddEmployeeModal({
   const [uploading, setUploading] = useState(false);
   const [pendingDocs, setPendingDocs] = useState({});
   const [nextId, setNextId] = useState("");
+  const [previewFile, setPreviewFile] = useState(null); // { url, title, type }
 
   const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
@@ -112,6 +114,7 @@ export default function AddEmployeeModal({
           pan_doc_path: employee.employee_profile?.pan_doc_path || "",
           aadhar_doc_path: employee.employee_profile?.aadhar_doc_path || "",
           resume_doc_path: employee.employee_profile?.resume_doc_path || "",
+          photo_path: employee.employee_profile?.photo_path || "",
         },
       });
     } else {
@@ -132,6 +135,7 @@ export default function AddEmployeeModal({
           pan_doc_path: "",
           aadhar_doc_path: "",
           resume_doc_path: "",
+          photo_path: "",
         },
       });
     }
@@ -706,17 +710,25 @@ export default function AddEmployeeModal({
                         </div>
                         <div className="flex items-center gap-2">
                           {formData.profile?.[`${doc}_doc_path`] && (
-                            <a
-                              href={`http://localhost:8000/${formData.profile[
-                                `${doc}_doc_path`
-                              ].replace(/\\/g, "/")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const path =
+                                  formData.profile[`${doc}_doc_path`];
+                                setPreviewFile({
+                                  url: `http://localhost:8000/${path.replace(
+                                    /\\/g,
+                                    "/"
+                                  )}`,
+                                  title: `${doc.toUpperCase()} Preview`,
+                                  fileName: path.split(/[\\/]/).pop(),
+                                });
+                              }}
                               className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                               title="View Document"
                             >
                               <ExternalLink size={16} />
-                            </a>
+                            </button>
                           )}
                           <label className="cursor-pointer p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
                             <input
@@ -767,6 +779,15 @@ export default function AddEmployeeModal({
           </button>
         </div>
       </div>
+
+      {/* Document Preview Modal */}
+      <PdfPreviewModal
+        isOpen={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        pdfUrl={previewFile?.url}
+        title={previewFile?.title}
+        fileName={previewFile?.fileName}
+      />
     </div>
   );
 }

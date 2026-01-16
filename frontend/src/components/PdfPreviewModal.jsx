@@ -32,10 +32,22 @@ export default function PdfPreviewModal({
   const [scale, setScale] = useState(1.0);
   const containerRef = useRef(null);
 
+  const [isImage, setIsImage] = useState(false);
+
   // Reset page on new file
   useEffect(() => {
     setPageNumber(1);
     setScale(1.0);
+    // Simple extension check
+    if (pdfUrl) {
+      const lower = pdfUrl.toLowerCase();
+      setIsImage(
+        lower.endsWith(".jpg") ||
+          lower.endsWith(".jpeg") ||
+          lower.endsWith(".png") ||
+          lower.endsWith(".webp")
+      );
+    }
   }, [pdfUrl]);
 
   // Adjust width on resize
@@ -96,41 +108,55 @@ export default function PdfPreviewModal({
         >
           {ready &&
             (pdfUrl ? (
-              <Document
-                file={pdfUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-                loading={
-                  <div className="flex flex-col items-center justify-center gap-4 py-20">
-                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-600 dark:text-gray-400 font-medium animate-pulse">
-                      Loading PDF...
-                    </p>
-                  </div>
-                }
-                error={
-                  <div className="flex flex-col items-center justify-center gap-3 py-20 text-red-500">
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full">
-                      <X size={32} />
+              isImage ? (
+                <div className="flex items-center justify-center min-h-full">
+                  <img
+                    src={pdfUrl}
+                    alt="Preview"
+                    style={{
+                      transform: `scale(${scale})`,
+                      transition: "transform 0.2s",
+                    }}
+                    className="max-w-full shadow-2xl rounded-lg"
+                  />
+                </div>
+              ) : (
+                <Document
+                  file={pdfUrl}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  loading={
+                    <div className="flex flex-col items-center justify-center gap-4 py-20">
+                      <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-gray-600 dark:text-gray-400 font-medium animate-pulse">
+                        Loading PDF...
+                      </p>
                     </div>
-                    <p className="font-semibold">Failed to load PDF</p>
-                    <p className="text-sm text-gray-500">
-                      Please try again or download the file
-                    </p>
-                  </div>
-                }
-                className="shadow-2xl"
-              >
-                <Page
-                  pageNumber={pageNumber}
-                  width={
-                    (containerWidth ? Math.min(containerWidth, 850) : 650) *
-                    scale
                   }
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  className="rounded-2xl overflow-hidden bg-white shadow-xl ring-1 ring-gray-200 dark:ring-gray-700"
-                />
-              </Document>
+                  error={
+                    <div className="flex flex-col items-center justify-center gap-3 py-20 text-red-500">
+                      <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full">
+                        <X size={32} />
+                      </div>
+                      <p className="font-semibold">Failed to load PDF</p>
+                      <p className="text-sm text-gray-500">
+                        Please try again or download the file
+                      </p>
+                    </div>
+                  }
+                  className="shadow-2xl"
+                >
+                  <Page
+                    pageNumber={pageNumber}
+                    width={
+                      (containerWidth ? Math.min(containerWidth, 850) : 650) *
+                      scale
+                    }
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                    className="rounded-2xl overflow-hidden bg-white shadow-xl ring-1 ring-gray-200 dark:ring-gray-700"
+                  />
+                </Document>
+              )
             ) : (
               <div className="flex flex-col items-center justify-center h-full gap-4 animate-pulse">
                 <div className="relative">
@@ -141,7 +167,7 @@ export default function PdfPreviewModal({
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                    Generating PDF...
+                    Generating Preview...
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     This may take a moment
@@ -153,8 +179,12 @@ export default function PdfPreviewModal({
 
         {/* Enhanced Footer with Controls */}
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-inner">
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-3 text-sm order-2 sm:order-1">
+          {/* Pagination Controls - Hide for Images */}
+          <div
+            className={`flex items-center gap-3 text-sm order-2 sm:order-1 ${
+              isImage ? "invisible" : ""
+            }`}
+          >
             <button
               disabled={pageNumber <= 1}
               onClick={() => setPageNumber((p) => p - 1)}

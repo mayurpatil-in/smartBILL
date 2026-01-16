@@ -19,6 +19,7 @@ from app.services.pdf_service import generate_pdf
 
 from app.database.session import get_db
 from app.models.user import User, UserRole
+from app.core.paths import UPLOAD_DIR
 from app.models.employee_profile import EmployeeProfile, SalaryType
 from app.models.attendance import Attendance, AttendanceStatus
 from app.models.salary_advance import SalaryAdvance
@@ -165,7 +166,7 @@ def delete_employee(
     db.commit()
 
     # Clean up uploaded documents
-    upload_dir = f"uploads/{user_id}"
+    upload_dir = os.path.join(UPLOAD_DIR, str(user_id))
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
 
@@ -416,14 +417,18 @@ def upload_document(
         raise HTTPException(status_code=404, detail="Employee not found")
         
     # Ensure uploads directory
-    base_dir = "uploads"
-    user_dir = os.path.join(base_dir, str(user_id))
+    user_dir = os.path.join(UPLOAD_DIR, str(user_id))
     os.makedirs(user_dir, exist_ok=True)
     
     # Save file
-    file_path = os.path.join(user_dir, f"{doc_type}_{file.filename}")
+    safe_filename = f"{doc_type}_{file.filename}"
+    file_path = os.path.join(user_dir, safe_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+        
+    # Relative path for DB and Frontend (must match static mount "uploads")
+    # Format: uploads/{user_id}/{filename}
+    db_path = f"uploads/{user_id}/{safe_filename}"
         
     # Update Profile
     profile = db.query(EmployeeProfile).filter(EmployeeProfile.user_id == user_id).first()
@@ -432,17 +437,17 @@ def upload_document(
         db.add(profile)
         
     if doc_type == "pan":
-        profile.pan_doc_path = file_path
+        profile.pan_doc_path = db_path
     elif doc_type == "aadhar":
-        profile.aadhar_doc_path = file_path
+        profile.aadhar_doc_path = db_path
     elif doc_type == "resume":
-        profile.resume_doc_path = file_path
+        profile.resume_doc_path = db_path
     elif doc_type == "photo":
-        profile.photo_path = file_path
+        profile.photo_path = db_path
         
     db.commit()
     
-    return {"message": "File uploaded", "path": file_path}
+    return {"message": "File uploaded", "path": db_path}
 
 # ================================
 # PDF GENERATION
