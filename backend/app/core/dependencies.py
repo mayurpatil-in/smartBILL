@@ -65,7 +65,9 @@ def get_current_user(
 # ============================================================
 def require_role(*roles: UserRole):
     def checker(user: User = Depends(get_current_user)) -> User:
-        if user.role not in roles:
+        # roles is a tuple of UserRole enums, convert to values for comparison
+        allowed_role_values = [r.value for r in roles]
+        if user.legacy_role not in allowed_role_values:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",
@@ -81,7 +83,7 @@ def require_role(*roles: UserRole):
 def get_company_id(
     current_user: User = Depends(get_current_user),
 ) -> int:
-    if current_user.role == UserRole.SUPER_ADMIN:
+    if current_user.legacy_role == UserRole.SUPER_ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Super Admin does not operate under a company",

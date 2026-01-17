@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 import DashboardStats from "../components/DashboardStats";
 import { getActiveFinancialYear } from "../api/financialYear";
 import { getDashboardStats } from "../api/reports";
@@ -32,7 +33,8 @@ import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/axios";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isCompanyAdmin } = useAuth();
+  const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
   // Financial Year State
@@ -198,314 +200,339 @@ export default function Dashboard() {
       </div>
 
       {/* STATS CARDS */}
-      <div className="">
-        <DashboardStats stats={stats} loading={statsLoading} />
-      </div>
+      {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+        <div className="">
+          <DashboardStats stats={stats} loading={statsLoading} />
+        </div>
+      )}
 
       {/* QUICK ACTIONS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {quickActions.map((action, index) => (
-          <button
-            key={action.label}
-            onClick={() => navigate(action.path)}
-            className={`group relative overflow-hidden rounded-2xl p-6 
-              ${action.bgColor}
-              border-2 border-gray-200 dark:border-gray-700
-              hover:border-transparent
-              shadow-md hover:shadow-2xl
-              transition-all duration-300 ease-out
-              hover:-translate-y-2 hover:scale-105
-              animate-scale-in`}
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            {/* Gradient Overlay on Hover */}
-            <div
-              className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-            />
-
-            <div className="relative z-10 flex flex-col items-center gap-3 text-center">
+      {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {quickActions.map((action, index) => (
+            <button
+              key={action.label}
+              onClick={() => navigate(action.path)}
+              className={`group relative overflow-hidden rounded-2xl p-6 
+                ${action.bgColor}
+                border-2 border-gray-200 dark:border-gray-700
+                hover:border-transparent
+                shadow-md hover:shadow-2xl
+                transition-all duration-300 ease-out
+                hover:-translate-y-2 hover:scale-105
+                animate-scale-in`}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              {/* Gradient Overlay on Hover */}
               <div
-                className={`p-3 rounded-xl bg-gradient-to-br ${action.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}
-              >
-                <action.icon size={24} className="text-white" />
+                className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+              />
+
+              <div className="relative z-10 flex flex-col items-center gap-3 text-center">
+                <div
+                  className={`p-3 rounded-xl bg-gradient-to-br ${action.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <action.icon size={24} className="text-white" />
+                </div>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-white transition-colors duration-300">
+                  {action.label}
+                </span>
               </div>
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-white transition-colors duration-300">
-                {action.label}
-              </span>
-            </div>
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* MIDDLE ROW: Charts & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SALES CHART */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 min-w-0">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <TrendingUp size={24} className="text-blue-600" />
-                Cash Flow Analysis
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Income vs Expenses over time
-              </p>
+        {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 min-w-0">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <TrendingUp size={24} className="text-blue-600" />
+                  Cash Flow Analysis
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Income vs Expenses over time
+                </p>
+              </div>
+            </div>
+
+            <div className="h-[320px] w-full relative">
+              {statsLoading ? (
+                <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-xl relative overflow-hidden">
+                  <div className="absolute inset-0 animate-shimmer" />
+                </div>
+              ) : (
+                <div ref={onChartContainerRefChange} className="h-full w-full">
+                  {chartWidth > 0 && (
+                    <AreaChart
+                      width={chartWidth}
+                      height={320}
+                      data={stats?.monthly_cashflow || []}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorIncome"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#10b981"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#10b981"
+                            stopOpacity={0.05}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorExpense"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#ef4444"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#ef4444"
+                            stopOpacity={0.05}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#e5e7eb"
+                        className="dark:stroke-gray-700"
+                      />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{
+                          fill: "#9ca3af",
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{
+                          fill: "#9ca3af",
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                        tickFormatter={(val) => `₹${val / 1000}k`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "none",
+                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                          backgroundColor: "white",
+                          padding: "12px",
+                        }}
+                        formatter={(val, name) => [
+                          `₹${val.toLocaleString()}`,
+                          name === "income" ? "Income" : "Expense",
+                        ]}
+                      />
+                      <Legend
+                        iconType="circle"
+                        wrapperStyle={{ paddingTop: "20px", fontWeight: 600 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="income"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorIncome)"
+                        name="income"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="expense"
+                        stroke="#ef4444"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorExpense)"
+                        name="expense"
+                      />
+                    </AreaChart>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="h-[320px] w-full relative">
-            {statsLoading ? (
-              <div className="h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-xl relative overflow-hidden">
-                <div className="absolute inset-0 animate-shimmer" />
-              </div>
-            ) : (
-              <div ref={onChartContainerRefChange} className="h-full w-full">
-                {chartWidth > 0 && (
-                  <AreaChart
-                    width={chartWidth}
-                    height={320}
-                    data={stats?.monthly_cashflow || []}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="colorIncome"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#10b981"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#10b981"
-                          stopOpacity={0.05}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorExpense"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#ef4444"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#ef4444"
-                          stopOpacity={0.05}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#e5e7eb"
-                      className="dark:stroke-gray-700"
-                    />
-                    <XAxis
-                      dataKey="month"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#9ca3af", fontSize: 12, fontWeight: 500 }}
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#9ca3af", fontSize: 12, fontWeight: 500 }}
-                      tickFormatter={(val) => `₹${val / 1000}k`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "12px",
-                        border: "none",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                        backgroundColor: "white",
-                        padding: "12px",
-                      }}
-                      formatter={(val, name) => [
-                        `₹${val.toLocaleString()}`,
-                        name === "income" ? "Income" : "Expense",
-                      ]}
-                    />
-                    <Legend
-                      iconType="circle"
-                      wrapperStyle={{ paddingTop: "20px", fontWeight: 600 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="income"
-                      stroke="#10b981"
-                      strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorIncome)"
-                      name="income"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="expense"
-                      stroke="#ef4444"
-                      strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorExpense)"
-                      name="expense"
-                    />
-                  </AreaChart>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* EXPENSE BREAKDOWN */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center relative">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 self-start w-full flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <PieChartIcon size={24} className="text-purple-600" />
-              Expense Breakdown
-            </span>
-          </h3>
+        {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center relative">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 self-start w-full flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <PieChartIcon size={24} className="text-purple-600" />
+                Expense Breakdown
+              </span>
+            </h3>
 
-          <div className="w-full h-[320px] flex items-center justify-center">
-            {statsLoading ? (
-              <div className="w-52 h-52 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
-                <div className="absolute inset-0 animate-shimmer" />
-              </div>
-            ) : stats?.expense_breakdown?.length > 0 ? (
-              <PieChart width={320} height={320}>
-                <Pie
-                  data={stats.expense_breakdown}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={95}
-                  paddingAngle={5}
-                  dataKey="amount"
-                  nameKey="category"
-                >
-                  {stats.expense_breakdown.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={
-                        ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][
-                          index % 5
-                        ]
-                      }
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(val) => `₹${val.toLocaleString()}`}
-                  contentStyle={{
-                    borderRadius: "12px",
-                    border: "none",
-                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    padding: "12px",
-                  }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontWeight: 600 }} />
-              </PieChart>
-            ) : (
-              <div className="text-gray-400 text-sm flex flex-col items-center gap-2">
-                <PieChartIcon size={48} className="opacity-20" />
-                <span>No expense data</span>
-              </div>
-            )}
+            <div className="w-full h-[320px] flex items-center justify-center">
+              {statsLoading ? (
+                <div className="w-52 h-52 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
+                  <div className="absolute inset-0 animate-shimmer" />
+                </div>
+              ) : stats?.expense_breakdown?.length > 0 ? (
+                <PieChart width={320} height={320}>
+                  <Pie
+                    data={stats.expense_breakdown}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={95}
+                    paddingAngle={5}
+                    dataKey="amount"
+                    nameKey="category"
+                  >
+                    {stats.expense_breakdown.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          [
+                            "#3b82f6",
+                            "#10b981",
+                            "#f59e0b",
+                            "#ef4444",
+                            "#8b5cf6",
+                          ][index % 5]
+                        }
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val) => `₹${val.toLocaleString()}`}
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      padding: "12px",
+                    }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={{ fontWeight: 600 }}
+                  />
+                </PieChart>
+              ) : (
+                <div className="text-gray-400 text-sm flex flex-col items-center gap-2">
+                  <PieChartIcon size={48} className="opacity-20" />
+                  <span>No expense data</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* RECENT INVOICES / ACTIVITY */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <FileText size={24} className="text-indigo-600" />
-          Recent Invoices
-        </h3>
+      {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <FileText size={24} className="text-indigo-600" />
+            Recent Invoices
+          </h3>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pr-2 max-h-[320px] custom-scrollbar">
-          {statsLoading ? (
-            [1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-xl relative overflow-hidden"
-              >
-                <div className="absolute inset-0 animate-shimmer" />
-              </div>
-            ))
-          ) : stats?.recent_activity?.length > 0 ? (
-            stats.recent_activity.map((inv, index) => (
-              <div
-                key={inv.id}
-                className="group flex items-center justify-between p-4 rounded-xl 
-                  bg-gray-50 dark:bg-gray-700/30
-                  hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50
-                  dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20
-                  border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-800
-                  transition-all duration-300 cursor-pointer
-                  hover:shadow-lg hover:-translate-y-1
-                  animate-slide-in-left"
-                style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => navigate(`/invoices`)}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-md ${
-                      inv.status === "PAID"
-                        ? "bg-gradient-to-br from-green-500 to-emerald-600"
-                        : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                    }`}
-                  >
-                    <FileText size={20} className="text-white" />
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2 max-h-[320px] custom-scrollbar">
+            {statsLoading ? (
+              [1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-xl relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 animate-shimmer" />
+                </div>
+              ))
+            ) : stats?.recent_activity?.length > 0 ? (
+              stats.recent_activity.map((inv, index) => (
+                <div
+                  key={inv.id}
+                  className="group flex items-center justify-between p-4 rounded-xl 
+                    bg-gray-50 dark:bg-gray-700/30
+                    hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50
+                    dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20
+                    border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-800
+                    transition-all duration-300 cursor-pointer
+                    hover:shadow-lg hover:-translate-y-1
+                    animate-slide-in-left"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => navigate(`/invoices`)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-md ${
+                        inv.status === "PAID"
+                          ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                          : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                      }`}
+                    >
+                      <FileText size={20} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {inv.party_name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        {inv.invoice_number}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {inv.party_name}
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+                      ₹{inv.amount.toLocaleString()}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                      {inv.invoice_number}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(inv.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
-                    ₹{inv.amount.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(inv.date).toLocaleDateString()}
-                  </p>
-                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-12 flex flex-col items-center gap-3">
+                <FileText size={48} className="opacity-20" />
+                <p>No recent activity</p>
               </div>
-            ))
-          ) : (
-            <div className="text-center text-gray-500 py-12 flex flex-col items-center gap-3">
-              <FileText size={48} className="opacity-20" />
-              <p>No recent activity</p>
-            </div>
-          )}
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate("/invoices")}
+            className="mt-6 w-full py-3 flex items-center justify-center gap-2 
+              text-sm font-bold text-white
+              bg-gradient-to-r from-blue-600 to-indigo-600
+              hover:from-blue-700 hover:to-indigo-700
+              rounded-xl shadow-lg hover:shadow-xl
+              transition-all duration-300
+              hover:scale-[1.02]"
+          >
+            View All Invoices <ArrowRight size={18} />
+          </button>
         </div>
-
-        <button
-          onClick={() => navigate("/invoices")}
-          className="mt-6 w-full py-3 flex items-center justify-center gap-2 
-            text-sm font-bold text-white
-            bg-gradient-to-r from-blue-600 to-indigo-600
-            hover:from-blue-700 hover:to-indigo-700
-            rounded-xl shadow-lg hover:shadow-xl
-            transition-all duration-300
-            hover:scale-[1.02]"
-        >
-          View All Invoices <ArrowRight size={18} />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

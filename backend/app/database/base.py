@@ -10,10 +10,5 @@ class Base(DeclarativeBase):
         onupdate=func.now()
     )
 
-# Imports for Base.metadata to catch them
-from app.models.invoice import Invoice
-from app.models.invoice_item import InvoiceItem
-from app.models.payment import Payment
-from app.models.payment_allocation import PaymentAllocation
-from app.models.expense import Expense
-from app.models.notification import Notification
+# Imports for Base.metadata
+# Models are imported in main.py to avoid circular dependencies

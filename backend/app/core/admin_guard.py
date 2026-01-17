@@ -6,7 +6,8 @@ from app.core.dependencies import get_current_user
 def require_super_admin(
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != UserRole.SUPER_ADMIN:
+    # Fix: Compare string (legacy_role) with string (UserRole.value)
+    if current_user.legacy_role != UserRole.SUPER_ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Super Admin access required",
@@ -17,7 +18,9 @@ def require_super_admin(
 def require_company_admin(
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN]:
+    # Fix: Compare string (legacy_role) with list of strings
+    allowed_roles = [UserRole.SUPER_ADMIN.value, UserRole.COMPANY_ADMIN.value]
+    if current_user.legacy_role not in allowed_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Company Admin access required",

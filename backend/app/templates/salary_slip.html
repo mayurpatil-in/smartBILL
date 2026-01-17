@@ -129,7 +129,7 @@
             <div class="col">
                 <div class="info-row"><span class="info-label">Employee Name</span><span class="info-value">{{ employee.name }}</span></div>
                 <div class="info-row"><span class="info-label">Designation</span><span class="info-value">{{ employee.employee_profile.designation }}</span></div>
-                <div class="info-row"><span class="info-label">Employee ID</span><span class="info-value">EMP-{{ employee.id }}</span></div>
+                <div class="info-row"><span class="info-label">Employee ID</span><span class="info-value">EMP-{{ "%03d" | format(employee.employee_profile.company_employee_id if employee.employee_profile and employee.employee_profile.company_employee_id else employee.id) }}</span></div>
             </div>
             <div class="col">
                 <div class="info-row"><span class="info-label">Date of Joining</span><span class="info-value">{{ employee.employee_profile.joining_date | default('-') }}</span></div>

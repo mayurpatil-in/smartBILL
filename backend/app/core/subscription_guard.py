@@ -13,7 +13,7 @@ def enforce_company_subscription(
     db: Session = Depends(get_db),
 ):
     # ✅ Super Admin bypass
-    if current_user.role == UserRole.SUPER_ADMIN:
+    if current_user.legacy_role == UserRole.SUPER_ADMIN.value:
         return current_user
 
     company = db.query(Company).filter(

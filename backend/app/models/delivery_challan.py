@@ -28,10 +28,10 @@ class DeliveryChallan(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    company = relationship(Company)
-    financial_year = relationship(FinancialYear)
-    party = relationship(Party)
-    party_challan = relationship("PartyChallan", back_populates="delivery_challans")
+    company = relationship("Company")
+    financial_year = relationship("FinancialYear")
+    party = relationship("Party")
+    party_challan = relationship("PartyChallan", foreign_keys=[party_challan_id], back_populates="delivery_challans")
     items = relationship("DeliveryChallanItem", back_populates="challan")
 
     __table_args__ = (

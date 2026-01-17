@@ -24,6 +24,7 @@ import { getInvoices, deleteInvoice, getInvoiceStats } from "../api/invoices";
 import { getParties } from "../api/parties";
 import PdfPreviewModal from "../components/PdfPreviewModal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import PermissionGuard from "../components/PermissionGuard";
 
 export default function Invoices() {
   const navigate = useNavigate();
@@ -180,16 +181,18 @@ export default function Invoices() {
             Manage and track all tax invoices
           </p>
         </div>
-        <button
-          onClick={() => navigate("/invoices/new")}
-          className="group flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-indigo-600/30 hover:shadow-xl hover:shadow-indigo-600/40 hover:scale-105"
-        >
-          <Plus
-            size={20}
-            className="group-hover:rotate-90 transition-transform duration-300"
-          />
-          Create Invoice
-        </button>
+        <PermissionGuard permission="invoices.create">
+          <button
+            onClick={() => navigate("/invoices/new")}
+            className="group flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-indigo-600/30 hover:shadow-xl hover:shadow-indigo-600/40 hover:scale-105"
+          >
+            <Plus
+              size={20}
+              className="group-hover:rotate-90 transition-transform duration-300"
+            />
+            Create Invoice
+          </button>
+        </PermissionGuard>
       </div>
 
       {/* Stats Cards */}
@@ -418,13 +421,15 @@ export default function Invoices() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => navigate(`/invoices/${inv.id}/edit`)}
-                          className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                          title="Edit Invoice"
-                        >
-                          <Edit size={16} />
-                        </button>
+                        <PermissionGuard permission="invoices.edit">
+                          <button
+                            onClick={() => navigate(`/invoices/${inv.id}/edit`)}
+                            className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                            title="Edit Invoice"
+                          >
+                            <Edit size={16} />
+                          </button>
+                        </PermissionGuard>
                         <button
                           onClick={() => handlePrint(inv.id)}
                           className="p-2 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
@@ -432,13 +437,15 @@ export default function Invoices() {
                         >
                           <Printer size={16} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(inv.id)}
-                          className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                          title="Delete Invoice"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <PermissionGuard permission="invoices.delete">
+                          <button
+                            onClick={() => handleDelete(inv.id)}
+                            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                            title="Delete Invoice"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </PermissionGuard>
                       </div>
                     </td>
                   </tr>

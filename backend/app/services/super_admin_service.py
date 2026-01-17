@@ -52,18 +52,42 @@ def create_company_admin(
     data,
     admin_id: int,
 ):
+    # Check if company exists
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    # Check if user with email already exists
     existing_user = db.query(User).filter(User.email == data.email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email already exists"
         )
+    
+    # Get the "Company Admin" system role
+    from app.models.role import Role
+    company_admin_role = db.query(Role).filter(
+        Role.name == "Company Admin",
+        Role.is_system_role == True
+    ).first()
+    
+    if not company_admin_role:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Company Admin role not found in system. Please run database migrations."
+        )
 
+    # Create new admin user with RBAC role
     user = User(
         name=data.name,
         email=data.email,
         password_hash=get_password_hash(data.password),
-        role=UserRole.COMPANY_ADMIN,  # Explicitly using COMPANY_ADMIN
+        role_id=company_admin_role.id,  # Use new RBAC system
+        legacy_role="COMPANY_ADMIN",     # For backward compatibility
         company_id=company_id,
         is_active=True,
     )

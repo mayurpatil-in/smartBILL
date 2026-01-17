@@ -18,11 +18,12 @@ from jinja2 import Environment, FileSystemLoader
 from app.services.pdf_service import generate_pdf
 
 from app.database.session import get_db
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.core.paths import UPLOAD_DIR
 from app.models.employee_profile import EmployeeProfile, SalaryType
 from app.models.attendance import Attendance, AttendanceStatus
 from app.models.salary_advance import SalaryAdvance
+from app.models.role import Role
 from app.schemas.user import (
     UserCreate, UserResponse, UserUpdate, 
     AttendanceCreate, AttendanceResponse, SalarySlip,
@@ -43,20 +44,16 @@ def get_employees(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    users = db.query(User).options(
-        joinedload(User.employee_profile)
+    # Get only users with "Employee" role
+    users = db.query(User).join(Role).options(
+        joinedload(User.employee_profile),
+        joinedload(User.role)
     ).filter(
         User.company_id == company_id,
-        User.role == UserRole.USER
+        Role.name == "Employee"
     ).all()
     return users
 
-@router.get("/next-id")
-def get_next_employee_id(
-    db: Session = Depends(get_db)
-):
-    max_id = db.query(func.max(User.id)).scalar() or 0
-    return {"next_id": max_id + 1}
 
 @router.post("/", response_model=UserResponse)
 def create_employee(
@@ -68,26 +65,52 @@ def create_employee(
     if data.email:
         existing = db.query(User).filter(User.email == data.email).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Email already registered")
+            if existing.company_id == company_id:
+                raise HTTPException(status_code=400, detail="Email already exists in your company")
+            else:
+                raise HTTPException(status_code=400, detail="Email is already associated with another company account")
 
     # Create User
     pwd_hash = get_password_hash(data.password) if data.password else None
+    
+    # For employees created through this endpoint, assign "Employee" role by default
+    # Get the Employee role from the database
+    from app.models.role import Role
+    employee_role = db.query(Role).filter(Role.name == "Employee", Role.is_system_role == True).first()
+    
+    # If Employee role doesn't exist, try to find any role or set to None
+    if not employee_role:
+        # Try to find any non-Super Admin role as fallback
+        employee_role = db.query(Role).filter(
+            Role.name != "Super Admin",
+            Role.is_system_role == True
+        ).first()
     
     user = User(
         name=data.name,
         email=data.email,
         password_hash=pwd_hash,
-        role=UserRole.USER,
+        role_id=employee_role.id if employee_role else None,
+        legacy_role="USER",
         company_id=company_id,
         is_active=True
     )
     db.add(user)
     db.flush() # Get ID
 
+    # Calculate Next Company-Specific Employee ID
+    # Get Max ID for this company from EmployeeProfiles
+    # Note: We need to join User to filter by company_id because EmployeeProfile doesn't store company_id directly (it's on User)
+    last_emp_id = db.query(func.max(EmployeeProfile.company_employee_id)).join(User).filter(
+        User.company_id == company_id
+    ).scalar() or 0
+    next_company_emp_id = last_emp_id + 1
+
     # Create Profile
     if data.profile:
         profile = EmployeeProfile(
             user_id=user.id,
+            company_employee_id=next_company_emp_id, # <--- Save Company ID
             designation=data.profile.designation,
             phone=data.profile.phone,
             address=data.profile.address,
@@ -100,11 +123,26 @@ def create_employee(
         db.add(profile)
     else:
         # Create default empty profile
-        db.add(EmployeeProfile(user_id=user.id))
+        db.add(EmployeeProfile(
+            user_id=user.id,
+            company_employee_id=next_company_emp_id
+        ))
 
     db.commit()
     db.refresh(user)
     return user
+
+@router.get("/next-id")
+def get_next_employee_id(
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    last_emp_id = db.query(func.max(EmployeeProfile.company_employee_id)).join(User).filter(
+        User.company_id == company_id
+    ).scalar() or 0
+    return {"next_id": last_emp_id + 1}
+
+
 
 @router.put("/{user_id}", response_model=UserResponse)
 def update_employee(
@@ -115,8 +153,7 @@ def update_employee(
 ):
     user = db.query(User).filter(
         User.id == user_id, 
-        User.company_id == company_id,
-        User.role == UserRole.USER
+        User.company_id == company_id
     ).first()
 
     if not user:
@@ -155,8 +192,7 @@ def delete_employee(
 ):
     user = db.query(User).filter(
         User.id == user_id,
-        User.company_id == company_id,
-        User.role == UserRole.USER
+        User.company_id == company_id
     ).first()
 
     if not user:

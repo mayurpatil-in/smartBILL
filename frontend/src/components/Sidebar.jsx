@@ -12,9 +12,12 @@ import {
   WalletCards,
   Wallet,
   Settings,
+  Shield,
+  UserCog,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 
 export default function Sidebar({
   open,
@@ -22,7 +25,8 @@ export default function Sidebar({
   onClose,
   onToggleCollapse,
 }) {
-  const { logout, isSuperAdmin, user } = useAuth();
+  const { logout, isSuperAdmin, isCompanyAdmin, user } = useAuth();
+  const { hasPermission } = usePermissions();
 
   return (
     <aside
@@ -116,30 +120,38 @@ export default function Sidebar({
           />
           {!isSuperAdmin && (
             <>
-              <MenuLink
-                to="/parties"
-                icon={Users}
-                label="Parties"
-                collapsed={collapsed}
-              />
-              <MenuLink
-                to="/items"
-                icon={Package}
-                label="Stock"
-                collapsed={collapsed}
-              />
-              <MenuLink
-                to="/party-challans"
-                icon={ClipboardList}
-                label="Party Challans"
-                collapsed={collapsed}
-              />
-              <MenuLink
-                to="/challans"
-                icon={Truck}
-                label="Delivery Challans"
-                collapsed={collapsed}
-              />
+              {(isCompanyAdmin || hasPermission("parties.view")) && (
+                <MenuLink
+                  to="/parties"
+                  icon={Users}
+                  label="Parties"
+                  collapsed={collapsed}
+                />
+              )}
+              {(isCompanyAdmin || hasPermission("items.view")) && (
+                <MenuLink
+                  to="/items"
+                  icon={Package}
+                  label="Stock"
+                  collapsed={collapsed}
+                />
+              )}
+              {(isCompanyAdmin || hasPermission("challans.view")) && (
+                <>
+                  <MenuLink
+                    to="/party-challans"
+                    icon={ClipboardList}
+                    label="Party Challans"
+                    collapsed={collapsed}
+                  />
+                  <MenuLink
+                    to="/challans"
+                    icon={Truck}
+                    label="Delivery Challans"
+                    collapsed={collapsed}
+                  />
+                </>
+              )}
             </>
           )}
         </div>
@@ -155,24 +167,30 @@ export default function Sidebar({
                   </p>
                 </div>
               )}
-              <MenuLink
-                to="/invoices"
-                icon={FileText}
-                label="Invoices"
-                collapsed={collapsed}
-              />
-              <MenuLink
-                to="/payments"
-                icon={WalletCards}
-                label="Payments"
-                collapsed={collapsed}
-              />
-              <MenuLink
-                to="/expenses"
-                icon={Wallet}
-                label="Expenses"
-                collapsed={collapsed}
-              />
+              {(isCompanyAdmin || hasPermission("invoices.view")) && (
+                <MenuLink
+                  to="/invoices"
+                  icon={FileText}
+                  label="Invoices"
+                  collapsed={collapsed}
+                />
+              )}
+              {(isCompanyAdmin || hasPermission("payments.view")) && (
+                <MenuLink
+                  to="/payments"
+                  icon={WalletCards}
+                  label="Payments"
+                  collapsed={collapsed}
+                />
+              )}
+              {(isCompanyAdmin || hasPermission("expenses.view")) && (
+                <MenuLink
+                  to="/expenses"
+                  icon={Wallet}
+                  label="Expenses"
+                  collapsed={collapsed}
+                />
+              )}
             </div>
 
             {/* GROUP 3: HR */}
@@ -184,12 +202,14 @@ export default function Sidebar({
                   </p>
                 </div>
               )}
-              <MenuLink
-                to="/employees"
-                icon={Users}
-                label="Employees"
-                collapsed={collapsed}
-              />
+              {(isCompanyAdmin || hasPermission("employees.view")) && (
+                <MenuLink
+                  to="/employees"
+                  icon={Users}
+                  label="Employees"
+                  collapsed={collapsed}
+                />
+              )}
             </div>
 
             {/* GROUP 4: ADMIN */}
@@ -201,20 +221,61 @@ export default function Sidebar({
                   </p>
                 </div>
               )}
-              <MenuLink
-                to="/reports"
-                icon={FileText}
-                label="Reports"
-                collapsed={collapsed}
-              />
-              <MenuLink
-                to="/settings"
-                icon={Settings}
-                label="Settings"
-                collapsed={collapsed}
-              />
+              {(isCompanyAdmin || hasPermission("reports.view")) && (
+                <MenuLink
+                  to="/reports"
+                  icon={FileText}
+                  label="Reports"
+                  collapsed={collapsed}
+                />
+              )}
+              {(isCompanyAdmin || hasPermission("settings.view")) && (
+                <MenuLink
+                  to="/settings"
+                  icon={Settings}
+                  label="Settings"
+                  collapsed={collapsed}
+                />
+              )}
+              {!isSuperAdmin &&
+                (isCompanyAdmin || hasPermission("users.view")) && (
+                  <MenuLink
+                    to="/users"
+                    icon={UserCog}
+                    label="User Management"
+                    collapsed={collapsed}
+                  />
+                )}
+              {!isSuperAdmin &&
+                (isCompanyAdmin || hasPermission("roles.view")) && (
+                  <MenuLink
+                    to="/roles"
+                    icon={Shield}
+                    label="Roles & Permissions"
+                    collapsed={collapsed}
+                  />
+                )}
             </div>
           </>
+        )}
+
+        {/* GROUP 5: SUPER ADMIN ONLY */}
+        {isSuperAdmin && (
+          <div className="space-y-1">
+            {!collapsed && (
+              <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-100 dark:border-red-900/30">
+                <p className="text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent uppercase tracking-wider">
+                  Administration
+                </p>
+              </div>
+            )}
+            <MenuLink
+              to="/roles"
+              icon={Shield}
+              label="Roles & Permissions"
+              collapsed={collapsed}
+            />
+          </div>
         )}
       </nav>
 

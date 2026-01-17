@@ -383,6 +383,11 @@ export default function Employees() {
                             <div>
                               <p className="font-semibold text-gray-900 dark:text-white">
                                 {emp.name}
+                                <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full dark:bg-blue-900/30 dark:text-blue-400">
+                                  #
+                                  {emp.employee_profile?.company_employee_id ||
+                                    emp.id}
+                                </span>
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {emp.email}

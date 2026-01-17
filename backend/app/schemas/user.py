@@ -31,6 +31,7 @@ class EmployeeProfileCreate(EmployeeProfileBase):
 class EmployeeProfileResponse(EmployeeProfileBase):
     id: int
     user_id: int
+    company_employee_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -38,13 +39,18 @@ class EmployeeProfileResponse(EmployeeProfileBase):
 # ========================
 # USER SCHEMAS
 # ========================
+# ========================
+# USER SCHEMAS
+# ========================
+from pydantic import Field, field_validator
+
 class UserBase(BaseModel):
     name: str
     email: Optional[EmailStr] = None
-    role: UserRole = UserRole.USER
 
 class UserCreate(UserBase):
     password: Optional[str] = None
+    role_id: Optional[int] = None
     profile: Optional[EmployeeProfileCreate] = None
 
 class UserUpdate(BaseModel):
@@ -52,7 +58,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None
-    role: Optional[UserRole] = None
+    role_id: Optional[int] = None
     profile: Optional[EmployeeProfileCreate] = None
 
 class UserResponse(UserBase):
@@ -60,9 +66,22 @@ class UserResponse(UserBase):
     company_id: Optional[int]
     is_active: bool
     employee_profile: Optional[EmployeeProfileResponse] = None
+    
+    role: Optional[str] = None
+    role_id: Optional[int] = None
 
     class Config:
         from_attributes = True
+        
+    @field_validator('role', mode='before')
+    def extract_role_name(cls, v):
+        # Handle case where v is the Role object relationship
+        if hasattr(v, 'name'):
+            return v.name
+        # Handle case where v is a string (legacy)
+        if isinstance(v, str):
+            return v
+        return None
 
 # ========================
 # ATTENDANCE SCHEMAS

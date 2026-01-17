@@ -252,9 +252,12 @@ export default function AddEmployeeModal({
               </h2>
               <p className="text-sm text-blue-100 dark:text-cyan-100 mt-0.5">
                 {employee
-                  ? `Employee ID: #${employee.id}`
+                  ? `Employee ID: #${
+                      employee.employee_profile?.company_employee_id ||
+                      employee.id
+                    }`
                   : nextId
-                  ? `Employee Id: ${nextId}`
+                  ? `Next Employee ID: #${nextId}`
                   : "Create a new employee record"}
               </p>
             </div>

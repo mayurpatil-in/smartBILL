@@ -17,6 +17,33 @@ from app.services.pdf_service import pdf_manager
 from app.services.backup_service import backup_manager
 from app.core.paths import APP_DATA_DIR, UPLOAD_DIR, LOG_DIR, BACKUP_DIR, DB_PATH, DATABASE_URL
 
+# [CRITICAL] Import all models to ensure SQLAlchemy can resolve string references
+# Import in dependency order: base models first, then models with foreign keys
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.company import Company
+from app.models.financial_year import FinancialYear
+from app.models.party import Party
+from app.models.item import Item
+from app.models.process import Process
+from app.models.role_permission import RolePermission
+from app.models.user import User
+from app.models.employee_profile import EmployeeProfile
+from app.models.party_challan import PartyChallan
+from app.models.party_challan_item import PartyChallanItem
+from app.models.delivery_challan import DeliveryChallan
+from app.models.delivery_challan_item import DeliveryChallanItem
+from app.models.invoice import Invoice
+from app.models.invoice_item import InvoiceItem
+from app.models.payment import Payment
+from app.models.payment_allocation import PaymentAllocation
+from app.models.expense import Expense
+from app.models.stock_transaction import StockTransaction
+from app.models.attendance import Attendance
+from app.models.salary_advance import SalaryAdvance
+from app.models.notification import Notification
+from app.models.audit_log import AuditLog
+
 # [NEW] Import super admin creator
 from create_super_admin import create_default_super_admin
 
@@ -147,6 +174,8 @@ from app.routers.reports import router as reports_router
 from app.routers.payment import router as payment_router
 from app.routers.expense import router as expense_router
 from app.routers.backup import router as backup_router
+from app.routers.roles import router as roles_router
+from app.routers.users import router as users_router
 
 
 # ===================== ROUTERS =====================
@@ -160,6 +189,8 @@ app.include_router(invoice_router)
 app.include_router(payment_router)
 app.include_router(expense_router)
 app.include_router(backup_router)
+app.include_router(roles_router)
+app.include_router(users_router)
 app.include_router(invoice_pdf_router)
 app.include_router(health_router)
 app.include_router(super_admin_router)

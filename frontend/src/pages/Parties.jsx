@@ -23,6 +23,7 @@ import toast from "react-hot-toast";
 import { getParties, deleteParty, updateParty } from "../api/parties";
 import AddPartyModal from "../components/AddPartyModal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import PermissionGuard from "../components/PermissionGuard";
 
 export default function Parties() {
   const [parties, setParties] = useState([]);
@@ -101,19 +102,21 @@ export default function Parties() {
             Manage your customers and vendors efficiently
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingParty(null);
-            setShowAddModal(true);
-          }}
-          className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105"
-        >
-          <Plus
-            size={20}
-            className="group-hover:rotate-90 transition-transform duration-300"
-          />
-          Add Party
-        </button>
+        <PermissionGuard permission="parties.create">
+          <button
+            onClick={() => {
+              setEditingParty(null);
+              setShowAddModal(true);
+            }}
+            className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105"
+          >
+            <Plus
+              size={20}
+              className="group-hover:rotate-90 transition-transform duration-300"
+            />
+            Add Party
+          </button>
+        </PermissionGuard>
       </div>
 
       {/* Stats/Summary Row */}
@@ -504,35 +507,41 @@ function PartyRow({ party, index, onEdit, onToggleStatus, onDelete }) {
       <td className="px-6 py-5">
         <div className="flex items-center justify-end gap-2">
           {/* Edit Button */}
-          <button
-            onClick={onEdit}
-            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Edit Party"
-          >
-            <Edit size={16} />
-          </button>
+          <PermissionGuard permission="parties.edit">
+            <button
+              onClick={onEdit}
+              className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Edit Party"
+            >
+              <Edit size={16} />
+            </button>
+          </PermissionGuard>
 
           {/* Toggle Status Button */}
-          <button
-            onClick={onToggleStatus}
-            className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md ${
-              party.is_active
-                ? "bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400"
-                : "bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400"
-            }`}
-            title={party.is_active ? "Deactivate" : "Activate"}
-          >
-            <Power size={16} />
-          </button>
+          <PermissionGuard permission="parties.edit">
+            <button
+              onClick={onToggleStatus}
+              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md ${
+                party.is_active
+                  ? "bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400"
+                  : "bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400"
+              }`}
+              title={party.is_active ? "Deactivate" : "Activate"}
+            >
+              <Power size={16} />
+            </button>
+          </PermissionGuard>
 
           {/* Delete Button */}
-          <button
-            onClick={onDelete}
-            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Delete Party"
-          >
-            <Trash2 size={16} />
-          </button>
+          <PermissionGuard permission="parties.delete">
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Delete Party"
+            >
+              <Trash2 size={16} />
+            </button>
+          </PermissionGuard>
         </div>
       </td>
     </tr>

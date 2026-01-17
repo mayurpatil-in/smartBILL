@@ -51,9 +51,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     token = create_access_token(
         data={
             "user_id": user.id,
-            "name": user.name,                 # ✅ ADDED
+            "name": user.name,
             "company_id": user.company_id,     # None for SUPER_ADMIN
-            "role": user.role.value,           # ✅ FIXED
+            "role": user.legacy_role,          # Use legacy_role for backward compatibility
             "company_name": user.company.name if user.company else None,
         },
         remember=data.remember

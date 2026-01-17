@@ -35,9 +35,9 @@ class PartyChallan(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    company = relationship(Company)
-    financial_year = relationship(FinancialYear)
-    party = relationship(Party)
+    company = relationship("Company")
+    financial_year = relationship("FinancialYear")
+    party = relationship("Party")
     items = relationship("PartyChallanItem", back_populates="party_challan", cascade="all, delete-orphan")
     delivery_challans = relationship("DeliveryChallan", back_populates="party_challan")
 

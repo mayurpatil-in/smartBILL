@@ -14,6 +14,9 @@ class EmployeeProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     
+    # Custom Company-Specific Employee ID (e.g. 1, 2, 3...)
+    company_employee_id = Column(Integer, nullable=True)
+    
     designation = Column(String(100), nullable=True)
     phone = Column(String(20), nullable=True)
     address = Column(String(255), nullable=True)
