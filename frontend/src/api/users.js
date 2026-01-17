@@ -33,3 +33,19 @@ export const assignUserRole = async (userId, roleId) => {
   });
   return response.data;
 };
+
+/**
+ * Update user details
+ */
+export const updateUser = async (userId, userData) => {
+  const response = await axios.put(`/users/${userId}`, userData);
+  return response.data;
+};
+
+/**
+ * Delete a user
+ */
+export const deleteUser = async (userId) => {
+  const response = await axios.delete(`/users/${userId}`);
+  return response.data;
+};

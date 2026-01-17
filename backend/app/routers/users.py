@@ -43,6 +43,13 @@ class AssignRoleRequest(BaseModel):
     role_id: int
 
 
+class UpdateUserRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 # ========================
 # ENDPOINTS
 # ========================
@@ -212,6 +219,74 @@ def get_user_details(
         role_name=user.role.name if user.role else None,
         role_description=user.role.description if user.role else None,
     )
+
+
+@router.put("/{user_id}")
+def update_user(
+    user_id: int,
+    request: UpdateUserRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update user details (name, email, password, is_active).
+    Requires: users.edit permission
+    """
+    # Check permission
+    if not PermissionService.has_permission(current_user, "users.edit", db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: users.edit required"
+        )
+    
+    # Get the user
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Ensure the user belongs to the same company
+    if user.company_id != current_user.company_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify users from other companies"
+        )
+    
+    # Update fields
+    if request.name is not None:
+        user.name = request.name
+    
+    if request.email is not None:
+        # Check if email is already taken by another user
+        existing = db.query(User).filter(
+            User.email == request.email,
+            User.id != user_id
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already in use by another user"
+            )
+        user.email = request.email
+    
+    if request.password is not None:
+        user.password_hash = get_password_hash(request.password)
+    
+    if request.is_active is not None:
+        user.is_active = request.is_active
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "User updated successfully",
+        "user_id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "is_active": user.is_active
+    }
 
 
 @router.put("/{user_id}/role")
