@@ -24,6 +24,9 @@ class EmployeeProfileBase(BaseModel):
     joining_date: Optional[date] = None
     salary_type: SalaryType = SalaryType.MONTHLY
     base_salary: Decimal = 0.00
+    tds_percentage: Optional[Decimal] = 0.00
+    enable_tds: Optional[bool] = False
+    professional_tax: Optional[Decimal] = 0.00
 
 class EmployeeProfileCreate(EmployeeProfileBase):
     pass
@@ -137,10 +140,14 @@ class SalarySlip(BaseModel):
     total_days: int
     present_days: float # Half days count as 0.5
     
+    
     # New Fields
     total_overtime_pay: float = 0.0
     total_bonus: float = 0.0
     total_advances_deducted: float = 0.0
+    tax_deduction: float = 0.0
+    professional_tax_deduction: float = 0.0
+    
     
     final_payable: float
     is_paid: bool = False

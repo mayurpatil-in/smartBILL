@@ -7,11 +7,13 @@ import {
   XCircle,
   Clock,
   AlertCircle,
+  PartyPopper,
 } from "lucide-react";
 import {
   getEmployees,
   getDailyAttendance,
   markAttendance,
+  getHolidays,
 } from "../api/employees";
 import toast from "react-hot-toast";
 
@@ -22,6 +24,7 @@ export default function EmployeeAttendance() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isMarked, setIsMarked] = useState(false);
+  const [holiday, setHoliday] = useState(null); // stores holiday name if today is holiday
 
   useEffect(() => {
     loadData();
@@ -30,12 +33,21 @@ export default function EmployeeAttendance() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [emps, daily] = await Promise.all([
+      const allData = await Promise.all([
         getEmployees(),
         getDailyAttendance(date),
+        getHolidays(),
       ]);
+      const holidays = allData[2];
+      const emps = allData[0];
+      const daily = allData[1];
+
       const activeEmps = emps.filter((emp) => emp.is_active);
       setEmployees(activeEmps);
+
+      // Check if selected date is holiday
+      const foundHoliday = holidays.find((h) => h.date === date);
+      setHoliday(foundHoliday ? foundHoliday.name : null);
 
       // Map daily records to state
       const attendanceMap = {};
@@ -155,6 +167,20 @@ export default function EmployeeAttendance() {
           </button>
         </div>
       </div>
+
+      {/* Holiday Banner */}
+      {holiday && (
+        <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
+          <PartyPopper size={24} className="text-white" />
+          <div>
+            <h4 className="font-bold text-lg">Holiday: {holiday}</h4>
+            <p className="text-white/90 text-sm">
+              Attendance marking is optional. Employees with no attendance
+              marked will be treated as Paid Leave.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Attendance Grid */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in-up">

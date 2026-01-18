@@ -51,7 +51,7 @@
 
         /* Salary Table */
         .salary-container { display: flex; gap: 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 30px; }
-        .salary-col { flex: 1; }
+        .salary-col { flex: 1; display: flex; flex-direction: column; }
         .salary-col:first-child { border-right: 1px solid #e2e8f0; }
 
         .col-header { 
@@ -80,6 +80,7 @@
             background: #f8fafc; 
             font-weight: 700;
             border-top: 1px solid #e2e8f0;
+            margin-top: auto;
         }
 
         /* Net Pay */
@@ -159,8 +160,10 @@
             <div class="salary-col deductions">
                 <div class="col-header">Deductions</div>
                 <div class="line-item"><span>Salary Advances</span><span>₹{{ total_advances_deducted }}</span></div>
-                <div class="line-item"><span>TDS / Tax</span><span>₹0.00</span></div>
-                <div class="line-item"><span>Professional Tax</span><span>₹0.00</span></div>
+                {% if tax_deduction != "0.00" %}
+                <div class="line-item"><span>TDS / Tax</span><span>₹{{ tax_deduction }}</span></div>
+                {% endif %}
+                <div class="line-item"><span>Professional Tax</span><span>₹{{ professional_tax_deduction }}</span></div>
                 <div class="line-item" style="opacity: 0;"><span>&nbsp;</span><span>&nbsp;</span></div>
 
                 <div class="total-row" style="color: #991b1b;">

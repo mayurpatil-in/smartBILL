@@ -20,6 +20,9 @@ import {
   CreditCard,
   TrendingUp,
   Building2,
+  Coffee,
+  PartyPopper,
+  Settings,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -30,6 +33,8 @@ import EmployeeAttendance from "../components/EmployeeAttendance";
 import MonthlyAttendanceReport from "../components/MonthlyAttendanceReport";
 import SalaryAdvanceModal from "../components/SalaryAdvanceModal";
 import PdfPreviewModal from "../components/PdfPreviewModal";
+import CompanyHolidays from "../components/CompanyHolidays";
+import CompanyOffDays from "../components/CompanyOffDays";
 import { generateSalarySlip } from "../utils/pdfGenerator";
 import {
   getEmployees,
@@ -157,11 +162,11 @@ export default function Employees() {
       await updateEmployee(employee.id, { is_active: !employee.is_active });
       setEmployees(
         employees.map((e) =>
-          e.id === employee.id ? { ...e, is_active: !employee.is_active } : e
-        )
+          e.id === employee.id ? { ...e, is_active: !employee.is_active } : e,
+        ),
       );
       toast.success(
-        `Employee marked as ${!employee.is_active ? "Active" : "Inactive"}`
+        `Employee marked as ${!employee.is_active ? "Active" : "Inactive"}`,
       );
     } catch (err) {
       console.error(err);
@@ -186,7 +191,7 @@ export default function Employees() {
   const filteredEmployees = employees.filter(
     (emp) =>
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+      emp.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -225,6 +230,8 @@ export default function Employees() {
             { id: "report", label: "Report", icon: FileText },
             { id: "payroll", label: "Payroll", icon: IndianRupee },
             { id: "history", label: "History", icon: History },
+            { id: "holidays", label: "Holidays", icon: PartyPopper },
+            { id: "weekends", label: "Weekends", icon: Coffee },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -498,6 +505,9 @@ export default function Employees() {
 
       {activeTab === "history" && <SalaryHistory />}
 
+      {activeTab === "holidays" && <CompanyHolidays />}
+      {activeTab === "weekends" && <CompanyOffDays />}
+
       <AddEmployeeModal
         open={isAddModalOpen}
         employee={selectedEmployee}
@@ -578,7 +588,7 @@ function PayrollView({ employees }) {
         activeEmployees.map(async (emp) => {
           const data = await getEmployeeSalary(emp.id, month, year);
           map[emp.id] = data;
-        })
+        }),
       );
       setSalaries(map);
     } catch (e) {
@@ -675,6 +685,12 @@ function PayrollView({ employees }) {
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
                   Advances
+                </th>
+                <th className="px-6 py-4 text-left whitespace-nowrap">
+                  TDS / Tax
+                </th>
+                <th className="px-6 py-4 text-left whitespace-nowrap">
+                  Prof. Tax
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
                   Net Pay
@@ -781,6 +797,18 @@ function PayrollView({ employees }) {
                               Manage
                             </button>
                           </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-lg font-semibold text-sm">
+                            {slip ? `-₹${slip.tax_deduction}` : "-"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="px-2.5 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 rounded-lg font-semibold text-sm">
+                            {slip
+                              ? `-₹${slip.professional_tax_deduction}`
+                              : "-"}
+                          </span>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
@@ -908,8 +936,8 @@ function PaySalaryModal({
         typeof detail === "string"
           ? detail
           : Array.isArray(detail)
-          ? detail.map((d) => d.msg).join(", ")
-          : "Failed to pay salary";
+            ? detail.map((d) => d.msg).join(", ")
+            : "Failed to pay salary";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -1075,6 +1103,16 @@ function SalaryHistory() {
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                     {expense.description}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {expense.slip?.deductions
+                      ? `₹${expense.slip.deductions}`
+                      : "-"}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                    {expense.slip?.tax_deduction
+                      ? `₹${expense.slip.tax_deduction}`
+                      : "-"}
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-bold text-gray-900 dark:text-white">
                     ₹{expense.amount}

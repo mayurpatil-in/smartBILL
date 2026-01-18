@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Enum
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, Enum, Boolean
 from sqlalchemy.orm import relationship
 import enum
 
@@ -33,6 +33,9 @@ class EmployeeProfile(Base):
     
     salary_type = Column(Enum(SalaryType), default=SalaryType.MONTHLY)
     base_salary = Column(Numeric(12, 2), default=0.00)
+    tds_percentage = Column(Numeric(5, 2), default=0.00) # Tax Deduction Percentage
+    enable_tds = Column(Boolean, default=False) # Toggle TDS Deduction
+    professional_tax = Column(Numeric(10, 2), default=0.00) # Fixed Professional Tax Amount
     
     # Relationships
     user = relationship("User", back_populates="employee_profile")

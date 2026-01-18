@@ -1,17 +1,17 @@
-import api from './axios';
+import api from "./axios";
 
 export const getEmployees = async () => {
-  const response = await api.get('/employees/');
+  const response = await api.get("/employees/");
   return response.data;
 };
 
 export const getNextEmployeeId = async () => {
-  const response = await api.get('/employees/next-id');
+  const response = await api.get("/employees/next-id");
   return response.data;
 };
 
 export const createEmployee = async (data) => {
-  const response = await api.post('/employees/', data);
+  const response = await api.post("/employees/", data);
   return response.data;
 };
 
@@ -26,17 +26,21 @@ export const deleteEmployee = async (id) => {
 };
 
 export const markAttendance = async (records) => {
-  const response = await api.post('/employees/attendance', records);
+  const response = await api.post("/employees/attendance", records);
   return response.data;
 };
 
 export const getDailyAttendance = async (date) => {
-  const response = await api.get('/employees/attendance/daily', { params: { date_str: date } });
+  const response = await api.get("/employees/attendance/daily", {
+    params: { date_str: date },
+  });
   return response.data;
 };
 
 export const getEmployeeSalary = async (userId, month, year) => {
-  const response = await api.get(`/employees/${userId}/salary`, { params: { month, year } });
+  const response = await api.get(`/employees/${userId}/salary`, {
+    params: { month, year },
+  });
   return response.data;
 };
 
@@ -48,7 +52,7 @@ export const getMonthlyAttendance = async (month, year) => {
 };
 
 export const createSalaryAdvance = async (data) => {
-  const response = await api.post('/employees/advances', data);
+  const response = await api.post("/employees/advances", data);
   return response.data;
 };
 
@@ -68,14 +72,41 @@ export const uploadDocument = async (userId, formData) => {
 
 export const payEmployeeSalary = async (userId, month, year, paymentMethod) => {
   const response = await api.post(`/employees/${userId}/salary/pay`, null, {
-    params: { month, year, payment_method: paymentMethod }
+    params: { month, year, payment_method: paymentMethod },
   });
   return response.data;
 };
 
 export const getEmployeeIDCard = async (userId) => {
   const response = await api.get(`/employees/${userId}/id-card/pdf`, {
-    responseType: 'blob',
+    responseType: "blob",
   });
-  return window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+  return window.URL.createObjectURL(
+    new Blob([response.data], { type: "application/pdf" }),
+  );
+};
+
+export const getHolidays = async () => {
+  const response = await api.get("/holidays/");
+  return response.data;
+};
+
+export const createHoliday = async (data) => {
+  const response = await api.post("/holidays/", data);
+  return response.data;
+};
+
+export const deleteHoliday = async (id) => {
+  const response = await api.delete(`/holidays/${id}`);
+  return response.data;
+};
+
+export const getCompanySettings = async () => {
+  const response = await api.get("/company/settings");
+  return response.data;
+};
+
+export const updateOffDays = async (offDays) => {
+  const response = await api.put("/company/settings/off-days", offDays);
+  return response.data;
 };

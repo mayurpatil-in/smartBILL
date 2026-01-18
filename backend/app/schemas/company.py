@@ -1,6 +1,6 @@
 from datetime import date
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 
 
 class CompanyBase(BaseModel):
@@ -10,6 +10,7 @@ class CompanyBase(BaseModel):
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     logo: Optional[str] = None
+    off_days: Optional[List[int]] = []
 
 
 class CompanyCreate(CompanyBase):

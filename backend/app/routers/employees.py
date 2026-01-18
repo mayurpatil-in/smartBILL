@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response, Request, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import extract, and_, func
@@ -23,17 +23,222 @@ from app.core.paths import UPLOAD_DIR
 from app.models.employee_profile import EmployeeProfile, SalaryType
 from app.models.attendance import Attendance, AttendanceStatus
 from app.models.salary_advance import SalaryAdvance
+from app.models.salary_advance import SalaryAdvance
+from app.models.holiday import Holiday
+from app.models.company import Company
 from app.models.role import Role
 from app.schemas.user import (
     UserCreate, UserResponse, UserUpdate, 
     AttendanceCreate, AttendanceResponse, SalarySlip,
     SalaryAdvanceCreate, SalaryAdvanceResponse
 )
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user
 from app.core.security import get_password_hash
 from app.models.expense import Expense
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
+
+# ================================
+# EMPLOYEE SELF-SERVICE PORTAL
+# ================================
+
+@router.get("/me/profile")
+def get_my_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current employee's profile information
+    """
+    user = db.query(User).options(joinedload(User.employee_profile), joinedload(User.role)).filter(
+        User.id == current_user.id
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return user
+
+
+@router.get("/me/attendance")
+def get_my_attendance(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    month: int = 1,
+    year: int = 2026
+):
+    """
+    Get current employee's attendance for a specific month
+    """
+    records = db.query(Attendance).filter(
+        Attendance.user_id == current_user.id,
+        extract('month', Attendance.date) == month,
+        extract('year', Attendance.date) == year
+    ).order_by(Attendance.date).all()
+    
+    # Calculate summary
+    present_days = sum(1 for r in records if r.status == AttendanceStatus.PRESENT)
+    half_days = sum(1 for r in records if r.status == AttendanceStatus.HALF_DAY)
+    absent_days = sum(1 for r in records if r.status == AttendanceStatus.ABSENT)
+    leave_days = sum(1 for r in records if r.status == AttendanceStatus.LEAVE)
+    total_overtime = sum(float(r.overtime_hours or 0) for r in records)
+    total_bonus = sum(float(r.bonus_amount or 0) for r in records)
+    
+    # [NEW] Fetch Holidays
+    holidays = db.query(Holiday).filter(
+        Holiday.company_id == current_user.company_id,
+        extract('month', Holiday.date) == month,
+        extract('year', Holiday.date) == year
+    ).all()
+    
+    # [NEW] Fetch Company Off Days
+    company = db.query(Company).filter(Company.id == current_user.company_id).first()
+    off_days = company.off_days if company and company.off_days else []
+    
+    return {
+        "records": records,
+        "summary": {
+            "present_days": present_days,
+            "half_days": half_days,
+            "absent_days": absent_days,
+            "leave_days": leave_days,
+            "holidays_count": len(holidays),
+            "total_overtime_hours": total_overtime,
+            "total_bonus": total_bonus
+        },
+        "holidays": holidays,
+        "off_days": off_days
+    }
+
+
+@router.get("/me/salary-slips")
+def get_my_salary_slips(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of months where salary was paid for current employee
+    """
+    # Get all salary expenses for this employee
+    expenses = db.query(Expense).filter(
+        Expense.category == "Salary",
+        Expense.payee_name == current_user.name,
+        Expense.company_id == current_user.company_id
+    ).order_by(Expense.date.desc()).all()
+    
+    # Parse month/year from description (format: "Salary for Name - Month Year")
+    salary_slips = []
+    for expense in expenses:
+        try:
+            # Extract month and year from description
+            # Example: "Salary for John Doe - September 2024"
+            parts = expense.description.split(" - ")
+            if len(parts) == 2:
+                month_year_str = parts[1].strip()
+                month_year_parts = month_year_str.split()
+                if len(month_year_parts) == 2:
+                    month_name = month_year_parts[0]
+                    year = int(month_year_parts[1])
+                    
+                    # Convert month name to number
+                    month_map = {
+                        "January": 1, "February": 2, "March": 3, "April": 4,
+                        "May": 5, "June": 6, "July": 7, "August": 8,
+                        "September": 9, "October": 10, "November": 11, "December": 12
+                    }
+                    month = month_map.get(month_name)
+                    
+                    if month:
+                        salary_slips.append({
+                            "month": month,
+                            "year": year,
+                            "month_name": month_name,
+                            "amount": float(expense.amount),
+                            "payment_date": expense.date,
+                            "payment_method": expense.payment_method
+                        })
+        except:
+            continue
+    
+    return salary_slips
+
+
+@router.get("/me/salary-slip/{month}/{year}/pdf")
+async def download_my_salary_slip(
+    month: int,
+    year: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Download salary slip PDF for current employee
+    """
+    # Reuse the existing salary slip PDF generation
+    try:
+        salary_slip = calculate_salary(
+            user_id=current_user.id,
+            month=month,
+            year=year,
+            company_id=current_user.company_id,
+            db=db
+        )
+    except HTTPException as e:
+        raise e
+    
+    # Fetch User & Company Details
+    user = db.query(User).options(joinedload(User.employee_profile)).filter(
+        User.id == current_user.id,
+        User.company_id == current_user.company_id
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    company = user.company
+    
+    # Prepare Template Context
+    month_name = date(year, month, 1).strftime("%B")
+    
+    # Reverse calculate base earned
+    # Reverse calculate base earned
+    # Final = EarnedBasic + OT + Bonus - Advances - Tax
+    # EarnedBasic = Final - OT - Bonus + Advances + Tax
+    # Reverse calculate base earned
+    # Final = EarnedBasic + OT + Bonus - Advances - Tax - PT
+    # EarnedBasic = Final - OT - Bonus + Advances + Tax + PT
+    earned_basic = salary_slip.final_payable - salary_slip.total_overtime_pay - salary_slip.total_bonus + salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction
+    
+    template = env.get_template("salary_slip.html")
+    html_content = template.render(
+        company=company,
+        employee=user,
+        month_name=month_name,
+        year=year,
+        base_salary=f"{salary_slip.base_salary:,.2f}",
+        total_days=salary_slip.total_days,
+        present_days=salary_slip.present_days,
+        total_overtime_pay=f"{salary_slip.total_overtime_pay:,.2f}",
+        total_bonus=f"{salary_slip.total_bonus:,.2f}",
+        total_earnings=f"{(earned_basic + salary_slip.total_overtime_pay + salary_slip.total_bonus):,.2f}",
+        calculated_amount=f"{earned_basic:,.2f}",
+        total_advances_deducted=f"{salary_slip.total_advances_deducted:,.2f}",
+        tax_deduction=f"{salary_slip.tax_deduction:,.2f}",
+        professional_tax_deduction=f"{salary_slip.professional_tax_deduction:,.2f}",
+        total_deductions=f"{(salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction):,.2f}",
+        final_payable=f"{salary_slip.final_payable:,.2f}",
+        generated_date=date.today().strftime("%d-%m-%Y")
+    )
+    
+    # Generate PDF
+    pdf_content = await generate_pdf(html_content)
+    
+    filename = f"SalarySlip_{user.name}_{month_name}{year}.pdf"
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
+    )
 
 # ================================
 # EMPLOYEE CRUD
@@ -179,6 +384,11 @@ def update_employee(
         if data.profile.salary_type: profile.salary_type = data.profile.salary_type
         if data.profile.base_salary is not None: profile.base_salary = data.profile.base_salary
         if data.profile.joining_date: profile.joining_date = data.profile.joining_date
+        
+        # Update Tax/TDS info
+        if data.profile.professional_tax is not None: profile.professional_tax = data.profile.professional_tax
+        if data.profile.tds_percentage is not None: profile.tds_percentage = data.profile.tds_percentage
+        if data.profile.enable_tds is not None: profile.enable_tds = data.profile.enable_tds
 
     db.commit()
     db.refresh(user)
@@ -280,7 +490,23 @@ def get_monthly_attendance(
         extract('month', Attendance.date) == month,
         extract('year', Attendance.date) == year
     ).all()
-    return records
+    
+    # [NEW] Fetch Holidays
+    holidays = db.query(Holiday).filter(
+        Holiday.company_id == company_id,
+        extract('month', Holiday.date) == month,
+        extract('year', Holiday.date) == year
+    ).all()
+    
+    # [NEW] Fetch Company Off Days
+    company = db.query(Company).filter(Company.id == company_id).first()
+    off_days = company.off_days if company and company.off_days else []
+    
+    return {
+        "records": records, 
+        "holidays": holidays,
+        "off_days": off_days
+    }
 
 # ================================
 # SALARY ADVANCE
@@ -387,6 +613,37 @@ def calculate_salary(
         if r.bonus_amount:
             total_bonus += float(r.bonus_amount)
     
+    # [NEW] Add Holidays to Present Days (if no attendance marked)
+    holidays = db.query(Holiday).filter(
+        Holiday.company_id == company_id,
+        extract('month', Holiday.date) == month,
+        extract('year', Holiday.date) == year
+    ).all()
+    
+    holiday_dates = {h.date for h in holidays}
+    attended_dates = {r.date for r in records}
+    
+    for h_date in holiday_dates:
+        # If no attendance marked for this holiday, count as full paid day
+        if h_date not in attended_dates:
+            present_days += 1.0
+            
+    # [NEW] Add Weekly Off Days (e.g. Sundays) to Present Days
+    company = db.query(Company).filter(Company.id == company_id).first()
+    off_days = company.off_days if company and company.off_days else [] # List of ints [0-6]
+    
+    if off_days:
+        from calendar import monthrange
+        _, days_in_month_count = monthrange(year, month)
+        
+        for day in range(1, days_in_month_count + 1):
+             current_date = date(year, month, day)
+             # If it is an off day (e.g. Sunday=6)
+             if current_date.weekday() in off_days:
+                 # If not already counted as holiday AND not attended (marked absent/present manually)
+                 if current_date not in holiday_dates and current_date not in attended_dates:
+                     present_days += 1.0
+    
     # Logic
     _, days_in_month = monthrange(year, month)
     calculated_amount = 0.0
@@ -407,7 +664,9 @@ def calculate_salary(
     
     total_advances = sum([float(a.amount) for a in advances])
 
-    final_payable = calculated_amount + total_overtime_pay + total_bonus - total_advances
+    total_advances = sum([float(a.amount) for a in advances])
+
+    # final_payable calculated later after tax
 
     # Check if already paid
     # Construct description to match pay_salary logic
@@ -419,6 +678,20 @@ def calculate_salary(
         Expense.description == expected_desc,
         Expense.company_id == company_id
     ).first()
+    
+    # Calculate Tax (TDS)
+    # Gross Earnings = Base Pay + OT + Bonus
+    gross_earnings = calculated_amount + total_overtime_pay + total_bonus
+    if profile.enable_tds:
+        tds_percentage = float(profile.tds_percentage) if profile.tds_percentage else 0.0
+        tax_deduction = (gross_earnings * tds_percentage) / 100
+    else:
+        tax_deduction = 0.0
+    
+    # Professional Tax (Fixed Amount)
+    professional_tax = float(profile.professional_tax) if profile.professional_tax else 0.0
+    
+    final_payable = gross_earnings - total_advances - tax_deduction - professional_tax
     
     is_paid = existing_expense is not None
 
@@ -432,6 +705,8 @@ def calculate_salary(
         total_overtime_pay=round(total_overtime_pay, 2),
         total_bonus=round(total_bonus, 2),
         total_advances_deducted=round(total_advances, 2),
+        tax_deduction=round(tax_deduction, 2),
+        professional_tax_deduction=round(professional_tax, 2),
         final_payable=round(final_payable, 2),
         is_paid=is_paid
     )
@@ -522,7 +797,7 @@ async def get_salary_slip_pdf(
     month_name = date(year, month, 1).strftime("%B")
     
     # Reverse calculate base earned
-    earned_basic = salary_slip.final_payable - salary_slip.total_overtime_pay - salary_slip.total_bonus + salary_slip.total_advances_deducted
+    earned_basic = salary_slip.final_payable - salary_slip.total_overtime_pay - salary_slip.total_bonus + salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction
     
     template = env.get_template("salary_slip.html")
     html_content = template.render(
@@ -538,7 +813,9 @@ async def get_salary_slip_pdf(
         total_earnings=f"{(earned_basic + salary_slip.total_overtime_pay + salary_slip.total_bonus):,.2f}",
         calculated_amount=f"{earned_basic:,.2f}",
         total_advances_deducted=f"{salary_slip.total_advances_deducted:,.2f}",
-        total_deductions=f"{salary_slip.total_advances_deducted:,.2f}",
+        tax_deduction=f"{salary_slip.tax_deduction:,.2f}",
+        professional_tax_deduction=f"{salary_slip.professional_tax_deduction:,.2f}",
+        total_deductions=f"{(salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction):,.2f}",
         final_payable=f"{salary_slip.final_payable:,.2f}",
         generated_date=date.today().strftime("%d-%m-%Y")
     )
@@ -674,3 +951,7 @@ async def get_id_card_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f"inline; filename={filename}"}
     )
+
+
+# ================================
+

@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
           name: payload.name ?? "User",
           companyId: payload.company_id ?? null,
           role: payload.role,
+          role_name: payload.role_name, // Add role_name from JWT
           companyName: payload.company_name ?? null,
         };
         setUser(initialUser);
@@ -61,6 +62,7 @@ export function AuthProvider({ children }) {
             ...prev,
             name: profileData.user.name,
             email: profileData.user.email,
+            role_name: profileData.user.role_name, // Add role_name for RBAC
             companyName: profileData.company?.name || prev.companyName,
             companyLogo: profileData.company?.logo,
           }));
@@ -96,6 +98,7 @@ export function AuthProvider({ children }) {
       name: payload.name ?? "User",
       companyId: payload.company_id ?? null,
       role: payload.role,
+      role_name: payload.role_name, // Add role_name from JWT
       companyName: payload.company_name ?? null,
     });
 

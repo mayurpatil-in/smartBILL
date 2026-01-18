@@ -18,8 +18,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # 🔐 LOGIN
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
+    from sqlalchemy.orm import joinedload
+    
     user = (
         db.query(User)
+        .options(joinedload(User.role))  # Load role relationship
         .filter(
             User.email == data.email,
             User.is_active == True
@@ -54,6 +57,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             "name": user.name,
             "company_id": user.company_id,     # None for SUPER_ADMIN
             "role": user.legacy_role,          # Use legacy_role for backward compatibility
+            "role_name": user.role.name if user.role else None,  # Add actual role name
             "company_name": user.company.name if user.company else None,
         },
         remember=data.remember
@@ -95,6 +99,7 @@ def refresh_token(token: str = Depends(oauth2_scheme)):
                 "name": payload.get("name"),
                 "company_id": payload.get("company_id"),
                 "role": payload["role"],
+                "role_name": payload.get("role_name"),
                 "company_name": payload.get("company_name"),
             }
         )

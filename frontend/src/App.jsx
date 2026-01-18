@@ -25,9 +25,13 @@ const Expenses = lazy(() => import("./pages/Expenses")); // [NEW]
 const RoleManagement = lazy(() => import("./pages/RoleManagement")); // [RBAC]
 const UserManagement = lazy(() => import("./pages/UserManagement")); // [RBAC]
 const VerifyID = lazy(() => import("./pages/VerifyID"));
+const EmployeeDashboard = lazy(
+  () => import("./pages/employee/EmployeeDashboard"),
+); // [Employee Portal]
 
 function AppRoutes() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user } = useAuth();
+  const isEmployee = user?.role_name === "Employee";
 
   return (
     <Suspense fallback={<LoadingSpinner />}>
@@ -36,18 +40,40 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify-id/:id" element={<VerifyID />} />
 
+        {/* Employee Portal */}
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute>
+              <EmployeeDashboard />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Protected App */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              {isEmployee ? (
+                <Navigate to="/employee" replace />
+              ) : (
+                <DashboardLayout />
+              )}
             </ProtectedRoute>
           }
         >
           <Route
             index
-            element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
+            element={
+              isEmployee ? (
+                <Navigate to="/employee" replace />
+              ) : isSuperAdmin ? (
+                <SuperAdminDashboard />
+              ) : (
+                <Dashboard />
+              )
+            }
           />
           <Route
             path="dashboard"

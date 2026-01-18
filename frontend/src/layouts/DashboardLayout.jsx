@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SessionWarning from "../components/SessionWarning";
 import { PermissionProvider } from "../hooks/usePermissions";
+import { useAuth } from "../hooks/useAuth";
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // 🔄 Redirect employees to their portal
+  useEffect(() => {
+    if (user?.role_name === "Employee") {
+      navigate("/employee", { replace: true });
+    }
+  }, [user?.role_name, navigate]);
 
   // 🔒 Lock body scroll when mobile sidebar is open
   useEffect(() => {

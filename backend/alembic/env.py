@@ -29,6 +29,8 @@ from app.models import (
     attendance,
     salary_advance,
     invoice_item,
+    holiday,
+    role,
 )
 
 # Metadata for autogenerate

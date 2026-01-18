@@ -16,7 +16,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 // Configure worker locally
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
+  import.meta.url,
 ).toString();
 
 export default function PdfPreviewModal({
@@ -45,7 +45,7 @@ export default function PdfPreviewModal({
         lower.endsWith(".jpg") ||
           lower.endsWith(".jpeg") ||
           lower.endsWith(".png") ||
-          lower.endsWith(".webp")
+          lower.endsWith(".webp"),
       );
     }
   }, [pdfUrl]);

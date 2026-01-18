@@ -13,7 +13,7 @@ export default function Login() {
   const [isOnline, setIsOnline] = useState(null);
 
   const [isDark, setIsDark] = useState(
-    document.documentElement.classList.contains("dark")
+    document.documentElement.classList.contains("dark"),
   );
 
   // ✅ Restore remember-me preference
@@ -88,7 +88,31 @@ export default function Login() {
 
       localStorage.setItem("remember", remember ? "true" : "false");
 
-      window.location.href = "/";
+      // Decode JWT to check role
+      try {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join(""),
+        );
+
+        const payload = JSON.parse(jsonPayload);
+
+        // Redirect based on role
+        if (payload.role_name === "Employee") {
+          window.location.href = "/employee";
+        } else {
+          window.location.href = "/";
+        }
+      } catch (decodeError) {
+        console.error("Failed to decode token:", decodeError);
+        window.location.href = "/";
+      }
     } catch (err) {
       setError(err.response?.data?.detail || "Invalid email or password");
     } finally {

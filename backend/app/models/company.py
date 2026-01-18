@@ -42,6 +42,13 @@ class Company(Base):
     # =========================
     # 🕒 AUDIT FIELDS (OPTIONAL)
     # =========================
+    
+    # Stores array of int (0=Mon, 6=Sun)
+    # Using String for simplicity in SQLite compatibility if needed, but JSON is better if PG.
+    # We will use JSON if possible, but SQLAlchemy JSON works on both (SQLite extracts as text/json).
+    from sqlalchemy import JSON
+    off_days = Column(JSON, nullable=True, default=[]) # e.g. [6] for Sunday
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -57,6 +64,12 @@ class Company(Base):
     # =========================
     users = relationship(
         "User",
+        back_populates="company",
+        cascade="all, delete-orphan"
+    )
+
+    holidays = relationship(
+        "Holiday",
         back_populates="company",
         cascade="all, delete-orphan"
     )

@@ -43,6 +43,7 @@ from app.models.attendance import Attendance
 from app.models.salary_advance import SalaryAdvance
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
+from app.models.holiday import Holiday
 
 # [NEW] Import super admin creator
 from create_super_admin import create_default_super_admin
@@ -207,6 +208,12 @@ app.include_router(reports_router)
 
 from app.routers.notification import router as notification_router
 app.include_router(notification_router)
+
+from app.routers.holidays import router as holidays_router
+app.include_router(holidays_router)
+
+from app.routers.company_settings import router as company_settings_router
+app.include_router(company_settings_router)
 
 from app.routers.public_challan import router as public_challan_router
 from app.routers.public_reports import router as public_reports_router

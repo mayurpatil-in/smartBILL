@@ -10,6 +10,8 @@ export default function MonthlyAttendanceReport() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [employees, setEmployees] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [offDays, setOffDays] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,9 @@ export default function MonthlyAttendanceReport() {
         getMonthlyAttendance(month, year),
       ]);
       setEmployees(emps.filter((e) => e.is_active));
-      setAttendanceData(attendance);
+      setAttendanceData(attendance.records || []);
+      setHolidays(attendance.holidays || []);
+      setOffDays(attendance.off_days || []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load report data");
@@ -38,12 +42,23 @@ export default function MonthlyAttendanceReport() {
 
   const getStatus = (userId, day) => {
     const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(
-      day
+      day,
     ).padStart(2, "0")}`;
     const record = attendanceData.find(
-      (a) => a.user_id === userId && a.date === dateStr
+      (a) => a.user_id === userId && a.date === dateStr,
     );
-    return record ? record.status : "-";
+    if (record) return record.status;
+
+    // Check Holiday
+    if (holidays.some((h) => h.date === dateStr)) return "holiday";
+
+    // Check Weekend/Off Day
+    // Note: offDays from backend are 0=Mon, 6=Sun. JS getDay is 0=Sun.
+    const jsDay = new Date(year, month - 1, day).getDay();
+    const pythonDay = jsDay === 0 ? 6 : jsDay - 1;
+    if (offDays.includes(pythonDay)) return "weekend";
+
+    return "-";
   };
 
   const getStatusColor = (status) => {
@@ -56,6 +71,10 @@ export default function MonthlyAttendanceReport() {
         return "bg-yellow-100 text-yellow-700";
       case "leave":
         return "bg-blue-100 text-blue-700";
+      case "holiday":
+        return "bg-pink-100 text-pink-700";
+      case "weekend":
+        return "bg-purple-100 text-purple-700";
       default:
         return "text-gray-400";
     }
@@ -71,6 +90,10 @@ export default function MonthlyAttendanceReport() {
         return "HD";
       case "leave":
         return "L";
+      case "holiday":
+        return "H";
+      case "weekend":
+        return "W";
       default:
         return "-";
     }
@@ -263,7 +286,7 @@ export default function MonthlyAttendanceReport() {
                             <td key={day} className="px-1 py-2 text-center">
                               <span
                                 className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold shadow-sm transition-all duration-200 ${getStatusColor(
-                                  status
+                                  status,
                                 )} ${
                                   status !== "-"
                                     ? "ring-1 ring-offset-1 ring-gray-200 dark:ring-gray-600"

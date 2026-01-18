@@ -85,6 +85,9 @@ export default function AddEmployeeModal({
       joining_date: new Date().toISOString().split("T")[0],
       salary_type: "monthly",
       base_salary: "",
+      tds_percentage: "",
+      enable_tds: false,
+      professional_tax: "",
     },
   });
   const [loading, setLoading] = useState(false);
@@ -111,6 +114,9 @@ export default function AddEmployeeModal({
             new Date().toISOString().split("T")[0],
           salary_type: employee.employee_profile?.salary_type || "monthly",
           base_salary: employee.employee_profile?.base_salary || "",
+          tds_percentage: employee.employee_profile?.tds_percentage || "",
+          enable_tds: employee.employee_profile?.enable_tds || false,
+          professional_tax: employee.employee_profile?.professional_tax || "",
           pan_doc_path: employee.employee_profile?.pan_doc_path || "",
           aadhar_doc_path: employee.employee_profile?.aadhar_doc_path || "",
           resume_doc_path: employee.employee_profile?.resume_doc_path || "",
@@ -132,6 +138,9 @@ export default function AddEmployeeModal({
           joining_date: new Date().toISOString().split("T")[0],
           salary_type: "monthly",
           base_salary: "",
+          tds_percentage: "",
+          enable_tds: false,
+          professional_tax: "",
           pan_doc_path: "",
           aadhar_doc_path: "",
           resume_doc_path: "",
@@ -195,6 +204,9 @@ export default function AddEmployeeModal({
         profile: {
           ...formData.profile,
           base_salary: parseFloat(formData.profile.base_salary) || 0,
+          tds_percentage: parseFloat(formData.profile.tds_percentage) || 0,
+          enable_tds: formData.profile.enable_tds,
+          professional_tax: parseFloat(formData.profile.professional_tax) || 0,
         },
       };
 
@@ -222,7 +234,7 @@ export default function AddEmployeeModal({
             formDataUpload.append("doc_type", type);
             formDataUpload.append("file", file);
             return uploadDocument(empId, formDataUpload);
-          }
+          },
         );
         await Promise.all(uploadPromises);
         toast.success("Documents uploaded successfully");
@@ -257,8 +269,8 @@ export default function AddEmployeeModal({
                       employee.id
                     }`
                   : nextId
-                  ? `Next Employee ID: #${nextId}`
-                  : "Create a new employee record"}
+                    ? `Next Employee ID: #${nextId}`
+                    : "Create a new employee record"}
               </p>
             </div>
           </div>
@@ -320,7 +332,7 @@ export default function AddEmployeeModal({
                         <img
                           src={`http://localhost:8000/${formData.profile.photo_path.replace(
                             /\\/g,
-                            "/"
+                            "/",
                           )}`}
                           alt="Profile"
                           className="w-full h-full object-cover"
@@ -675,6 +687,96 @@ export default function AddEmployeeModal({
                       </div>
                     </div>
                   </div>
+
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enable_tds"
+                        checked={formData.profile.enable_tds}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            profile: {
+                              ...formData.profile,
+                              enable_tds: e.target.checked,
+                            },
+                          })
+                        }
+                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                      />
+                      <label
+                        htmlFor="enable_tds"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer"
+                      >
+                        Enable TDS Deduction
+                      </label>
+                    </div>
+
+                    {formData.profile.enable_tds && (
+                      <div className="space-y-2 animate-fade-in-down">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          TDS Percentage (%)
+                        </label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">
+                            %
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            name="tds_percentage"
+                            id="tds_percentage"
+                            value={formData.profile.tds_percentage}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                profile: {
+                                  ...formData.profile,
+                                  tds_percentage: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Professional Tax (Fixed)
+                    </label>
+                    <div className="relative">
+                      <IndianRupee
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        size={18}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        name="professional_tax"
+                        id="professional_tax"
+                        value={formData.profile.professional_tax}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            profile: {
+                              ...formData.profile,
+                              professional_tax: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-5 bg-white dark:bg-gray-900/50 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
@@ -706,8 +808,8 @@ export default function AddEmployeeModal({
                               {formData.profile?.[`${doc}_doc_path`]
                                 ? "Uploaded"
                                 : pendingDocs[doc]
-                                ? "Selected"
-                                : "Not uploaded"}
+                                  ? "Selected"
+                                  : "Not uploaded"}
                             </p>
                           </div>
                         </div>
@@ -721,7 +823,7 @@ export default function AddEmployeeModal({
                                 setPreviewFile({
                                   url: `http://localhost:8000/${path.replace(
                                     /\\/g,
-                                    "/"
+                                    "/",
                                   )}`,
                                   title: `${doc.toUpperCase()} Preview`,
                                   fileName: path.split(/[\\/]/).pop(),
