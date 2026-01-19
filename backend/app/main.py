@@ -2,7 +2,8 @@ import sys
 import asyncio
 import os
 import logging # [FIX] Import logging here
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+# Force reload
 from fastapi.staticfiles import StaticFiles
 
 # Windows Proactor Loop Logic for Playwright

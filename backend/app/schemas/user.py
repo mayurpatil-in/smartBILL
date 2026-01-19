@@ -27,6 +27,7 @@ class EmployeeProfileBase(BaseModel):
     tds_percentage: Optional[Decimal] = 0.00
     enable_tds: Optional[bool] = False
     professional_tax: Optional[Decimal] = 0.00
+    work_hours_per_day: Optional[int] = 8
 
 class EmployeeProfileCreate(EmployeeProfileBase):
     pass
@@ -39,9 +40,6 @@ class EmployeeProfileResponse(EmployeeProfileBase):
     class Config:
         from_attributes = True
 
-# ========================
-# USER SCHEMAS
-# ========================
 # ========================
 # USER SCHEMAS
 # ========================

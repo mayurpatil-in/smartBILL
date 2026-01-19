@@ -36,6 +36,7 @@ class EmployeeProfile(Base):
     tds_percentage = Column(Numeric(5, 2), default=0.00) # Tax Deduction Percentage
     enable_tds = Column(Boolean, default=False) # Toggle TDS Deduction
     professional_tax = Column(Numeric(10, 2), default=0.00) # Fixed Professional Tax Amount
+    work_hours_per_day = Column(Integer, default=8) # [NEW] Custom Daily Work Hours for Salary Calculation
     
     # Relationships
     user = relationship("User", back_populates="employee_profile")

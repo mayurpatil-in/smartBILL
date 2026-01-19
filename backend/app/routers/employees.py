@@ -7,7 +7,6 @@ from datetime import date, datetime
 from calendar import monthrange
 import shutil
 import os
-import os
 import qrcode
 import io
 import base64
@@ -22,7 +21,6 @@ from app.models.user import User
 from app.core.paths import UPLOAD_DIR
 from app.models.employee_profile import EmployeeProfile, SalaryType
 from app.models.attendance import Attendance, AttendanceStatus
-from app.models.salary_advance import SalaryAdvance
 from app.models.salary_advance import SalaryAdvance
 from app.models.holiday import Holiday
 from app.models.company import Company
@@ -323,7 +321,8 @@ def create_employee(
             aadhar_number=data.profile.aadhar_number,
             joining_date=data.profile.joining_date,
             salary_type=data.profile.salary_type,
-            base_salary=data.profile.base_salary
+            base_salary=data.profile.base_salary,
+            work_hours_per_day=data.profile.work_hours_per_day or 8
         )
         db.add(profile)
     else:
@@ -388,7 +387,9 @@ def update_employee(
         # Update Tax/TDS info
         if data.profile.professional_tax is not None: profile.professional_tax = data.profile.professional_tax
         if data.profile.tds_percentage is not None: profile.tds_percentage = data.profile.tds_percentage
+        if data.profile.tds_percentage is not None: profile.tds_percentage = data.profile.tds_percentage
         if data.profile.enable_tds is not None: profile.enable_tds = data.profile.enable_tds
+        if data.profile.work_hours_per_day is not None: profile.work_hours_per_day = data.profile.work_hours_per_day
 
     db.commit()
     db.refresh(user)
@@ -598,8 +599,9 @@ def calculate_salary(
     total_overtime_pay = 0.0
     total_bonus = 0.0
 
-    # Calculate hourly rate for Overtime (Assuming 30 days/8 hours)
-    hourly_rate = (base_salary / 30) / 8
+    # Calculate hourly rate for Overtime (Assuming 30 days/work_hours)
+    daily_work_hours = float(profile.work_hours_per_day) if profile.work_hours_per_day else 8.0
+    hourly_rate = (base_salary / 30) / daily_work_hours
 
     for r in records:
         if r.status == AttendanceStatus.PRESENT:

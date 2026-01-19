@@ -117,6 +117,8 @@ export default function AddEmployeeModal({
           tds_percentage: employee.employee_profile?.tds_percentage || "",
           enable_tds: employee.employee_profile?.enable_tds || false,
           professional_tax: employee.employee_profile?.professional_tax || "",
+          work_hours_per_day:
+            employee.employee_profile?.work_hours_per_day || 8, // [NEW]
           pan_doc_path: employee.employee_profile?.pan_doc_path || "",
           aadhar_doc_path: employee.employee_profile?.aadhar_doc_path || "",
           resume_doc_path: employee.employee_profile?.resume_doc_path || "",
@@ -141,6 +143,7 @@ export default function AddEmployeeModal({
           tds_percentage: "",
           enable_tds: false,
           professional_tax: "",
+          work_hours_per_day: 8,
           pan_doc_path: "",
           aadhar_doc_path: "",
           resume_doc_path: "",
@@ -656,6 +659,33 @@ export default function AddEmployeeModal({
                       </div>
                     </div>
 
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Daily Work Hours
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          max="24"
+                          value={formData.profile.work_hours_per_day}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              profile: {
+                                ...formData.profile,
+                                work_hours_per_day: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Base Salary / Rate

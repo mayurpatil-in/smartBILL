@@ -1104,16 +1104,6 @@ function SalaryHistory() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                     {expense.description}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {expense.slip?.deductions
-                      ? `₹${expense.slip.deductions}`
-                      : "-"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {expense.slip?.tax_deduction
-                      ? `₹${expense.slip.tax_deduction}`
-                      : "-"}
-                  </td>
                   <td className="px-6 py-4 text-right text-sm font-bold text-gray-900 dark:text-white">
                     ₹{expense.amount}
                   </td>
