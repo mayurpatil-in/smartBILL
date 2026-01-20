@@ -87,7 +87,8 @@ def create_challan(
             ok_qty=item_data.ok_qty,
             cr_qty=item_data.cr_qty,
             mr_qty=item_data.mr_qty,
-            quantity=item_data.quantity
+            quantity=item_data.quantity,
+            rate=item_data.rate
         )
         db.add(challan_item)
 
@@ -156,6 +157,7 @@ def create_challan(
                 "cr_qty": float(item.cr_qty),
                 "mr_qty": float(item.mr_qty),
                 "quantity": float(item.quantity),
+                "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
                 "item": {
                     "id": item.party_challan_item.item.id,
                     "name": item.party_challan_item.item.name
@@ -254,7 +256,8 @@ def update_challan(
             ok_qty=item_data.ok_qty,
             cr_qty=item_data.cr_qty,
             mr_qty=item_data.mr_qty,
-            quantity=item_data.quantity
+            quantity=item_data.quantity,
+            rate=item_data.rate
         )
         db.add(challan_item)
         
@@ -321,6 +324,7 @@ def update_challan(
                 "cr_qty": float(item.cr_qty),
                 "mr_qty": float(item.mr_qty),
                 "quantity": float(item.quantity),
+                "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
                 "item": {
                     "id": item.party_challan_item.item.id,
                     "name": item.party_challan_item.item.name
@@ -371,6 +375,7 @@ def list_challans(
     
     challans = query.order_by(DeliveryChallan.id.desc()).all()
     
+    
     # Manual serialization
     response_data = []
     for challan in challans:
@@ -397,6 +402,7 @@ def list_challans(
                     "cr_qty": float(item.cr_qty),
                     "mr_qty": float(item.mr_qty),
                     "quantity": float(item.quantity),
+                    "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
                     "item": {
                         "id": item.party_challan_item.item.id,
                         "name": item.party_challan_item.item.name
@@ -489,11 +495,11 @@ def get_pending_challan_items(
     
     pending_items = []
     for item in items:
-         rate = 0
-         item_obj = None
-         if item.party_challan_item and item.party_challan_item.item:
-             item_obj = item.party_challan_item.item
-             rate = item_obj.rate
+         # Fix: Resolve item object correctly
+         item_obj = item.party_challan_item.item if item.party_challan_item else None
+         
+         # Apply robust rate fallback
+         rate = float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item_obj.rate) if item_obj and item_obj.rate else 0.0))
          
          pending_items.append({
              "challan_id": item.challan_id,
@@ -506,7 +512,7 @@ def get_pending_challan_items(
              "cr_qty": float(item.cr_qty),
              "mr_qty": float(item.mr_qty),
              "quantity": float(item.quantity),
-             "rate": float(rate) if rate else 0.0
+             "rate": rate
          })
              
     return pending_items
@@ -725,6 +731,7 @@ async def print_challan(
                 self.ok_qty = int(ok)
                 self.cr_qty = int(cr)
                 self.mr_qty = int(mr)
+                self.rate = original.rate if original.rate and original.rate > 0 else (original.party_challan_item.rate if original.party_challan_item and original.party_challan_item.rate and original.party_challan_item.rate > 0 else (original.party_challan_item.item.rate if original.party_challan_item and original.party_challan_item.item and original.party_challan_item.item.rate else 0.0))
         
         proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
 

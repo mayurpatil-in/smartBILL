@@ -579,6 +579,7 @@ def get_party_challans_by_item(
                         "quantity_ordered": float(item.quantity_ordered),
                         "quantity_delivered": float(item.quantity_delivered),
                         "pending_qty": float(item.quantity_ordered - item.quantity_delivered),
+                        "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.item.rate) if item.item and item.item.rate else 0.0),
                         "process_name": item.process.name if item.process else None
                     }
                     for item in challan_items

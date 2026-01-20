@@ -54,6 +54,7 @@ export default function AddDeliveryChallanModal({
     ok_qty: "",
     cr_qty: "",
     mr_qty: "",
+    rate: "",
     total_qty: 0,
   });
 
@@ -109,6 +110,7 @@ export default function AddDeliveryChallanModal({
           challan_number:
             i.party_challan_item?.party_challan?.challan_number || "N/A",
           process_name: i.process?.name || "-",
+          rate: i.rate || 0,
         })),
       });
       // If editing, we don't fetch next number, we show current
@@ -131,6 +133,7 @@ export default function AddDeliveryChallanModal({
         ok_qty: "",
         cr_qty: "",
         mr_qty: "",
+        rate: "",
         total_qty: 0,
       });
     }
@@ -178,7 +181,7 @@ export default function AddDeliveryChallanModal({
     let selectedItem = null;
     for (const challan of partyChallansByItem) {
       const item = challan.items.find(
-        (i) => i.id === Number(partyChallanItemId)
+        (i) => i.id === Number(partyChallanItemId),
       );
       if (item) {
         selectedItem = { ...item, challan_id: challan.id };
@@ -195,6 +198,7 @@ export default function AddDeliveryChallanModal({
         process_id: selectedItem.process_id,
         challan_qty: effectivePending,
         pending_qty: effectivePending,
+        rate: selectedItem.rate || 0,
       });
     }
   };
@@ -224,14 +228,15 @@ export default function AddDeliveryChallanModal({
 
     if (currentItem.total_qty > currentItem.pending_qty) {
       toast.error(
-        `Total quantity cannot exceed pending quantity (${currentItem.pending_qty})`
+        `Total quantity cannot exceed pending quantity (${currentItem.pending_qty})`,
       );
       return;
     }
 
     // Check if already added
     const isDuplicate = form.items.some(
-      (item) => item.party_challan_item_id === currentItem.party_challan_item_id
+      (item) =>
+        item.party_challan_item_id === currentItem.party_challan_item_id,
     );
 
     if (isDuplicate) {
@@ -245,7 +250,7 @@ export default function AddDeliveryChallanModal({
 
     for (const challan of partyChallansByItem) {
       const foundItem = challan.items.find(
-        (i) => i.id === Number(currentItem.party_challan_item_id)
+        (i) => i.id === Number(currentItem.party_challan_item_id),
       );
       if (foundItem) {
         challanNumber = challan.challan_number;
@@ -277,6 +282,7 @@ export default function AddDeliveryChallanModal({
       ok_qty: "",
       cr_qty: "",
       mr_qty: "",
+      rate: "",
       total_qty: 0,
     });
     setPartyChallansByItem([]);
@@ -350,6 +356,7 @@ export default function AddDeliveryChallanModal({
           ok_qty: Number(i.ok_qty || 0),
           cr_qty: Number(i.cr_qty || 0),
           mr_qty: Number(i.mr_qty || 0),
+          rate: Number(i.rate || 0),
           quantity: Number(i.total_qty),
         })),
       };
@@ -365,7 +372,7 @@ export default function AddDeliveryChallanModal({
       onClose();
     } catch (err) {
       toast.error(
-        err.response?.data?.detail || "Failed to save delivery challan"
+        err.response?.data?.detail || "Failed to save delivery challan",
       );
     } finally {
       setLoading(false);
@@ -374,7 +381,7 @@ export default function AddDeliveryChallanModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-6xl shadow-2xl overflow-hidden animate-scale-in max-h-[92vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-[90rem] shadow-2xl overflow-hidden animate-scale-in max-h-[92vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-purple-500 via-purple-600 to-blue-600 sticky top-0 backdrop-blur-xl z-10 shadow-lg">
           <div className="flex items-center gap-4">
@@ -512,12 +519,12 @@ export default function AddDeliveryChallanModal({
                   </div>
 
                   {/* Total Pending Qty Display */}
-                  <div className="lg:col-span-2">
+                  <div className="lg:col-span-1">
                     <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                      Total Pending Qty
+                      Pending
                     </label>
                     <div
-                      className={`px-3 py-2.5 rounded-lg border-2 text-sm font-bold flex items-center justify-center ${
+                      className={`px-2 py-2.5 rounded-lg border-2 text-sm font-bold flex items-center justify-center whitespace-nowrap ${
                         currentItem.item_id
                           ? "border-orange-300 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-700 text-orange-700 dark:text-orange-400"
                           : "border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-gray-400"
@@ -529,10 +536,10 @@ export default function AddDeliveryChallanModal({
                               acc +
                               challan.items.reduce(
                                 (sum, item) => sum + getEffectivePending(item),
-                                0
+                                0,
                               ),
-                            0
-                          )} units`
+                            0,
+                          )}`
                         : "-"}
                     </div>
                   </div>
@@ -560,7 +567,7 @@ export default function AddDeliveryChallanModal({
                               {item.process_name || "No Process"} (Pending:{" "}
                               {getEffectivePending(item)})
                             </option>
-                          ))
+                          )),
                       )}
                     </select>
                   </div>
@@ -634,6 +641,21 @@ export default function AddDeliveryChallanModal({
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-orange-50/50 dark:bg-orange-900/10 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-colors"
                     />
                   </div>
+
+                  {/* Rate */}
+                  <div className="lg:col-span-1">
+                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                      Rate
+                    </label>
+                    <input
+                      type="number"
+                      name="rate"
+                      id="rate"
+                      value={currentItem.rate}
+                      readOnly
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 focus:ring-0 focus:border-gray-300 outline-none cursor-not-allowed"
+                    />
+                  </div>
                 </div>
 
                 {/* Total Qty Display */}
@@ -699,7 +721,13 @@ export default function AddDeliveryChallanModal({
                             </div>
                           </th>
                           <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
-                            Total
+                            Rate
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            Amount
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                            Total Qty
                           </th>
                           <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider w-[10%]">
                             Delete
@@ -738,6 +766,14 @@ export default function AddDeliveryChallanModal({
                             <td className="px-4 py-3 text-sm text-right text-orange-600 dark:text-orange-400 font-medium w-[10%]">
                               {item.mr_qty}
                             </td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[10%]">
+                              {item.rate}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[10%]">
+                              {(
+                                Number(item.total_qty) * Number(item.rate || 0)
+                              ).toFixed(2)}
+                            </td>
                             <td className="px-4 py-3 text-sm text-right font-bold text-purple-600 dark:text-purple-400 w-[10%]">
                               {item.total_qty}
                             </td>
@@ -753,6 +789,55 @@ export default function AddDeliveryChallanModal({
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot className="bg-gray-50 dark:bg-gray-900/50 font-bold border-t-2 border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <td
+                            colSpan={4}
+                            className="px-4 py-3 text-right text-gray-900 dark:text-white uppercase tracking-wider text-xs"
+                          >
+                            Total
+                          </td>
+                          <td className="px-4 py-3 text-right text-green-600 dark:text-green-400 text-sm">
+                            {form.items.reduce(
+                              (sum, i) => sum + Number(i.ok_qty || 0),
+                              0,
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-red-600 dark:text-red-400 text-sm">
+                            {form.items.reduce(
+                              (sum, i) => sum + Number(i.cr_qty || 0),
+                              0,
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-orange-600 dark:text-orange-400 text-sm">
+                            {form.items.reduce(
+                              (sum, i) => sum + Number(i.mr_qty || 0),
+                              0,
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-400 text-sm">
+                            -
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-900 dark:text-white text-sm">
+                            {form.items
+                              .reduce(
+                                (sum, i) =>
+                                  sum +
+                                  Number(i.total_qty || 0) *
+                                    Number(i.rate || 0),
+                                0,
+                              )
+                              .toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-purple-600 dark:text-purple-400 text-sm">
+                            {form.items.reduce(
+                              (sum, i) => sum + Number(i.total_qty || 0),
+                              0,
+                            )}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 </div>
@@ -777,8 +862,8 @@ export default function AddDeliveryChallanModal({
                 {loading
                   ? "Saving..."
                   : deliveryChallan
-                  ? "Update Challan"
-                  : "Create Challan"}
+                    ? "Update Challan"
+                    : "Create Challan"}
               </button>
             </div>
           </form>

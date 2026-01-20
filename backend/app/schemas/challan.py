@@ -9,6 +9,7 @@ class ChallanItemCreate(BaseModel):
     ok_qty: float
     cr_qty: float = 0
     mr_qty: float = 0
+    rate: float = 0
     quantity: float  # Total (ok_qty + cr_qty + mr_qty)
 
 
@@ -20,6 +21,7 @@ class ChallanItemResponse(BaseModel):
     ok_qty: float
     cr_qty: float
     mr_qty: float
+    rate: float
     quantity: float
     item: Optional[Any] = None
     process: Optional[Any] = None
