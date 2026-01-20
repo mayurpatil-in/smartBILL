@@ -473,48 +473,119 @@ def get_pending_challan_items(
     """Get all delivery challan items that are not yet billed"""
     from app.models.invoice_item import InvoiceItem
 
-    # Subquery: IDs of billed items (excluding current invoice if provided)
-    query = db.query(InvoiceItem.delivery_challan_item_id).filter(
+    from sqlalchemy import func
+    from app.models.invoice_item import InvoiceItem
+
+    # 1. Get total billed quantities per challan item
+    billed_amounts = db.query(
+        InvoiceItem.delivery_challan_item_id,
+        func.sum(InvoiceItem.ok_qty).label("billed_ok"),
+        func.sum(InvoiceItem.cr_qty).label("billed_cr"),
+        func.sum(InvoiceItem.mr_qty).label("billed_mr")
+    ).filter(
         InvoiceItem.delivery_challan_item_id != None
     )
-    if invoice_id:
-        query = query.filter(InvoiceItem.invoice_id != invoice_id)
-        
-    billed_item_ids = query
 
-    # Query Items directly
+    if invoice_id:
+        billed_amounts = billed_amounts.filter(InvoiceItem.invoice_id != invoice_id)
+
+    billed_amounts = billed_amounts.group_by(InvoiceItem.delivery_challan_item_id).all()
+    
+    # Create a map for fast lookup
+    billed_map = {
+        item.delivery_challan_item_id: {
+            "ok": float(item.billed_ok or 0),
+            "cr": float(item.billed_cr or 0),
+            "mr": float(item.billed_mr or 0)
+        } for item in billed_amounts
+    }
+
+    # 2. Query All Challan Items for this Party & FY
     items = db.query(DeliveryChallanItem).join(DeliveryChallan).options(
         joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
         joinedload(DeliveryChallanItem.process)
     ).filter(
         DeliveryChallan.company_id == company_id,
         DeliveryChallan.financial_year_id == fy.id,
-        DeliveryChallan.party_id == party_id,
-        DeliveryChallanItem.id.notin_(billed_item_ids)
+        DeliveryChallan.party_id == party_id
     ).all()
     
     pending_items = []
+    # 3. Process and Filter Items (WITH AGGREGATION)
+    # We group items by (challan_id, item_id, rate) to handle split rows as a single pool
+    grouped_items = {}
+    
     for item in items:
-         # Fix: Resolve item object correctly
-         item_obj = item.party_challan_item.item if item.party_challan_item else None
-         
-         # Apply robust rate fallback
-         rate = float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item_obj.rate) if item_obj and item_obj.rate else 0.0))
-         
-         pending_items.append({
-             "challan_id": item.challan_id,
-             "challan_number": item.challan.challan_number,
-             "challan_date": item.challan.challan_date,
-             "item_id": item_obj.id if item_obj else None,
-             "item_name": item_obj.name if item_obj else "Unknown",
-             "delivery_challan_item_id": item.id,
-             "ok_qty": float(item.ok_qty),
-             "cr_qty": float(item.cr_qty),
-             "mr_qty": float(item.mr_qty),
-             "quantity": float(item.quantity),
-             "rate": rate
-         })
-             
+        # Resolve item object and rate for key
+        item_obj = item.party_challan_item.item if item.party_challan_item else None
+        item_id = item_obj.id if item_obj else 0
+        rate = float(item.rate) if item.rate and item.rate > 0 else 0.0
+        
+        # Key for grouping: Challan + Item + Rate (Rate must match to merge)
+        key = (item.challan_id, item_id, rate)
+        
+        if key not in grouped_items:
+            grouped_items[key] = {
+                "item": item, 
+                "item_obj": item_obj,
+                "ids": [],
+                "orig_ok": 0.0,
+                "orig_cr": 0.0,
+                "orig_mr": 0.0,
+                "billed_ok": 0.0,
+                "billed_cr": 0.0,
+                "billed_mr": 0.0
+            }
+        
+        group = grouped_items[key]
+        group["ids"].append(item.id)
+        group["orig_ok"] += float(item.ok_qty or 0)
+        group["orig_cr"] += float(item.cr_qty or 0)
+        group["orig_mr"] += float(item.mr_qty or 0) # Sum MR
+        
+        # Sum Billed
+        b = billed_map.get(item.id, {"ok": 0.0, "cr": 0.0, "mr": 0.0})
+        group["billed_ok"] += b["ok"]
+        group["billed_cr"] += b["cr"]
+        group["billed_mr"] += b["mr"]
+
+    for key, group in grouped_items.items():
+        base_item = group["item"]
+        item_obj = group["item_obj"]
+        
+        # Calculate Remaining on AGGREGATE
+        rem_ok = group["orig_ok"] - group["billed_ok"]
+        rem_cr = group["orig_cr"] - group["billed_cr"]
+        rem_mr = group["orig_mr"] - group["billed_mr"]
+        
+        # Cross-Bucket Deduction
+        if rem_cr < 0:
+            excess_cr = abs(rem_cr)
+            rem_ok -= excess_cr
+            rem_cr = 0
+            
+        rem_ok = max(0.0, rem_ok)
+        rem_cr = max(0.0, rem_cr)
+        rem_mr = max(0.0, rem_mr)
+        
+        if rem_ok > 0 or rem_cr > 0 or rem_mr > 0: # Include if MR exists
+             pending_items.append({
+                 "challan_id": base_item.challan_id,
+                 "challan_number": base_item.challan.challan_number,
+                 "challan_date": base_item.challan.challan_date,
+                 "item_id": item_obj.id if item_obj else None,
+                 "item_name": item_obj.name if item_obj else "Unknown",
+                 "delivery_challan_item_id": base_item.id, # Primary ID for reference
+                 "delivery_challan_item_ids": group["ids"], # List of all IDs for backend logic
+                 "ok_qty": rem_ok,
+                 "cr_qty": rem_cr,
+                 "mr_qty": rem_mr, # Use Remaining MR
+                 "quantity": rem_ok + rem_cr + rem_mr, # Total includes Remaining MR
+                 "original_ok_qty": group["orig_ok"],
+                 "original_cr_qty": group["orig_cr"],
+                 "rate": key[2] # The rate from the key
+             })
+
     return pending_items
 
 

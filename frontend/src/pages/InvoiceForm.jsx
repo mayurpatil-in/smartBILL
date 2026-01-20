@@ -191,7 +191,7 @@ export default function InvoiceForm() {
       .filter((i) => i.item_id === Number(currentItem.item_id))
       .reduce((acc, item) => {
         const existingChallan = acc.find(
-          (c) => c.challan_id === item.challan_id
+          (c) => c.challan_id === item.challan_id,
         );
 
         if (existingChallan) {
@@ -212,7 +212,7 @@ export default function InvoiceForm() {
             ];
           }
           existingChallan.delivery_challan_item_ids.push(
-            item.delivery_challan_item_id
+            item.delivery_challan_item_id,
           );
           // Rate remains the same (fixed per item)
         } else {
@@ -227,14 +227,14 @@ export default function InvoiceForm() {
 
     // Find from grouped data
     const selected = groupedChallans.find(
-      (i) => i.delivery_challan_item_id === Number(deliveryChallanItemId)
+      (i) => i.delivery_challan_item_id === Number(deliveryChallanItemId),
     );
 
     if (selected) {
       const qty = Number(selected.quantity); // Challan Total (summed)
       const rate = Number(selected.rate); // Fixed rate per item
-      const ok = Number(selected.ok_qty) || 0; // Summed OK
-      const cr = Number(selected.cr_qty) || 0; // Summed CR
+      const ok = Number(selected.ok_qty) || 0; // Summed OK (Remaining from backend)
+      const cr = Number(selected.cr_qty) || 0; // Summed CR (Remaining from backend)
       const billQty = ok + cr; // Billable Quantity
 
       setCurrentItem({
@@ -246,9 +246,11 @@ export default function InvoiceForm() {
         grn_no: "", // Reset GRN when challan changes
         quantity: qty,
         billing_qty: billQty,
-        ok_qty: selected.ok_qty,
-        cr_qty: selected.cr_qty,
+        ok_qty: ok,
+        cr_qty: cr,
         mr_qty: selected.mr_qty,
+        max_ok: ok, // Store max limit
+        max_cr: cr, // Store max limit
         rate: rate,
         amount: billQty * rate,
       });
@@ -261,10 +263,11 @@ export default function InvoiceForm() {
       !currentItem.item_id ||
       !currentItem.delivery_challan_item_id ||
       !currentItem.quantity ||
-      currentItem.rate === ""
+      currentItem.rate === "" ||
+      !currentItem.grn_no
     ) {
       toast.error(
-        "Please select Item, Challan and ensure Quantity/Rate are filled"
+        "Please select Item, Challan, GRN No. and ensure Quantity/Rate are filled",
       );
       return;
     }
@@ -273,7 +276,7 @@ export default function InvoiceForm() {
     if (
       formData.items.some(
         (i) =>
-          i.delivery_challan_item_id === currentItem.delivery_challan_item_id
+          i.delivery_challan_item_id === currentItem.delivery_challan_item_id,
       )
     ) {
       toast.error("This Challan Item is already added");
@@ -317,6 +320,8 @@ export default function InvoiceForm() {
       ok_qty: "",
       cr_qty: "",
       mr_qty: "",
+      max_ok: 0,
+      max_cr: 0,
       rate: "",
       amount: "",
     });
@@ -404,7 +409,7 @@ export default function InvoiceForm() {
         }
 
         return false;
-      })
+      }),
   );
 
   // Helper to get unique items from pending list
@@ -438,15 +443,25 @@ export default function InvoiceForm() {
             existingChallan.delivery_challan_item_id,
           ];
         }
-        existingChallan.delivery_challan_item_ids.push(
-          item.delivery_challan_item_id
-        );
+
+        const newIds = item.delivery_challan_item_ids || [
+          item.delivery_challan_item_id,
+        ];
+        existingChallan.delivery_challan_item_ids.push(...newIds);
+
+        // Dedup IDs
+        existingChallan.delivery_challan_item_ids = [
+          ...new Set(existingChallan.delivery_challan_item_ids),
+        ];
+
         // Rate remains the same (fixed per item)
       } else {
         // Add new challan entry
         acc.push({
           ...item,
-          delivery_challan_item_ids: [item.delivery_challan_item_id],
+          delivery_challan_item_ids: item.delivery_challan_item_ids || [
+            item.delivery_challan_item_id,
+          ],
         });
       }
 
@@ -625,21 +640,28 @@ export default function InvoiceForm() {
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50"
                     >
                       <option value="">Select Challan</option>
-                      {availableChallans.map((c) => (
-                        <option
-                          key={c.delivery_challan_item_id}
-                          value={c.delivery_challan_item_id}
-                        >
-                          {c.challan_number} (Qty: {c.quantity})
-                        </option>
-                      ))}
+                      {availableChallans.map((c) => {
+                        const remainingOk = Number(c.ok_qty) || 0;
+                        const remainingCr = Number(c.cr_qty) || 0;
+                        const remainingMr = Number(c.mr_qty) || 0;
+                        const remainingTotal =
+                          remainingOk + remainingCr + remainingMr;
+                        return (
+                          <option
+                            key={c.delivery_challan_item_id}
+                            value={c.delivery_challan_item_id}
+                          >
+                            {c.challan_number} (Rem Qty: {remainingTotal})
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
                   {/* 3. GRN No. */}
                   <div>
                     <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
-                      GRN No.
+                      GRN No. <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -668,10 +690,30 @@ export default function InvoiceForm() {
                         OK Qty
                       </label>
                       <input
-                        type="text"
-                        readOnly
+                        type="number"
                         value={currentItem.ok_qty}
-                        className="w-full h-10 px-3 border-2 border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-right font-bold text-green-700 dark:text-green-400"
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val > (currentItem.max_ok || 999999)) {
+                            toast.error(
+                              `OK Qty cannot exceed remaining: ${currentItem.max_ok}`,
+                            );
+                            return;
+                          }
+                          const newOk = val;
+                          const billQty =
+                            newOk + Number(currentItem.cr_qty || 0);
+                          const totalQty =
+                            billQty + Number(currentItem.mr_qty || 0);
+                          setCurrentItem({
+                            ...currentItem,
+                            ok_qty: val,
+                            billing_qty: billQty,
+                            quantity: totalQty, // Update Total Qty
+                            amount: billQty * Number(currentItem.rate || 0),
+                          });
+                        }}
+                        className="w-full h-10 px-3 border-2 border-green-200 dark:border-green-900/50 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-bold text-green-700 dark:text-green-400 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-colors"
                       />
                     </div>
                     <div>
@@ -680,10 +722,30 @@ export default function InvoiceForm() {
                         CR Qty
                       </label>
                       <input
-                        type="text"
-                        readOnly
+                        type="number"
                         value={currentItem.cr_qty}
-                        className="w-full h-10 px-3 border-2 border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-right font-bold text-red-700 dark:text-red-400"
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val > (currentItem.max_cr || 999999)) {
+                            toast.error(
+                              `CR Qty cannot exceed remaining: ${currentItem.max_cr}`,
+                            );
+                            return;
+                          }
+                          const newCr = val;
+                          const billQty =
+                            Number(currentItem.ok_qty || 0) + newCr;
+                          const totalQty =
+                            billQty + Number(currentItem.mr_qty || 0);
+                          setCurrentItem({
+                            ...currentItem,
+                            cr_qty: val,
+                            billing_qty: billQty,
+                            quantity: totalQty, // Update Total Qty
+                            amount: billQty * Number(currentItem.rate || 0),
+                          });
+                        }}
+                        className="w-full h-10 px-3 border-2 border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-bold text-red-700 dark:text-red-400 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-colors"
                       />
                     </div>
                     <div>
@@ -692,10 +754,21 @@ export default function InvoiceForm() {
                         MR Qty
                       </label>
                       <input
-                        type="text"
-                        readOnly
+                        type="number"
                         value={currentItem.mr_qty}
-                        className="w-full h-10 px-3 border-2 border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-sm text-right font-bold text-orange-700 dark:text-orange-400"
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          const totalQty =
+                            Number(currentItem.ok_qty || 0) +
+                            Number(currentItem.cr_qty || 0) +
+                            val;
+                          setCurrentItem({
+                            ...currentItem,
+                            mr_qty: val,
+                            quantity: totalQty, // Update Total Qty
+                          });
+                        }}
+                        className="w-full h-10 px-3 border-2 border-orange-200 dark:border-orange-900/50 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-bold text-orange-700 dark:text-orange-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-colors"
                       />
                     </div>
                     <div>
@@ -706,7 +779,8 @@ export default function InvoiceForm() {
                         type="text"
                         readOnly
                         value={currentItem.quantity}
-                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-medium text-gray-600 dark:text-gray-400"
+                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-lg text-sm text-right font-medium text-gray-600 dark:text-gray-400"
+                        title="Remaining Billable Quantity (from Backend)"
                       />
                     </div>
                   </div>
@@ -732,7 +806,7 @@ export default function InvoiceForm() {
                         type="text"
                         readOnly
                         value={currentItem.rate}
-                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-right font-medium text-gray-900 dark:text-white"
+                        className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-lg text-sm text-right font-medium text-gray-900 dark:text-white"
                       />
                     </div>
                     <div>
@@ -934,8 +1008,8 @@ export default function InvoiceForm() {
                     ? "Updating..."
                     : "Creating..."
                   : isEditMode
-                  ? "Update Invoice"
-                  : "Create Invoice"}
+                    ? "Update Invoice"
+                    : "Create Invoice"}
               </button>
             </div>
           </div>

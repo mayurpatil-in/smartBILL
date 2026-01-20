@@ -76,7 +76,17 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
     else:
         next_num = 1
         
-    return f"INV/{fy_prefix}/{next_num:03d}"
+    # Robust generation: Check if it exists, if so, increment
+    while True:
+        next_invoice_num = f"INV/{fy_prefix}/{next_num:03d}"
+        exists = db.query(Invoice).filter(
+            Invoice.invoice_number == next_invoice_num
+        ).first()
+        
+        if not exists:
+            return next_invoice_num
+            
+        next_num += 1
 
 
 @router.get("/next-number")
@@ -155,114 +165,118 @@ def create_invoice(
     db: Session = Depends(get_db)
 ):
     """Create a direct invoice (not from challan)"""
-    invoice_number = generate_invoice_number(db, company_id, fy.id)
-    
-    subtotal = 0
-    invoice = Invoice(
-        company_id=company_id,
-        financial_year_id=fy.id,
-        party_id=data.party_id,
-        invoice_number=invoice_number,
-        invoice_date=data.invoice_date,
-        due_date=data.due_date,
-        notes=data.notes,
-        status="OPEN",
-        is_locked=False
-    )
-    
-    db.add(invoice)
-    db.flush()
-    
-    for item in data.items:
-        amount = float(item.quantity) * float(item.rate)
-        subtotal += amount
+    try:
+        invoice_number = generate_invoice_number(db, company_id, fy.id)
         
-        # Backfill quantities if they are 0 (e.g., from old invoice update)
-        ok_qty = item.ok_qty
-        cr_qty = item.cr_qty
-        mr_qty = item.mr_qty
-
-        if (not ok_qty and not cr_qty and not mr_qty) and (item.delivery_challan_item_id or item.delivery_challan_item_ids):
-            # Collect IDs to fetch
-            fetch_ids = []
-            if item.delivery_challan_item_id:
-                fetch_ids.append(item.delivery_challan_item_id)
-            if item.delivery_challan_item_ids:
-                fetch_ids.extend(item.delivery_challan_item_ids)
-            
-            if fetch_ids:
-                fetch_ids = list(set(fetch_ids))
-                # Fetch challan items
-                challan_items = db.query(DeliveryChallanItem).filter(
-                    DeliveryChallanItem.id.in_(fetch_ids)
-                ).all()
-
-                # Sum up quantities
-                ok_qty = sum(float(ci.ok_qty) for ci in challan_items)
-                cr_qty = sum(float(ci.cr_qty) for ci in challan_items)
-                mr_qty = sum(float(ci.mr_qty) for ci in challan_items)
-
-        invoice_item = InvoiceItem(
-            invoice_id=invoice.id,
-            item_id=item.item_id,
-            grn_no=item.grn_no,
-            delivery_challan_item_id=item.delivery_challan_item_id,
-            quantity=item.quantity,
-            rate=item.rate,
-            amount=amount,
-            ok_qty=ok_qty,
-            cr_qty=cr_qty,
-            mr_qty=mr_qty,
-            challan_item_ids=item.delivery_challan_item_ids
+        subtotal = 0
+        invoice = Invoice(
+            company_id=company_id,
+            financial_year_id=fy.id,
+            party_id=data.party_id,
+            invoice_number=invoice_number,
+            invoice_date=data.invoice_date,
+            due_date=data.due_date,
+            notes=data.notes,
+            status="OPEN",
+            is_locked=False
         )
-        db.add(invoice_item)
         
-        # Stock Transaction (OUT) for Direct Invoice (Only if not from Challan)
-        if not item.delivery_challan_item_id and not item.delivery_challan_item_ids:
-            stock_tx = StockTransaction(
-                company_id=company_id,
-                financial_year_id=fy.id,
-                item_id=item.item_id,
-                quantity=item.quantity,
-                transaction_type="OUT",
-                reference_type="INVOICE",
-                reference_id=invoice.id
-            )
-            db.add(stock_tx)
+        db.add(invoice)
+        db.flush()
         
-    gst_amount, grand_total = calculate_gst(subtotal)
-    
-    invoice.subtotal = subtotal
-    invoice.gst_amount = gst_amount
-    invoice.grand_total = grand_total
-    
-    # Update linked Delivery Challan Status
-    # Collect all challan item IDs (both single and list)
-    challan_item_ids = []
-    for item in data.items:
-        if item.delivery_challan_item_id:
-            challan_item_ids.append(item.delivery_challan_item_id)
-        if item.delivery_challan_item_ids:
-            challan_item_ids.extend(item.delivery_challan_item_ids)
+        for item in data.items:
+            amount = float(item.quantity) * float(item.rate)
+            subtotal += amount
             
-    if challan_item_ids:
-        # Find Challan IDs using subquery strategy to avoid join issues
-        # Remove duplicates
-        unique_item_ids = list(set(challan_item_ids))
+            # Backfill quantities if they are 0 (e.g., from old invoice update)
+            ok_qty = item.ok_qty
+            cr_qty = item.cr_qty
+            mr_qty = item.mr_qty
+
+            if (not ok_qty and not cr_qty and not mr_qty) and (item.delivery_challan_item_id or item.delivery_challan_item_ids):
+                # Collect IDs to fetch
+                fetch_ids = []
+                if item.delivery_challan_item_id:
+                    fetch_ids.append(item.delivery_challan_item_id)
+                if item.delivery_challan_item_ids:
+                    fetch_ids.extend(item.delivery_challan_item_ids)
+                
+                if fetch_ids:
+                    fetch_ids = list(set(fetch_ids))
+                    # Fetch challan items
+                    challan_items = db.query(DeliveryChallanItem).filter(
+                        DeliveryChallanItem.id.in_(fetch_ids)
+                    ).all()
+
+                    # Sum up quantities (Handle None)
+                    ok_qty = sum(float(ci.ok_qty or 0) for ci in challan_items)
+                    cr_qty = sum(float(ci.cr_qty or 0) for ci in challan_items)
+                    mr_qty = sum(float(ci.mr_qty or 0) for ci in challan_items)
+
+            invoice_item = InvoiceItem(
+                invoice_id=invoice.id,
+                item_id=item.item_id,
+                grn_no=item.grn_no,
+                delivery_challan_item_id=item.delivery_challan_item_id,
+                quantity=item.quantity,
+                rate=item.rate,
+                amount=amount,
+                ok_qty=ok_qty,
+                cr_qty=cr_qty,
+                mr_qty=mr_qty,
+                challan_item_ids=item.delivery_challan_item_ids
+            )
+            db.add(invoice_item)
+            
+            # Stock Transaction (OUT) for Direct Invoice (Only if not from Challan)
+            if not item.delivery_challan_item_id and not item.delivery_challan_item_ids:
+                stock_tx = StockTransaction(
+                    company_id=company_id,
+                    financial_year_id=fy.id,
+                    item_id=item.item_id,
+                    quantity=item.quantity,
+                    transaction_type="OUT",
+                    reference_type="INVOICE",
+                    reference_id=invoice.id
+                )
+                db.add(stock_tx)
+            
+        gst_amount, grand_total = calculate_gst(subtotal)
         
-        challan_ids = db.query(DeliveryChallan.id).join(DeliveryChallanItem).filter(
-            DeliveryChallanItem.id.in_(unique_item_ids)
-        ).distinct().all()
-        ids = [c[0] for c in challan_ids]
+        invoice.subtotal = subtotal
+        invoice.gst_amount = gst_amount
+        invoice.grand_total = grand_total
         
-        if ids:
-            db.query(DeliveryChallan).filter(
-                DeliveryChallan.id.in_(ids)
-            ).update({DeliveryChallan.status: "delivered"}, synchronize_session=False)
-    
-    db.commit()
-    db.refresh(invoice)
-    return invoice
+        # Update linked Delivery Challan Status
+        # Collect all challan item IDs (both single and list)
+        challan_item_ids = []
+        for item in data.items:
+            if item.delivery_challan_item_id:
+                challan_item_ids.append(item.delivery_challan_item_id)
+            if item.delivery_challan_item_ids:
+                challan_item_ids.extend(item.delivery_challan_item_ids)
+                
+        if challan_item_ids:
+            # Find Challan IDs using subquery strategy to avoid join issues
+            # Remove duplicates
+            unique_item_ids = list(set(challan_item_ids))
+            
+            challan_ids = db.query(DeliveryChallan.id).join(DeliveryChallanItem).filter(
+                DeliveryChallanItem.id.in_(unique_item_ids)
+            ).distinct().all()
+            ids = [c[0] for c in challan_ids]
+            
+            if ids:
+                db.query(DeliveryChallan).filter(
+                    DeliveryChallan.id.in_(ids)
+                ).update({DeliveryChallan.status: "delivered"}, synchronize_session=False)
+        
+        db.commit()
+        db.refresh(invoice)
+        return invoice
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
