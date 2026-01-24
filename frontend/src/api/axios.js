@@ -4,10 +4,14 @@ import { getToken, clearSession } from "../utils/sessionTimer";
 import { isTauri } from "@tauri-apps/api/core";
 
 // 🚀 Dynamic Base URL (Works on LAN/WiFi)
-export const API_URL = isTauri()
-  ? "http://localhost:8000"
-  : import.meta.env.VITE_API_URL ||
-    `${window.location.protocol}//${window.location.hostname}:8000`;
+// 🚀 Dynamic Base URL (Works on LAN/WiFi)
+export const API_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL
+  : isTauri()
+    ? "http://localhost:8000"
+    : `${window.location.protocol}//${window.location.hostname}:8000`;
+
+console.log("🚀 [AXIOS] Using API_URL:", API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -27,7 +31,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 /**
@@ -65,7 +69,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
