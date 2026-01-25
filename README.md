@@ -99,4 +99,12 @@ sudo -i -u postgres
 psql
 ```
 
+## Run on Android
+
+To start the app on an emulator/device:
+
+```powershell
+npx tauri android dev
+```
+
 ## Status: 🚧 In Progress
