@@ -44,8 +44,7 @@ def init_db():
                 # Fetch role_id separately or let the seeder handle it
                 # For safety, we set role to None and let fix_user_roles.py handle it, 
                 # OR better: fetch the role here if it exists.
-                is_active=True
-                is_active=True
+                is_active=True,
             )
             db.add(super_admin)
             db.commit()
