@@ -247,15 +247,26 @@ def get_employees(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    # Get only users with "Employee" role
-    users = db.query(User).join(Role).options(
-        joinedload(User.employee_profile),
-        joinedload(User.role)
-    ).filter(
-        User.company_id == company_id,
-        Role.name == "Employee"
-    ).all()
-    return users
+    try:
+        # Get only users with "Employee" role
+        # Debug print
+        print(f"Fetching employees for company_id: {company_id}")
+        
+        users = db.query(User).join(Role).options(
+            joinedload(User.employee_profile),
+            joinedload(User.role)
+        ).filter(
+            User.company_id == company_id,
+            Role.name == "Employee"
+        ).all()
+        
+        print(f"Found {len(users)} employees")
+        return users
+    except Exception as e:
+        print(f"CRITICAL ERROR in get_employees: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/", response_model=UserResponse)
