@@ -9,6 +9,10 @@ from sqlalchemy.orm import sessionmaker, joinedload
 from app.core.config import settings
 from app.models.user import User
 from app.models.role import Role
+from app.models.company import Company
+from app.models.employee_profile import EmployeeProfile
+from app.models.attendance import Attendance
+from app.models.salary_advance import SalaryAdvance
 from app.schemas.user import UserResponse
 from pydantic import ValidationError
 
