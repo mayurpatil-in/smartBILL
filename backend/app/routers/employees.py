@@ -588,6 +588,7 @@ def calculate_salary(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    print(f"DEBUG: Entering calculate_salary. UserID={user_id}, Month={month}, Year={year}, CompanyID={company_id}")
     try:
         user = db.query(User).options(joinedload(User.employee_profile)).filter(
             User.id == user_id,
