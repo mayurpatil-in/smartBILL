@@ -10,6 +10,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.core.config import settings
 from app.models.user import User
+from app.models.role import Role
+from app.models.role_permission import RolePermission
+from app.models.permission import Permission
 from app.models.attendance import Attendance, AttendanceStatus
 from app.models.salary_advance import SalaryAdvance
 from app.models.holiday import Holiday
