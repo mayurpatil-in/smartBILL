@@ -37,10 +37,14 @@ def init_db():
         if not user:
             print("Seeding default Super Admin user...")
             super_admin = User(
-                full_name="Super Admin",
+                name="Super Admin",
                 email="admin@smartbill.com",
-                hashed_password=get_password_hash("admin"),
-                role="SUPER_ADMIN",
+                password_hash=get_password_hash("admin"),
+                legacy_role="SUPER_ADMIN",
+                # Fetch role_id separately or let the seeder handle it
+                # For safety, we set role to None and let fix_user_roles.py handle it, 
+                # OR better: fetch the role here if it exists.
+                is_active=True
                 is_active=True
             )
             db.add(super_admin)
