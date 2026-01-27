@@ -76,6 +76,8 @@ class UserResponse(UserBase):
         
     @field_validator('role', mode='before')
     def extract_role_name(cls, v):
+        if v is None:
+            return None
         # Handle case where v is the Role object relationship
         if hasattr(v, 'name'):
             return v.name
