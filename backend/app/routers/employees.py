@@ -597,7 +597,7 @@ def calculate_salary(
         raise HTTPException(status_code=404, detail="Employee or profile not found")
 
     profile = user.employee_profile
-    base_salary = float(profile.base_salary)
+    base_salary = float(profile.base_salary or 0.0)
     
     # Get attendance
     records = db.query(Attendance).filter(
