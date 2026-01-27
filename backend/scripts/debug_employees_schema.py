@@ -15,6 +15,7 @@ from app.models.attendance import Attendance
 from app.models.salary_advance import SalaryAdvance
 from app.models.role_permission import RolePermission
 from app.models.permission import Permission
+from app.models.holiday import Holiday
 from app.schemas.user import UserResponse
 from pydantic import ValidationError
 
