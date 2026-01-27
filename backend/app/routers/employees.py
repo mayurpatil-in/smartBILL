@@ -712,7 +712,7 @@ def calculate_salary(
         user_id=user_id,
         month=f"{year}-{month:02d}",
         base_salary=base_salary,
-        salary_type=profile.salary_type.value,
+        salary_type=profile.salary_type.value if profile.salary_type else "monthly",
         total_days=days_in_month,
         present_days=present_days,
         total_overtime_pay=round(total_overtime_pay, 2),
