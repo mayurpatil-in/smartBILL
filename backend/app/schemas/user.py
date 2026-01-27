@@ -22,8 +22,8 @@ class EmployeeProfileBase(BaseModel):
     photo_path: Optional[str] = None
 
     joining_date: Optional[date] = None
-    salary_type: SalaryType = SalaryType.MONTHLY
-    base_salary: Decimal = 0.00
+    salary_type: Optional[SalaryType] = SalaryType.MONTHLY
+    base_salary: Optional[Decimal] = 0.00
     tds_percentage: Optional[Decimal] = 0.00
     enable_tds: Optional[bool] = False
     professional_tax: Optional[Decimal] = 0.00
