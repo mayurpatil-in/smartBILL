@@ -588,141 +588,145 @@ def calculate_salary(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).options(joinedload(User.employee_profile)).filter(
-        User.id == user_id,
-        User.company_id == company_id
-    ).first()
+    try:
+        user = db.query(User).options(joinedload(User.employee_profile)).filter(
+            User.id == user_id,
+            User.company_id == company_id
+        ).first()
 
-    if not user or not user.employee_profile:
-        raise HTTPException(status_code=404, detail="Employee or profile not found")
+        if not user or not user.employee_profile:
+            raise HTTPException(status_code=404, detail="Employee or profile not found")
 
-    profile = user.employee_profile
-    base_salary = float(profile.base_salary or 0.0)
-    
-    # Get attendance
-    records = db.query(Attendance).filter(
-        Attendance.user_id == user_id,
-        extract('month', Attendance.date) == month,
-        extract('year', Attendance.date) == year
-    ).all()
-
-    present_days = 0.0
-    total_overtime_pay = 0.0
-    total_bonus = 0.0
-
-    # Calculate hourly rate for Overtime (Assuming 30 days/work_hours)
-    daily_work_hours = float(profile.work_hours_per_day) if profile.work_hours_per_day else 8.0
-    hourly_rate = (base_salary / 30) / daily_work_hours
-
-    for r in records:
-        if r.status == AttendanceStatus.PRESENT:
-            present_days += 1.0
-        elif r.status == AttendanceStatus.HALF_DAY:
-            present_days += 0.5
+        profile = user.employee_profile
+        base_salary = float(profile.base_salary or 0.0)
         
-        # Add OT and Bonus
-        if r.overtime_hours:
-            total_overtime_pay += float(r.overtime_hours) * hourly_rate
-        if r.bonus_amount:
-            total_bonus += float(r.bonus_amount)
-    
-    # [NEW] Add Holidays to Present Days (if no attendance marked)
-    holidays = db.query(Holiday).filter(
-        Holiday.company_id == company_id,
-        extract('month', Holiday.date) == month,
-        extract('year', Holiday.date) == year
-    ).all()
-    
-    holiday_dates = {h.date for h in holidays}
-    attended_dates = {r.date for r in records}
-    
-    for h_date in holiday_dates:
-        # If no attendance marked for this holiday, count as full paid day
-        if h_date not in attended_dates:
-            present_days += 1.0
+        # Get attendance
+        records = db.query(Attendance).filter(
+            Attendance.user_id == user_id,
+            extract('month', Attendance.date) == month,
+            extract('year', Attendance.date) == year
+        ).all()
+
+        present_days = 0.0
+        total_overtime_pay = 0.0
+        total_bonus = 0.0
+
+        # Calculate hourly rate for Overtime (Assuming 30 days/work_hours)
+        daily_work_hours = float(profile.work_hours_per_day) if profile.work_hours_per_day else 8.0
+        hourly_rate = (base_salary / 30) / daily_work_hours
+
+        for r in records:
+            if r.status == AttendanceStatus.PRESENT:
+                present_days += 1.0
+            elif r.status == AttendanceStatus.HALF_DAY:
+                present_days += 0.5
             
-    # [NEW] Add Weekly Off Days (e.g. Sundays) to Present Days
-    company = db.query(Company).filter(Company.id == company_id).first()
-    off_days = company.off_days if company and company.off_days else [] # List of ints [0-6]
-    
-    if off_days:
-        from calendar import monthrange
-        _, days_in_month_count = monthrange(year, month)
+            # Add OT and Bonus
+            if r.overtime_hours:
+                total_overtime_pay += float(r.overtime_hours) * hourly_rate
+            if r.bonus_amount:
+                total_bonus += float(r.bonus_amount)
         
-        for day in range(1, days_in_month_count + 1):
-             current_date = date(year, month, day)
-             # If it is an off day (e.g. Sunday=6)
-             if current_date.weekday() in off_days:
-                 # If not already counted as holiday AND not attended (marked absent/present manually)
-                 if current_date not in holiday_dates and current_date not in attended_dates:
-                     present_days += 1.0
-    
-    # Logic
-    _, days_in_month = monthrange(year, month)
-    calculated_amount = 0.0
-    
-    if profile.salary_type == SalaryType.MONTHLY:
-        daily_rate = base_salary / days_in_month
-        calculated_amount = daily_rate * present_days
+        # [NEW] Add Holidays to Present Days (if no attendance marked)
+        holidays = db.query(Holiday).filter(
+            Holiday.company_id == company_id,
+            extract('month', Holiday.date) == month,
+            extract('year', Holiday.date) == year
+        ).all()
         
-    elif profile.salary_type == SalaryType.DAILY:
-        calculated_amount = base_salary * present_days
+        holiday_dates = {h.date for h in holidays}
+        attended_dates = {r.date for r in records}
+        
+        for h_date in holiday_dates:
+            # If no attendance marked for this holiday, count as full paid day
+            if h_date not in attended_dates:
+                present_days += 1.0
+                
+        # [NEW] Add Weekly Off Days (e.g. Sundays) to Present Days
+        company = db.query(Company).filter(Company.id == company_id).first()
+        off_days = company.off_days if company and company.off_days else [] # List of ints [0-6]
+        
+        if off_days:
+            from calendar import monthrange
+            _, days_in_month_count = monthrange(year, month)
+            
+            for day in range(1, days_in_month_count + 1):
+                 current_date = date(year, month, day)
+                 # If it is an off day (e.g. Sunday=6)
+                 if current_date.weekday() in off_days:
+                     # If not already counted as holiday AND not attended (marked absent/present manually)
+                     if current_date not in holiday_dates and current_date not in attended_dates:
+                         present_days += 1.0
+        
+        # Logic
+        _, days_in_month = monthrange(year, month)
+        calculated_amount = 0.0
+        
+        if profile.salary_type == SalaryType.MONTHLY:
+            daily_rate = base_salary / days_in_month
+            calculated_amount = daily_rate * present_days
+            
+        elif profile.salary_type == SalaryType.DAILY:
+            calculated_amount = base_salary * present_days
 
-    # Calculate Advances (Get all advances for this month)
-    advances = db.query(SalaryAdvance).filter(
-        SalaryAdvance.user_id == user_id,
-        extract('month', SalaryAdvance.date) == month,
-        extract('year', SalaryAdvance.date) == year
-    ).all()
-    
-    total_advances = sum([float(a.amount) for a in advances])
+        # Calculate Advances (Get all advances for this month)
+        advances = db.query(SalaryAdvance).filter(
+            SalaryAdvance.user_id == user_id,
+            extract('month', SalaryAdvance.date) == month,
+            extract('year', SalaryAdvance.date) == year
+        ).all()
+        
+        total_advances = sum([float(a.amount) for a in advances])
+        
+        # final_payable calculated later after tax
 
-    total_advances = sum([float(a.amount) for a in advances])
+        # Check if already paid
+        # Construct description to match pay_salary logic
+        month_name = date(year, month, 1).strftime("%B")
+        expected_desc = f"Salary for {user.name} - {month_name} {year}"
+        
+        existing_expense = db.query(Expense).filter(
+            Expense.category == "Salary",
+            Expense.description == expected_desc,
+            Expense.company_id == company_id
+        ).first()
+        
+        # Calculate Tax (TDS)
+        # Gross Earnings = Base Pay + OT + Bonus
+        gross_earnings = calculated_amount + total_overtime_pay + total_bonus
+        if profile.enable_tds:
+            tds_percentage = float(profile.tds_percentage) if profile.tds_percentage else 0.0
+            tax_deduction = (gross_earnings * tds_percentage) / 100
+        else:
+            tax_deduction = 0.0
+        
+        # Professional Tax (Fixed Amount)
+        professional_tax = float(profile.professional_tax) if profile.professional_tax else 0.0
+        
+        final_payable = gross_earnings - total_advances - tax_deduction - professional_tax
+        
+        is_paid = existing_expense is not None
 
-    # final_payable calculated later after tax
-
-    # Check if already paid
-    # Construct description to match pay_salary logic
-    month_name = date(year, month, 1).strftime("%B")
-    expected_desc = f"Salary for {user.name} - {month_name} {year}"
-    
-    existing_expense = db.query(Expense).filter(
-        Expense.category == "Salary",
-        Expense.description == expected_desc,
-        Expense.company_id == company_id
-    ).first()
-    
-    # Calculate Tax (TDS)
-    # Gross Earnings = Base Pay + OT + Bonus
-    gross_earnings = calculated_amount + total_overtime_pay + total_bonus
-    if profile.enable_tds:
-        tds_percentage = float(profile.tds_percentage) if profile.tds_percentage else 0.0
-        tax_deduction = (gross_earnings * tds_percentage) / 100
-    else:
-        tax_deduction = 0.0
-    
-    # Professional Tax (Fixed Amount)
-    professional_tax = float(profile.professional_tax) if profile.professional_tax else 0.0
-    
-    final_payable = gross_earnings - total_advances - tax_deduction - professional_tax
-    
-    is_paid = existing_expense is not None
-
-    return SalarySlip(
-        user_id=user_id,
-        month=f"{year}-{month:02d}",
-        base_salary=base_salary,
-        salary_type=profile.salary_type.value if profile.salary_type else "monthly",
-        total_days=days_in_month,
-        present_days=present_days,
-        total_overtime_pay=round(total_overtime_pay, 2),
-        total_bonus=round(total_bonus, 2),
-        total_advances_deducted=round(total_advances, 2),
-        tax_deduction=round(tax_deduction, 2),
-        professional_tax_deduction=round(professional_tax, 2),
-        final_payable=round(final_payable, 2),
-        is_paid=is_paid
-    )
+        return SalarySlip(
+            user_id=user_id,
+            month=f"{year}-{month:02d}",
+            base_salary=base_salary,
+            salary_type=profile.salary_type.value if profile.salary_type else "monthly",
+            total_days=days_in_month,
+            present_days=present_days,
+            total_overtime_pay=round(total_overtime_pay, 2),
+            total_bonus=round(total_bonus, 2),
+            total_advances_deducted=round(total_advances, 2),
+            tax_deduction=round(tax_deduction, 2),
+            professional_tax_deduction=round(professional_tax, 2),
+            final_payable=round(final_payable, 2),
+            is_paid=is_paid
+        )
+    except Exception as e:
+        print(f"CRITICAL ERROR in calculate_salary for user {user_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ================================
 # DOCUMENTS
