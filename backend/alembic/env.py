@@ -31,6 +31,12 @@ from app.models import (
     invoice_item,
     holiday,
     role,
+    role_permission,
+    permission,
+    expense,
+    payment,
+    payment_allocation,
+    notification,
 )
 
 # Metadata for autogenerate
