@@ -17,7 +17,9 @@ from app.models.attendance import Attendance, AttendanceStatus
 from app.models.salary_advance import SalaryAdvance
 from app.models.holiday import Holiday
 from app.models.company import Company
+from app.models.expense import Expense
 from app.models.employee_profile import SalaryType
+from app.schemas.user import SalarySlip
 
 def debug_salary(user_id, month, year):
     print(f"Debugging Salary for User {user_id} | {month}/{year}")
@@ -154,6 +156,38 @@ def debug_salary(user_id, month, year):
         
         final_payable = gross_earnings - total_advances - tax_deduction - professional_tax
         print(f"Final Payable: {final_payable}")
+
+        # Check Expense (Is Paid)
+        month_name = date(year, month, 1).strftime("%B")
+        expected_desc = f"Salary for {user.name} - {month_name} {year}"
+        print(f"Checking Expense: {expected_desc}")
+        
+        existing_expense = db.query(Expense).filter(
+            Expense.category == "Salary",
+            Expense.description == expected_desc,
+            Expense.company_id == company_id
+        ).first()
+        is_paid = existing_expense is not None
+        print(f"Is Paid: {is_paid}")
+
+        # Validate Schema
+        print("Validating Pydantic Schema...")
+        slip = SalarySlip(
+            user_id=user_id,
+            month=f"{year}-{month:02d}",
+            base_salary=base_salary,
+            salary_type=profile.salary_type.value if profile.salary_type else "monthly",
+            total_days=int(monthrange(year, month)[1]),
+            present_days=present_days,
+            total_overtime_pay=round(total_overtime_pay, 2),
+            total_bonus=round(total_bonus, 2),
+            total_advances_deducted=round(total_advances, 2),
+            tax_deduction=round(tax_deduction, 2),
+            professional_tax_deduction=round(professional_tax, 2),
+            final_payable=round(final_payable, 2),
+            is_paid=is_paid
+        )
+        print(f"Schema Validation SUCCESS: {slip}")
         
         print("SUCCESS! No crash detected.")
 
