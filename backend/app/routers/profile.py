@@ -83,7 +83,7 @@ def update_company_profile(
     
     # Check permissions? Assuming any authenticated user can update or just Admin?
     # Usually strictly Company Admin.
-    if user.role.value != "COMPANY_ADMIN":
+    if user.role.name != "Company Admin" and user.role.name != "Super Admin":
         raise HTTPException(status_code=403, detail="Only Company Admins can update company details")
 
     company = user.company
@@ -108,7 +108,10 @@ def upload_company_logo(
     if not user.company_id:
         raise HTTPException(status_code=400, detail="User does not belong to a company")
     
-    if user.role.value != "COMPANY_ADMIN":
+    # Updated for RBAC: Check against Role name
+    if user.role.name != "Company Admin" and user.role.name != "Super Admin":
+         # Fallback or strict check?
+         # Ideally we check permissions, but for now fix the crash.
         raise HTTPException(status_code=403, detail="Only Company Admins can upload logo")
 
     # VALIDATION: Allowed types
