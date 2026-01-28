@@ -110,7 +110,7 @@ export default function PaymentList() {
       });
 
       unique.sort(
-        (a, b) => new Date(a.invoice_date) - new Date(b.invoice_date)
+        (a, b) => new Date(a.invoice_date) - new Date(b.invoice_date),
       );
       setPendingInvoices(unique);
     } catch (err) {
@@ -150,7 +150,7 @@ export default function PaymentList() {
       // Calculate new total amount based on allocations
       const totalAllocated = Object.values(newAlloc).reduce(
         (sum, amount) => sum + (parseFloat(amount) || 0),
-        0
+        0,
       );
       setFormData((prevData) => ({
         ...prevData,
@@ -267,7 +267,7 @@ export default function PaymentList() {
   const totalPayments = payments.length;
   const totalAmount = payments.reduce(
     (sum, p) => sum + Number(p.amount || 0),
-    0
+    0,
   );
   const thisMonthAmount = payments
     .filter((p) => {
@@ -481,7 +481,7 @@ export default function PaymentList() {
                         </div>
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           {new Date(payment.payment_date).toLocaleDateString(
-                            "en-IN"
+                            "en-IN",
                           )}
                         </span>
                       </div>
@@ -705,7 +705,10 @@ export default function PaymentList() {
               <div className="w-full md:w-5/12 p-6 overflow-y-auto border-r border-gray-100 dark:border-gray-700 space-y-5">
                 {/* Party */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">
+                  <label
+                    htmlFor="payment_party_id"
+                    className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                  >
                     Party Name
                   </label>
                   <div className="relative group">
@@ -736,7 +739,10 @@ export default function PaymentList() {
                 <div className="grid grid-cols-2 gap-4">
                   {/* Date */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">
+                    <label
+                      htmlFor="payment_date"
+                      className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                    >
                       Date
                     </label>
                     <div className="relative group">
@@ -762,7 +768,10 @@ export default function PaymentList() {
                   </div>
                   {/* Amount */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">
+                    <label
+                      htmlFor="payment_amount"
+                      className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                    >
                       Amount
                     </label>
                     <div className="relative group">
@@ -790,7 +799,10 @@ export default function PaymentList() {
                 <div className="grid grid-cols-2 gap-4">
                   {/* Type */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">
+                    <label
+                      htmlFor="payment_type"
+                      className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                    >
                       Type
                     </label>
                     <div className="relative">
@@ -813,7 +825,10 @@ export default function PaymentList() {
                   </div>
                   {/* Mode */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">
+                    <label
+                      htmlFor="payment_mode"
+                      className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                    >
                       Mode
                     </label>
                     <div className="relative group">
@@ -845,41 +860,54 @@ export default function PaymentList() {
 
                 {/* Reference & Notes */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">
-                    Reference / Notes
-                  </label>
                   <div className="space-y-3">
-                    <div className="relative group">
-                      <FileText
-                        className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-purple-500 transition-colors"
-                        size={18}
-                      />
-                      <input
-                        type="text"
-                        name="payment_reference"
-                        id="payment_reference"
-                        value={formData.reference_number}
+                    <div>
+                      <label
+                        htmlFor="payment_reference"
+                        className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                      >
+                        Reference Number
+                      </label>
+                      <div className="relative group">
+                        <FileText
+                          className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-purple-500 transition-colors"
+                          size={18}
+                        />
+                        <input
+                          type="text"
+                          name="payment_reference"
+                          id="payment_reference"
+                          value={formData.reference_number}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              reference_number: e.target.value,
+                            })
+                          }
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                          placeholder="Cheque No / Transaction ID"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="payment_notes"
+                        className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
+                      >
+                        Notes
+                      </label>
+                      <textarea
+                        rows="3"
+                        name="payment_notes"
+                        id="payment_notes"
+                        value={formData.notes}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            reference_number: e.target.value,
-                          })
+                          setFormData({ ...formData, notes: e.target.value })
                         }
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                        placeholder="Cheque No / Transaction ID"
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all resize-none"
+                        placeholder="Add any additional notes here..."
                       />
                     </div>
-                    <textarea
-                      rows="3"
-                      name="payment_notes"
-                      id="payment_notes"
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all resize-none"
-                      placeholder="Add any additional notes here..."
-                    />
                   </div>
                 </div>
               </div>
@@ -917,7 +945,7 @@ export default function PaymentList() {
                                   acc +
                                   (parseFloat(inv.grand_total) -
                                     parseFloat(inv.paid_amount || 0)),
-                                0
+                                0,
                               )
                               .toLocaleString()}
                           </div>
@@ -1009,11 +1037,11 @@ export default function PaymentList() {
                                             [inv.id]: newAmount,
                                           };
                                           const totalAllocated = Object.values(
-                                            updated
+                                            updated,
                                           ).reduce(
                                             (sum, amount) =>
                                               sum + (parseFloat(amount) || 0),
-                                            0
+                                            0,
                                           );
                                           setFormData((prevData) => ({
                                             ...prevData,
