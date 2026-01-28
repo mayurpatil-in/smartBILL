@@ -535,7 +535,10 @@ export default function InvoiceForm() {
               {/* Basic Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="invoice_party_id"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Building2 size={14} className="text-purple-500" />
                     Party <span className="text-red-500">*</span>
                   </label>
@@ -562,7 +565,10 @@ export default function InvoiceForm() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="invoice_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Calendar size={14} className="text-purple-500" />
                     Invoice Date <span className="text-red-500">*</span>
                   </label>
@@ -601,7 +607,10 @@ export default function InvoiceForm() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                   {/* 1. Select Item */}
                   <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="invoice_item_id"
+                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       Select Item <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -627,7 +636,10 @@ export default function InvoiceForm() {
 
                   {/* 2. Select Challan */}
                   <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="invoice_challan_id"
+                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       Select Delivery Challan{" "}
                       <span className="text-red-500">*</span>
                     </label>
@@ -660,7 +672,10 @@ export default function InvoiceForm() {
 
                   {/* 3. GRN No. */}
                   <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="invoice_grn_no"
+                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       GRN No. <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -685,12 +700,17 @@ export default function InvoiceForm() {
                   {/* Reference Quantities Group */}
                   <div className="col-span-2 lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <div>
-                      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-green-600 dark:text-green-400 pl-1">
+                      <label
+                        htmlFor="invoice_ok_qty"
+                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-green-600 dark:text-green-400 pl-1"
+                      >
                         <CheckCircle className="h-3 w-3" />
                         OK Qty
                       </label>
                       <input
                         type="number"
+                        id="invoice_ok_qty"
+                        name="invoice_ok_qty"
                         value={currentItem.ok_qty}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -717,12 +737,17 @@ export default function InvoiceForm() {
                       />
                     </div>
                     <div>
-                      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-red-600 dark:text-red-400 pl-1">
+                      <label
+                        htmlFor="invoice_cr_qty"
+                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-red-600 dark:text-red-400 pl-1"
+                      >
                         <XCircle className="h-3 w-3" />
                         CR Qty
                       </label>
                       <input
                         type="number"
+                        id="invoice_cr_qty"
+                        name="invoice_cr_qty"
                         value={currentItem.cr_qty}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -749,12 +774,17 @@ export default function InvoiceForm() {
                       />
                     </div>
                     <div>
-                      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-orange-600 dark:text-orange-400 pl-1">
+                      <label
+                        htmlFor="invoice_mr_qty"
+                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-bold mb-1.5 text-orange-600 dark:text-orange-400 pl-1"
+                      >
                         <AlertTriangle className="h-3 w-3" />
                         MR Qty
                       </label>
                       <input
                         type="number"
+                        id="invoice_mr_qty"
+                        name="invoice_mr_qty"
                         value={currentItem.mr_qty}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -772,11 +802,16 @@ export default function InvoiceForm() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1">
+                      <label
+                        htmlFor="invoice_total_qty"
+                        className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1"
+                      >
                         Total Qty
                       </label>
                       <input
                         type="text"
+                        id="invoice_total_qty"
+                        name="invoice_total_qty"
                         readOnly
                         value={currentItem.quantity}
                         className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-lg text-sm text-right font-medium text-gray-600 dark:text-gray-400"
@@ -788,33 +823,48 @@ export default function InvoiceForm() {
                   {/* Billing Group */}
                   <div className="col-span-2 lg:col-span-3 grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-blue-600 dark:text-blue-400 pl-1">
+                      <label
+                        htmlFor="invoice_bill_qty"
+                        className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-blue-600 dark:text-blue-400 pl-1"
+                      >
                         Bill Qty
                       </label>
                       <input
                         type="text"
+                        id="invoice_bill_qty"
+                        name="invoice_bill_qty"
                         readOnly
                         value={currentItem.billing_qty}
                         className="w-full h-10 px-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg text-sm font-bold text-blue-700 dark:text-blue-300 text-right"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1">
+                      <label
+                        htmlFor="invoice_rate"
+                        className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-600 dark:text-gray-400 pl-1"
+                      >
                         Rate
                       </label>
                       <input
                         type="text"
+                        id="invoice_rate"
+                        name="invoice_rate"
                         readOnly
                         value={currentItem.rate}
                         className="w-full h-10 px-3 border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-lg text-sm text-right font-medium text-gray-900 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-900 dark:text-white pl-1">
+                      <label
+                        htmlFor="invoice_amount"
+                        className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-900 dark:text-white pl-1"
+                      >
                         Amount
                       </label>
                       <input
                         type="text"
+                        id="invoice_amount"
+                        name="invoice_amount"
                         readOnly
                         value={
                           currentItem.amount
@@ -828,9 +878,9 @@ export default function InvoiceForm() {
 
                   {/* Action Group */}
                   <div className="col-span-2 lg:col-span-1 flex flex-col justify-end">
-                    <label className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-500 dark:text-gray-400 text-center">
+                    <span className="block text-[10px] uppercase tracking-wider font-bold mb-1.5 text-gray-500 dark:text-gray-400 text-center">
                       Action
-                    </label>
+                    </span>
                     <button
                       onClick={handleAddItem}
                       className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-wide transition-all shadow-md hover:shadow-lg cursor-pointer"
@@ -964,9 +1014,12 @@ export default function InvoiceForm() {
                 {/* GST Edit Modal/Input */}
                 {showGstEdit && (
                   <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 animate-scale-in my-2">
-                    <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                    <label
+                      htmlFor="gst_rate_edit"
+                      className="text-sm font-semibold text-purple-700 dark:text-purple-300"
+                    >
                       New Rate (%):
-                    </span>
+                    </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number"

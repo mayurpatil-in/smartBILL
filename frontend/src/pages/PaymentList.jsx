@@ -357,6 +357,9 @@ export default function PaymentList() {
                 className="text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-300"
                 size={20}
               />
+              <label htmlFor="payment_search" className="sr-only">
+                Search Payments
+              </label>
               <input
                 type="text"
                 name="payment_search"
@@ -376,6 +379,9 @@ export default function PaymentList() {
 
           {/* Filter Dropdowns */}
           <div className="w-full sm:w-48">
+            <label htmlFor="filter_party_id" className="sr-only">
+              Filter by Party
+            </label>
             <select
               name="filter_party_id"
               id="filter_party_id"
@@ -394,6 +400,9 @@ export default function PaymentList() {
             </select>
           </div>
           <div className="w-full sm:w-48">
+            <label htmlFor="filter_payment_type" className="sr-only">
+              Filter by Payment Type
+            </label>
             <select
               name="filter_payment_type"
               id="filter_payment_type"

@@ -140,7 +140,7 @@ export default function Invoices() {
       count: filteredInvoices.length,
       amount: filteredInvoices.reduce(
         (sum, inv) => sum + Number(inv.grand_total || 0),
-        0
+        0,
       ),
     },
     paid: {
@@ -151,7 +151,7 @@ export default function Invoices() {
     },
     pending: {
       count: filteredInvoices.filter(
-        (inv) => inv.status === "OPEN" || inv.status === "PARTIAL"
+        (inv) => inv.status === "OPEN" || inv.status === "PARTIAL",
       ).length,
       amount: filteredInvoices
         .filter((inv) => inv.status === "OPEN" || inv.status === "PARTIAL")
@@ -232,6 +232,9 @@ export default function Invoices() {
                   className="text-gray-400 group-focus-within:text-indigo-500 transition-colors duration-300"
                   size={20}
                 />
+                <label htmlFor="invoice_search" className="sr-only">
+                  Search Invoices
+                </label>
                 <input
                   type="text"
                   name="invoice_search"
@@ -250,6 +253,9 @@ export default function Invoices() {
             </div>
 
             <div className="w-full sm:w-48">
+              <label htmlFor="party_filter" className="sr-only">
+                Filter by Party
+              </label>
               <select
                 name="party_filter"
                 id="party_filter"
@@ -267,6 +273,9 @@ export default function Invoices() {
             </div>
 
             <div className="w-full sm:w-48">
+              <label htmlFor="status_filter" className="sr-only">
+                Filter by Status
+              </label>
               <select
                 name="status_filter"
                 id="status_filter"
@@ -373,11 +382,11 @@ export default function Invoices() {
                         <span
                           className="text-sm font-medium text-gray-700 dark:text-gray-300 max-w-xs truncate"
                           title={Array.from(
-                            new Set(inv.items?.map((i) => i.item?.name))
+                            new Set(inv.items?.map((i) => i.item?.name)),
                           ).join(", ")}
                         >
                           {Array.from(
-                            new Set(inv.items?.map((i) => i.item?.name))
+                            new Set(inv.items?.map((i) => i.item?.name)),
                           ).join(", ")}
                         </span>
                       </div>
@@ -399,10 +408,10 @@ export default function Invoices() {
                           inv.status === "PAID"
                             ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             : inv.status === "PARTIAL"
-                            ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                            : inv.status === "OPEN"
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                              : inv.status === "OPEN"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
                         }`}
                       >
                         <span
@@ -410,10 +419,10 @@ export default function Invoices() {
                             inv.status === "PAID"
                               ? "bg-green-500 shadow-lg shadow-green-500/50"
                               : inv.status === "PARTIAL"
-                              ? "bg-orange-500 shadow-lg shadow-orange-500/50"
-                              : inv.status === "OPEN"
-                              ? "bg-blue-500 shadow-lg shadow-blue-500/50"
-                              : "bg-gray-500 shadow-lg shadow-gray-500/50"
+                                ? "bg-orange-500 shadow-lg shadow-orange-500/50"
+                                : inv.status === "OPEN"
+                                  ? "bg-blue-500 shadow-lg shadow-blue-500/50"
+                                  : "bg-gray-500 shadow-lg shadow-gray-500/50"
                           }`}
                         ></span>
                         {inv.status || "DRAFT"}
