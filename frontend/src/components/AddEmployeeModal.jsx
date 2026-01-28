@@ -333,7 +333,7 @@ export default function AddEmployeeModal({
                     <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                       {formData.profile?.photo_path ? (
                         <img
-                          src={`http://localhost:8000/${formData.profile.photo_path.replace(
+                          src={`${import.meta.env.VITE_API_URL}/${formData.profile.photo_path.replace(
                             /\\/g,
                             "/",
                           )}`}
