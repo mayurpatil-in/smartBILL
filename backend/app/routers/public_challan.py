@@ -100,11 +100,17 @@ async def public_download_challan(
             item_ordered_total = sum(float(pci.quantity_ordered) for pci in data["pc_items"])
             item_delivered_total = sum(float(pci.quantity_delivered) for pci in data["pc_items"])
             
-            balance_qty = max(0, item_ordered_total - item_delivered_total)
-            opening_qty = balance_qty + current_dispatch
-        else:
-            balance_qty = 0
-            opening_qty = 0
+            # Calculate states: 
+            # delivered_total includes current dispatch, so valid ordered balance is total - delivered
+            raw_closing_balance = item_ordered_total - item_delivered_total
+            
+            # Opening balance is what it was BEFORE this dispatch
+            # Since current dispatch is included in delivered_total, we add it back to get previous state
+            raw_opening_balance = raw_closing_balance + current_dispatch
+            
+            # Clamp values for display (no negative balances shown)
+            opening_qty = max(0, raw_opening_balance)
+            balance_qty = max(0, raw_closing_balance)
             
         # Prepare Reference Strings List
         ref_list = []
