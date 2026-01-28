@@ -128,6 +128,7 @@ async def public_download_challan(
                 self.ok_qty = int(ok)
                 self.cr_qty = int(cr)
                 self.mr_qty = int(mr)
+                self.rate = original.rate
         
         proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
 
@@ -157,21 +158,27 @@ async def public_download_challan(
     img.save(buffered, format="PNG")
     qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-    template = env.get_template("delivery_challan.html")
-    html = template.render(
-        challan=challan,
-        company=company,
-        party=challan.party,
-        items=items_data,
-        total_qty=total_qty,
-        qr_code=qr_code_b64
-    )
-    
-    # Generate PDF
-    pdf_content = await generate_pdf(html)
-    
-    return Response(
-        content=pdf_content,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
-    )
+    try:
+        template = env.get_template("delivery_challan.html")
+        html = template.render(
+            challan=challan,
+            company=company,
+            party=challan.party,
+            items=items_data,
+            total_qty=total_qty,
+            qr_code=qr_code_b64
+        )
+        
+        # Generate PDF
+        pdf_content = await generate_pdf(html)
+        
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
+        )
+    except Exception as e:
+        print(f"CRITICAL ERROR GENERATING CHALLAN PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Error generating PDF: {str(e)}")
