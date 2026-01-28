@@ -3,7 +3,7 @@
  * Polls the backend API to determine when it's ready to accept requests
  */
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const HEALTH_ENDPOINT = "/health";
 const MAX_RETRIES = 30;
 const INITIAL_DELAY = 100; // ms

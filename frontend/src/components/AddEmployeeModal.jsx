@@ -851,7 +851,7 @@ export default function AddEmployeeModal({
                                 const path =
                                   formData.profile[`${doc}_doc_path`];
                                 setPreviewFile({
-                                  url: `http://localhost:8000/${path.replace(
+                                  url: `${import.meta.env.VITE_API_URL}/${path.replace(
                                     /\\/g,
                                     "/",
                                   )}`,
