@@ -64,9 +64,9 @@ export default function AddPartyChallanModal({
             acc +
             challan.items.reduce(
               (sum, item) => sum + Number(item.pending_qty || 0),
-              0
+              0,
             ),
-          0
+          0,
         );
       } catch (err) {
         console.error("Failed to fetch pending qty", err);
@@ -178,7 +178,7 @@ export default function AddPartyChallanModal({
     const isDuplicate = form.items.some(
       (item) =>
         item.item_id === currentItem.item_id &&
-        item.process_id === currentItem.process_id
+        item.process_id === currentItem.process_id,
     );
 
     if (isDuplicate) {
@@ -232,7 +232,7 @@ export default function AddPartyChallanModal({
     }
 
     const invalidItems = form.items.filter(
-      (i) => !i.item_id || i.quantity_ordered <= 0
+      (i) => !i.item_id || i.quantity_ordered <= 0,
     );
     if (invalidItems.length > 0) {
       toast.error("Please fill all item details correctly");
@@ -360,7 +360,10 @@ export default function AddPartyChallanModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Party - Wider */}
                 <div className="group lg:col-span-2">
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="party_id"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Building2 size={14} className="text-purple-500" />
                     Party <span className="text-red-500">*</span>
                   </label>
@@ -385,7 +388,10 @@ export default function AddPartyChallanModal({
 
                 {/* Challan No */}
                 <div className="group">
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="challan_number"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <FileText size={14} className="text-purple-500" />
                     Challan No. <span className="text-red-500">*</span>
                   </label>
@@ -405,7 +411,10 @@ export default function AddPartyChallanModal({
 
                 {/* Date */}
                 <div className="group">
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="challan_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Calendar size={14} className="text-purple-500" />
                     Date <span className="text-red-500">*</span>
                   </label>
@@ -423,7 +432,10 @@ export default function AddPartyChallanModal({
                 </div>
 
                 <div className="group">
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="working_days"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <TrendingUp size={14} className="text-purple-500" />
                     Working Days
                   </label>
@@ -457,7 +469,10 @@ export default function AddPartyChallanModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
                   {/* Select Item */}
                   <div className="lg:col-span-4">
-                    <label className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    <label
+                      htmlFor="item_id"
+                      className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide"
+                    >
                       Select Item <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -480,7 +495,10 @@ export default function AddPartyChallanModal({
 
                   {/* Select Process */}
                   <div className="lg:col-span-3">
-                    <label className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    <label
+                      htmlFor="process_id"
+                      className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide"
+                    >
                       Select Process
                     </label>
                     <select
@@ -506,9 +524,9 @@ export default function AddPartyChallanModal({
 
                   {/* Qty at Party Display */}
                   <div className="lg:col-span-2">
-                    <label className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    <span className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                       Qty at Party
-                    </label>
+                    </span>
                     <div
                       className={`px-4 py-2.5 rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-200 shadow-sm ${
                         currentItem.item_id
@@ -524,7 +542,10 @@ export default function AddPartyChallanModal({
 
                   {/* Enter Qty */}
                   <div className="lg:col-span-2">
-                    <label className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    <label
+                      htmlFor="quantity_ordered"
+                      className="block text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wide"
+                    >
                       Enter Qty <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -642,8 +663,8 @@ export default function AddPartyChallanModal({
                 {loading
                   ? "Saving..."
                   : partyChallan
-                  ? "Update Challan"
-                  : "Create Challan"}
+                    ? "Update Challan"
+                    : "Create Challan"}
               </button>
             </div>
           </form>

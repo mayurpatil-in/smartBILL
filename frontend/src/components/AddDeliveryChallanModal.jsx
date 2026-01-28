@@ -425,7 +425,10 @@ export default function AddDeliveryChallanModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="delivery_party_id"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Building2 size={14} className="text-purple-500" />
                     Party <span className="text-red-500">*</span>
                   </label>
@@ -447,7 +450,10 @@ export default function AddDeliveryChallanModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="delivery_challan_date"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Calendar size={14} className="text-purple-500" />
                     Date <span className="text-red-500">*</span>
                   </label>
@@ -465,7 +471,10 @@ export default function AddDeliveryChallanModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="vehicle_number"
+                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Truck size={14} className="text-purple-500" />
                     Vehicle Number
                   </label>
@@ -497,7 +506,10 @@ export default function AddDeliveryChallanModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                   {/* Select Item */}
                   <div className="lg:col-span-3">
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="delivery_item_id"
+                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       Select Item <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -520,9 +532,9 @@ export default function AddDeliveryChallanModal({
 
                   {/* Total Pending Qty Display */}
                   <div className="lg:col-span-1">
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <span className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
                       Pending
-                    </label>
+                    </span>
                     <div
                       className={`px-2 py-2.5 rounded-lg border-2 text-sm font-bold flex items-center justify-center whitespace-nowrap ${
                         currentItem.item_id
@@ -546,7 +558,10 @@ export default function AddDeliveryChallanModal({
 
                   {/* Select Challan */}
                   <div className="lg:col-span-3">
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="party_challan_item_id"
+                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       Select Challan <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -574,9 +589,9 @@ export default function AddDeliveryChallanModal({
 
                   {/* Challan Qty */}
                   <div className="lg:col-span-1">
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <span className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
                       Challan Qty
-                    </label>
+                    </span>
                     <div className="px-3 py-2.5 rounded-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 text-sm font-bold text-blue-700 dark:text-blue-400 flex items-center justify-center">
                       {currentItem.challan_qty || "-"}
                     </div>
@@ -584,7 +599,10 @@ export default function AddDeliveryChallanModal({
 
                   {/* OK Qty */}
                   <div className="lg:col-span-1">
-                    <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="ok_qty"
+                      className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                       OK Qty <span className="text-red-500">*</span>
                     </label>
@@ -604,7 +622,10 @@ export default function AddDeliveryChallanModal({
 
                   {/* CR Qty */}
                   <div className="lg:col-span-1">
-                    <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="cr_qty"
+                      className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                       CR Qty
                     </label>
@@ -624,7 +645,10 @@ export default function AddDeliveryChallanModal({
 
                   {/* MR Qty */}
                   <div className="lg:col-span-1">
-                    <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="mr_qty"
+                      className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       <AlertTriangle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
                       MR Qty
                     </label>
@@ -644,7 +668,10 @@ export default function AddDeliveryChallanModal({
 
                   {/* Rate */}
                   <div className="lg:col-span-1">
-                    <label className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="rate"
+                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
                       Rate
                     </label>
                     <input

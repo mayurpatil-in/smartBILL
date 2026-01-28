@@ -188,7 +188,10 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
               <div className="grid grid-cols-2 gap-4">
                 {/* Party Selection */}
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="party_link"
+                    className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Building2 size={14} className="text-gray-400" />
                     Linked Party
                   </label>
@@ -214,7 +217,10 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
 
                 {/* Process Selection */}
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <label
+                    htmlFor="process_link"
+                    className="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
                     <Cog size={14} className="text-gray-400" />
                     Process
                   </label>
@@ -450,8 +456,8 @@ function Input({
           step={step}
           className={`
             w-full ${prefix ? "pl-10" : "pl-4"} ${
-            suffix ? "pr-12" : "pr-4"
-          } py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700
+              suffix ? "pr-12" : "pr-4"
+            } py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700
             bg-white dark:bg-gray-900 text-gray-900 dark:text-white
             focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500
             outline-none transition-all duration-200
