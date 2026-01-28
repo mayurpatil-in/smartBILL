@@ -78,11 +78,16 @@ export default function CompanyHolidays() {
           className="flex flex-col md:flex-row gap-4 items-end mb-8 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700/50"
         >
           <div className="flex-1 w-full">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="holiday_name"
+              className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+            >
               Holiday Name
             </label>
             <input
               type="text"
+              id="holiday_name"
+              name="holiday_name"
               placeholder="e.g. Diwali Festival"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all"
               value={newHoliday.name}
@@ -93,11 +98,16 @@ export default function CompanyHolidays() {
             />
           </div>
           <div className="w-full md:w-auto">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="holiday_date"
+              className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+            >
               Date
             </label>
             <input
               type="date"
+              id="holiday_date"
+              name="holiday_date"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all"
               value={newHoliday.date}
               onChange={(e) =>

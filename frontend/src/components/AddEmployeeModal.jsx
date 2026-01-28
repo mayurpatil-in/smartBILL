@@ -304,7 +304,10 @@ export default function AddEmployeeModal({
                       Personal Details
                     </h3>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label
+                    htmlFor="is_active"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       Active Status
                     </span>
@@ -350,10 +353,15 @@ export default function AddEmployeeModal({
                         <User size={48} className="text-gray-400" />
                       )}
                     </div>
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                    <label
+                      htmlFor="profile_photo"
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
+                    >
                       <Upload size={24} />
                       <input
                         type="file"
+                        id="profile_photo"
+                        name="profile_photo"
                         className="hidden"
                         onChange={(e) => handleFileUpload(e, "photo")}
                         accept="image/*"
@@ -368,7 +376,10 @@ export default function AddEmployeeModal({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="employee_name"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Full Name
                   </label>
                   <div className="relative">
@@ -393,7 +404,10 @@ export default function AddEmployeeModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="employee_phone"
+                      className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       Phone
                     </label>
                     <div className="relative">
@@ -422,7 +436,10 @@ export default function AddEmployeeModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="employee_email"
+                      className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       Email (Optional)
                     </label>
                     <div className="relative">
@@ -446,7 +463,10 @@ export default function AddEmployeeModal({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="employee_address"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Address <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -477,7 +497,10 @@ export default function AddEmployeeModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="employee_pan"
+                      className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       PAN Number
                     </label>
                     <div className="relative">
@@ -506,7 +529,10 @@ export default function AddEmployeeModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="employee_aadhar"
+                      className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       Aadhar Number
                     </label>
                     <div className="relative">
@@ -548,7 +574,10 @@ export default function AddEmployeeModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="employee_designation"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         Designation <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
@@ -578,7 +607,10 @@ export default function AddEmployeeModal({
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="joining_date"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         Joining Date
                       </label>
                       <div className="relative">
@@ -608,9 +640,9 @@ export default function AddEmployeeModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Salary Type
-                      </label>
+                      </span>
                       <div className="flex gap-4 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
@@ -660,12 +692,17 @@ export default function AddEmployeeModal({
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="work_hours_per_day"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         Daily Work Hours
                       </label>
                       <div className="relative">
                         <input
                           type="number"
+                          id="work_hours_per_day"
+                          name="work_hours_per_day"
                           required
                           min="1"
                           max="24"
@@ -687,7 +724,10 @@ export default function AddEmployeeModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        htmlFor="base_salary"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         Base Salary / Rate
                       </label>
                       <div className="relative">
@@ -745,7 +785,10 @@ export default function AddEmployeeModal({
 
                     {formData.profile.enable_tds && (
                       <div className="space-y-2 animate-fade-in-down">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label
+                          htmlFor="tds_percentage"
+                          className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
                           TDS Percentage (%)
                         </label>
                         <div className="relative">
@@ -778,7 +821,10 @@ export default function AddEmployeeModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="professional_tax"
+                      className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       Professional Tax (Fixed)
                     </label>
                     <div className="relative">
