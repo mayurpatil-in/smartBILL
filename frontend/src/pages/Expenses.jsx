@@ -158,7 +158,7 @@ export default function Expenses() {
           <StatCard
             label="This Month"
             value={`₹${Number(stats.this_month_amount).toLocaleString(
-              "en-IN"
+              "en-IN",
             )}`}
             icon={Calendar}
             color="blue"
@@ -433,8 +433,8 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
                           ex.payment_method === "Cheque"
                             ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                             : ex.payment_method === "Cash"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                         }`}
                       >
                         {ex.payment_method}
@@ -834,7 +834,10 @@ function AddExpenseModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             {/* Amount - Hero Input */}
             <div className="col-span-1 md:col-span-2 space-y-2">
-              <label className="text-sm font-semibold uppercase text-gray-500 tracking-wider">
+              <label
+                htmlFor="expense_amount"
+                className="text-sm font-semibold uppercase text-gray-500 tracking-wider"
+              >
                 Total Amount
               </label>
               <div className="relative group">
@@ -843,6 +846,8 @@ function AddExpenseModal({
                 </span>
                 <input
                   type="number"
+                  id="expense_amount"
+                  name="amount"
                   required
                   min="0"
                   placeholder="0.00"
@@ -857,7 +862,10 @@ function AddExpenseModal({
 
             {/* Date */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="expense_date"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Transaction Date
               </label>
               <div className="relative">
@@ -867,6 +875,8 @@ function AddExpenseModal({
                 />
                 <input
                   type="date"
+                  id="expense_date"
+                  name="date"
                   required
                   className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   value={formData.date}
@@ -879,9 +889,9 @@ function AddExpenseModal({
 
             {/* Payment Mode */}
             <div className="space-y-2 relative" ref={paymentModeInputRef}>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Payment Mode
-              </label>
+              </span>
               <div
                 className="relative cursor-pointer"
                 onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
@@ -931,11 +941,16 @@ function AddExpenseModal({
 
             {/* Category */}
             <div className="space-y-2 relative" ref={categoryInputRef}>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="expense_category"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Category
               </label>
               <input
                 type="text"
+                id="expense_category"
+                name="category"
                 placeholder="e.g. Rent, Travel..."
                 className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white"
                 value={formData.category}
@@ -954,12 +969,12 @@ function AddExpenseModal({
                       "Travel",
                       "Office Supplies",
                       ...existingCategories,
-                    ])
+                    ]),
                   )
                     .filter((cat) =>
                       cat
                         .toLowerCase()
-                        .includes(formData.category.toLowerCase())
+                        .includes(formData.category.toLowerCase()),
                     )
                     .sort()
                     .map((cat) => (
@@ -983,9 +998,10 @@ function AddExpenseModal({
                         "Travel",
                         "Office Supplies",
                         ...existingCategories,
-                      ])
+                      ]),
                     ).some(
-                      (c) => c.toLowerCase() === formData.category.toLowerCase()
+                      (c) =>
+                        c.toLowerCase() === formData.category.toLowerCase(),
                     ) && (
                       <div className="px-4 py-2 text-xs text-gray-400 italic border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                         Create new: "{formData.category}"
@@ -997,10 +1013,15 @@ function AddExpenseModal({
 
             {/* Vendor Select */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="expense_vendor"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Paid To (Optional)
               </label>
               <select
+                id="expense_vendor"
+                name="party_id"
                 className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 value={formData.party_id}
                 onChange={(e) => {
@@ -1031,10 +1052,15 @@ function AddExpenseModal({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">
+                  <label
+                    htmlFor="expense_cheque_no"
+                    className="text-xs font-medium text-gray-500"
+                  >
                     Cheque Number
                   </label>
                   <input
+                    id="expense_cheque_no"
+                    name="cheque_no"
                     placeholder="e.g. 000123"
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-purple-500 outline-none dark:text-white"
                     value={formData.cheque_no}
@@ -1044,11 +1070,16 @@ function AddExpenseModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">
+                  <label
+                    htmlFor="expense_cheque_date"
+                    className="text-xs font-medium text-gray-500"
+                  >
                     Cheque Date
                   </label>
                   <input
                     type="date"
+                    id="expense_cheque_date"
+                    name="cheque_date"
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-purple-500 outline-none dark:text-white"
                     value={formData.cheque_date}
                     onChange={(e) =>
@@ -1057,10 +1088,15 @@ function AddExpenseModal({
                   />
                 </div>
                 <div className="col-span-1 md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-gray-500">
+                  <label
+                    htmlFor="expense_payee_name"
+                    className="text-xs font-medium text-gray-500"
+                  >
                     Payee Name (On Cheque)
                   </label>
                   <input
+                    id="expense_payee_name"
+                    name="payee_name"
                     placeholder="Name as per bank records"
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-purple-500 outline-none font-medium dark:text-white"
                     value={formData.payee_name}
@@ -1075,10 +1111,15 @@ function AddExpenseModal({
 
           {/* Description */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="expense_description"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Description / Notes
             </label>
             <textarea
+              id="expense_description"
+              name="description"
               placeholder="Add any additional details here..."
               className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all h-24 resize-none"
               value={formData.description}
@@ -1108,15 +1149,38 @@ function AddExpenseModal({
                   }`}
                 />
               </div>
-              <label className="font-medium text-gray-900 dark:text-white cursor-pointer select-none">
+              <label
+                htmlFor="expense_recurring"
+                className="font-medium text-gray-900 dark:text-white cursor-pointer select-none"
+              >
                 Make this a Recurring Expense?
               </label>
+              <input
+                type="checkbox"
+                id="expense_recurring"
+                name="is_recurring"
+                checked={formData.is_recurring}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    is_recurring: e.target.checked,
+                  })
+                }
+                className="hidden"
+              />
             </div>
 
             {formData.is_recurring && (
               <div className="flex items-center gap-2 animate-fade-in-up">
-                <span className="text-sm text-gray-500">Repeat every:</span>
+                <label
+                  htmlFor="expense_frequency"
+                  className="text-sm text-gray-500"
+                >
+                  Repeat every:
+                </label>
                 <select
+                  id="expense_frequency"
+                  name="recurring_frequency"
                   className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm font-semibold rounded-lg px-3 py-2 outline-none focus:border-blue-500 dark:text-white"
                   value={formData.recurring_frequency}
                   onChange={(e) =>
