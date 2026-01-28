@@ -443,11 +443,17 @@ export default function RoleManagement() {
               {/* Basic Info */}
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                  <label
+                    htmlFor="role_name"
+                    className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+                  >
                     Role Name *
                   </label>
                   <input
                     type="text"
+                    id="role_name"
+                    name="name"
+                    autoComplete="off"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
@@ -469,10 +475,15 @@ export default function RoleManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                  <label
+                    htmlFor="role_description"
+                    className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+                  >
                     Description
                   </label>
                   <textarea
+                    id="role_description"
+                    name="description"
                     value={formData.description}
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
@@ -533,6 +544,7 @@ export default function RoleManagement() {
                             return (
                               <label
                                 key={perm.id}
+                                htmlFor={`perm_${perm.id}`}
                                 className={`flex items-center gap-2 cursor-pointer p-3 rounded-lg transition-all ${
                                   isChecked
                                     ? "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-600"
@@ -541,6 +553,8 @@ export default function RoleManagement() {
                               >
                                 <input
                                   type="checkbox"
+                                  id={`perm_${perm.id}`}
+                                  name={`perm_${perm.id}`}
                                   checked={isChecked}
                                   onChange={() => togglePermission(perm.id)}
                                   className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
