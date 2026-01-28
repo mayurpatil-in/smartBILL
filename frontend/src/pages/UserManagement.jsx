@@ -274,10 +274,15 @@ export default function UserManagement() {
                   {/* Role Assignment */}
                   <div className="flex items-center gap-3">
                     <div className="min-w-[200px]">
-                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
+                      <label
+                        htmlFor={`role_assign_${user.id}`}
+                        className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide"
+                      >
                         Assign Role
                       </label>
                       <select
+                        id={`role_assign_${user.id}`}
+                        name="assign_role"
                         value={roleChanges[user.id] ?? user.role_id ?? ""}
                         onChange={(e) =>
                           handleRoleChange(user.id, e.target.value)
@@ -464,11 +469,17 @@ function CreateUserModal({ roles, onClose, onSave }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="create_user_name"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               Full Name *
             </label>
             <input
               type="text"
+              id="create_user_name"
+              name="name"
+              autoComplete="name"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -481,11 +492,17 @@ function CreateUserModal({ roles, onClose, onSave }) {
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="create_user_email"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               Email Address *
             </label>
             <input
               type="email"
+              id="create_user_email"
+              name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
@@ -498,12 +515,18 @@ function CreateUserModal({ roles, onClose, onSave }) {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="create_user_password"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               Password *
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
+                id="create_user_password"
+                name="password"
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
@@ -528,10 +551,15 @@ function CreateUserModal({ roles, onClose, onSave }) {
 
           {/* Role */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="create_user_role"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               Role *
             </label>
             <select
+              id="create_user_role"
+              name="role_id"
               value={formData.role_id}
               onChange={(e) =>
                 setFormData({ ...formData, role_id: parseInt(e.target.value) })
@@ -665,11 +693,17 @@ function EditUserModal({ user, onClose, onSave }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="edit_user_name"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               Full Name
             </label>
             <input
               type="text"
+              id="edit_user_name"
+              name="name"
+              autoComplete="name"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -681,11 +715,17 @@ function EditUserModal({ user, onClose, onSave }) {
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="edit_user_email"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               Email Address
             </label>
             <input
               type="email"
+              id="edit_user_email"
+              name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
@@ -697,12 +737,18 @@ function EditUserModal({ user, onClose, onSave }) {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+            <label
+              htmlFor="edit_user_password"
+              className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide"
+            >
               New Password (Optional)
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
+                id="edit_user_password"
+                name="password"
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
@@ -736,9 +782,14 @@ function EditUserModal({ user, onClose, onSave }) {
                 Account Status
               </span>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label
+              htmlFor="edit_user_active"
+              className="relative inline-flex items-center cursor-pointer"
+            >
               <input
                 type="checkbox"
+                id="edit_user_active"
+                name="is_active"
                 checked={formData.is_active}
                 onChange={(e) =>
                   setFormData({ ...formData, is_active: e.target.checked })
