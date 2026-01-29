@@ -114,7 +114,15 @@ export default function Login() {
         window.location.href = "/";
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid email or password");
+      if (err.response?.status === 429) {
+        setError("Too many login attempts. Please try again in a minute.");
+      } else {
+        setError(
+          err.response?.data?.detail ||
+            err.response?.data?.error ||
+            "Invalid email or password",
+        );
+      }
     } finally {
       setLoading(false);
     }
