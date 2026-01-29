@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   UserCog,
+  Database,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -273,6 +274,12 @@ export default function Sidebar({
               to="/roles"
               icon={Shield}
               label="Roles & Permissions"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/backup"
+              icon={Database}
+              label="Backup & Restore"
               collapsed={collapsed}
             />
           </div>

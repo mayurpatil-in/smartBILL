@@ -22,6 +22,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Payments = lazy(() => import("./pages/PaymentList"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Expenses = lazy(() => import("./pages/Expenses")); // [NEW]
+const Backup = lazy(() => import("./pages/Backup")); // [Backup]
 const RoleManagement = lazy(() => import("./pages/RoleManagement")); // [RBAC]
 const UserManagement = lazy(() => import("./pages/UserManagement")); // [RBAC]
 const VerifyID = lazy(() => import("./pages/VerifyID"));
@@ -93,6 +94,7 @@ function AppRoutes() {
           <Route path="expenses" element={<Expenses />} />
           <Route path="roles" element={<RoleManagement />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="backup" element={<Backup />} />
         </Route>
 
         {/* Fallback */}
