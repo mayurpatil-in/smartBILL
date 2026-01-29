@@ -16,6 +16,7 @@ from app.models.party_challan import PartyChallan
 from app.models.employee_profile import EmployeeProfile
 from app.models.attendance import Attendance
 from app.models.notification import Notification
+from app.models.client_login import ClientLogin
 
 def init_db():
     print(f"Connecting to {settings.DATABASE_URL}...")

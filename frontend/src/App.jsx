@@ -30,6 +30,12 @@ const EmployeeDashboard = lazy(
   () => import("./pages/employee/EmployeeDashboard"),
 ); // [Employee Portal]
 
+// [Client Portal]
+const ClientLogin = lazy(() => import("./pages/client/ClientLogin"));
+const ClientLayout = lazy(() => import("./layouts/ClientLayout"));
+const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard"));
+const ClientInvoices = lazy(() => import("./pages/client/ClientInvoices"));
+
 function AppRoutes() {
   const { isSuperAdmin, user } = useAuth();
   const isEmployee = user?.role_name === "Employee";
@@ -97,10 +103,33 @@ function AppRoutes() {
           <Route path="backup" element={<Backup />} />
         </Route>
 
+        {/* Client Portal */}
+        <Route path="/portal" element={<ClientPortalRoutes />}>
+          <Route path="login" element={<ClientLogin />} />
+          <Route element={<ClientLayout />}>
+            <Route path="dashboard" element={<ClientDashboard />} />
+            <Route path="invoices" element={<ClientInvoices />} />
+            {/* Redirect /portal to /portal/dashboard or login */}
+            <Route index element={<Navigate to="dashboard" replace />} />
+          </Route>
+        </Route>
+
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Suspense>
+  );
+}
+
+// [NEW] Client Portal Route Wrapper to provide Context
+import { ClientAuthProvider } from "./context/ClientAuthContext";
+import { Outlet } from "react-router-dom";
+
+function ClientPortalRoutes() {
+  return (
+    <ClientAuthProvider>
+      <Outlet />
+    </ClientAuthProvider>
   );
 }
 

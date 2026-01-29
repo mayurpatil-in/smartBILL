@@ -7,8 +7,11 @@ from app.models.party import Party
 from app.models.user import User, UserRole
 from app.models.invoice import Invoice
 from app.models.payment import Payment
+from app.models.payment import Payment
+from app.models.client_login import ClientLogin
 from app.schemas.party import PartyCreate, PartyResponse
 from app.core.dependencies import get_company_id, get_active_financial_year, require_role
+from app.core.security import get_password_hash
 
 router = APIRouter(prefix="/party", tags=["Party"])
 
@@ -21,15 +24,34 @@ def create_party(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
+    party_data = data.dict(exclude={"portal_username", "portal_password"})
     party = Party(
         company_id=company_id,
         financial_year_id=fy.id,
-        **data.dict()
+        **party_data
     )
 
     db.add(party)
     db.commit()
     db.refresh(party)
+    
+    # [NEW] Handle Client Portal Login Creation
+    if data.portal_username and data.portal_password:
+        # Check if username exists
+        existing_login = db.query(ClientLogin).filter(ClientLogin.username == data.portal_username).first()
+        if existing_login:
+            # Rollback or Warning? For now, we prefer not to fail the party creation but maybe warn.
+            # But duplicate username IS an error.
+             print(f"Warning: Username {data.portal_username} already exists. Skipping portal creation.")
+        else:
+            new_login = ClientLogin(
+                party_id=party.id,
+                username=data.portal_username,
+                password_hash=get_password_hash(data.portal_password),
+                is_active=True
+            )
+            db.add(new_login)
+            db.commit()
 
     return party
 
@@ -94,11 +116,34 @@ def update_party(
             detail="Party not found"
         )
 
-    for key, value in data.dict().items():
+    for key, value in data.dict(exclude={"portal_username", "portal_password"}).items():
         setattr(party, key, value)
 
     db.commit()
     db.refresh(party)
+
+    # [NEW] Handle Client Portal Login Updation
+    if data.portal_username or data.portal_password:
+        existing_login = db.query(ClientLogin).filter(ClientLogin.party_id == party.id).first()
+        
+        if existing_login:
+            if data.portal_username:
+                existing_login.username = data.portal_username
+            if data.portal_password:
+                existing_login.password_hash = get_password_hash(data.portal_password)
+            existing_login.is_active = True
+        else:
+             if data.portal_username and data.portal_password:
+                new_login = ClientLogin(
+                    party_id=party.id,
+                    username=data.portal_username,
+                    password_hash=get_password_hash(data.portal_password),
+                    is_active=True
+                )
+                db.add(new_login)
+        
+        db.commit()
+
     return party
 
 

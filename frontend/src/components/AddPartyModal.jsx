@@ -24,6 +24,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
     address: "",
     opening_balance: 0,
     is_active: true,
+    portal_username: "",
+    portal_password: "",
   });
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
         address: party.address || "",
         opening_balance: party.opening_balance || 0,
         is_active: party.is_active,
+        portal_username: "", // We don't fetch existing password for security
+        portal_password: "",
       });
     } else {
       setForm({
@@ -46,6 +50,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
         address: "",
         opening_balance: 0,
         is_active: true,
+        portal_username: "",
+        portal_password: "",
       });
     }
   }, [party, open]);
@@ -201,6 +207,40 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
               onChange={(v) => setForm({ ...form, opening_balance: v })}
               placeholder="0.00"
             />
+          </div>
+
+          {/* Client Portal Access (New Section) */}
+          <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+              <UserCheck
+                size={16}
+                className="text-blue-600 dark:text-blue-400"
+              />
+              Client Portal Access
+            </h3>
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl space-y-4">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Create credentials for this client to access the portal. Leave
+                empty if you don't want to generic login.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Portal Username"
+                  name="portal_username"
+                  value={form.portal_username}
+                  onChange={(v) => setForm({ ...form, portal_username: v })}
+                  placeholder="e.g. client123"
+                />
+                <Input
+                  label="Portal Password"
+                  type="password"
+                  name="portal_password"
+                  value={form.portal_password}
+                  onChange={(v) => setForm({ ...form, portal_password: v })}
+                  placeholder="Min. 6 chars"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Status Toggle */}

@@ -269,6 +269,15 @@ export default function Login() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+
+          <div className="mt-6 text-center">
+            <a
+              href="/portal/login"
+              className="text-sm font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+            >
+              Are you a client? Login here &rarr;
+            </a>
+          </div>
         </form>
         {/* ✅ FORM END */}
 

@@ -48,6 +48,7 @@ from app.models.salary_advance import SalaryAdvance
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
 from app.models.holiday import Holiday
+from app.models.client_login import ClientLogin
 
 # [NEW] Import super admin creator
 from create_super_admin import create_default_super_admin
@@ -154,9 +155,27 @@ class PrivateNetworkAccessMiddleware(BaseHTTPMiddleware):
         return response
 
 # ===================== CORS =====================
+# Priority: Use CORS_ORIGINS from .env if configured, otherwise fallback to localhost for dev
+# For VPS: Set CORS_ORIGINS in .env with your production domains
+# For Dev: Defaults to localhost ports
+
+# Check if settings has configured CORS origins (from .env)
+if hasattr(settings, "cors_origins") and settings.cors_origins and settings.cors_origins != ["*"]:
+    # Use origins from settings (loaded from CORS_ORIGINS in .env)
+    origins = [str(origin) for origin in settings.cors_origins]
+else:
+    # Fallback to localhost for local development
+    origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,  # ✅ ENV BASED
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -234,6 +253,11 @@ app.include_router(public_verify_router)
 
 from app.routers.invoice import public_router as public_invoice_router
 app.include_router(public_invoice_router)
+
+# [NEW] Client Portal Routers
+from app.routers import client_auth, client_portal
+app.include_router(client_auth.router)
+app.include_router(client_portal.router)
 
 # ===================== ROOT =====================
 @app.get("/")

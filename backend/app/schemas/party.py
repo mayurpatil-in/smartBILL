@@ -9,6 +9,10 @@ class PartyCreate(BaseModel):
     phone: Optional[str] = None
     opening_balance: float = 0
     is_active: bool = True
+    
+    # Optional fields for Client Portal creation
+    portal_username: Optional[str] = None
+    portal_password: Optional[str] = None
 
 
 class PartyResponse(PartyCreate):

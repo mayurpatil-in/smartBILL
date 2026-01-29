@@ -23,7 +23,22 @@ How to update the application on the VPS
     git pull origin main
     ```
 
-4.  **Update Backend**
+4.  **Verify Environment Configuration**
+
+    ```bash
+    # Check backend .env for correct CORS_ORIGINS and BACKEND_URL
+    cat backend/.env | grep CORS_ORIGINS
+    cat backend/.env | grep BACKEND_URL
+
+    # Check frontend .env for correct VITE_API_URL
+    cat frontend/.env | grep VITE_API_URL
+
+    # If needed, edit the files:
+    # nano backend/.env
+    # nano frontend/.env
+    ```
+
+5.  **Update Backend**
 
     ```bash
     cd backend
@@ -41,7 +56,7 @@ How to update the application on the VPS
     sudo systemctl restart smartbill-backend
     ```
 
-5.  **Update Frontend**
+6.  **Update Frontend**
 
     ```bash
     cd ../frontend
@@ -49,7 +64,7 @@ How to update the application on the VPS
     # 1. Install new dependencies
     npm install
 
-    # 2. Build for production
+    # 2. Build for production (uses VITE_API_URL from .env)
     npm run build
 
     # 3. (Optional) Restart Frontend Service if using PM2/Node
@@ -58,6 +73,8 @@ How to update the application on the VPS
     # pm2 restart smartbill-frontend
     ```
 
-6.  **Verify**
+7.  **Verify**
     - Check if the site is loading.
     - Check backend logs if needed: `sudo journalctl -u smartbill-backend -f`
+    - Open browser console and verify API URL: Should show `🚀 [AXIOS] Using API_URL: https://yourdomain.com`
+    - Test a login or API request to verify CORS is working
