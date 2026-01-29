@@ -10,6 +10,9 @@ from fastapi.staticfiles import StaticFiles
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 
 from app.core.config import settings
@@ -95,6 +98,11 @@ def run_migrations():
         # We don't raise here to allow app to start even if migration fails (though risky)
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
+# [SECURITY] Rate Limiting
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # [NEW] Import init_db for fallback table creation
 from app.database.init_db import init_db

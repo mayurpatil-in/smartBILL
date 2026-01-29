@@ -249,8 +249,6 @@ def get_employees(
 ):
     try:
         # Get only users with "Employee" role
-        # Debug print
-        print(f"Fetching employees for company_id: {company_id}")
         
         users = db.query(User).join(Role).options(
             joinedload(User.employee_profile),
@@ -260,10 +258,8 @@ def get_employees(
             Role.name == "Employee"
         ).all()
         
-        print(f"Found {len(users)} employees")
         return users
     except Exception as e:
-        print(f"CRITICAL ERROR in get_employees: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -591,7 +587,6 @@ def calculate_salary(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    print(f"DEBUG: Entering calculate_salary. UserID={user_id}, Month={month}, Year={year}, CompanyID={company_id}")
     try:
         user = db.query(User).options(joinedload(User.employee_profile)).filter(
             User.id == user_id,

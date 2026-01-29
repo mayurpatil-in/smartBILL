@@ -641,7 +641,6 @@ async def print_invoice(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    print(f"DEBUG: Requesting PDF for Invoice {invoice_id}")
     invoice = db.query(Invoice).options(
         joinedload(Invoice.party),
         joinedload(Invoice.challan),

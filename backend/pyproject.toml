@@ -6,7 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.17.2",
+    "apscheduler>=3.11.2",
     "bcrypt==3.2.2",
+    "cryptography>=46.0.4",
     "fastapi[standard]>=0.127.0",
     "httpx>=0.28.1",
     "ipykernel>=7.1.0",
@@ -21,6 +23,7 @@ dependencies = [
     "python-jose>=3.5.0",
     "qrcode[pil]>=8.2",
     "reportlab>=4.4.7",
+    "slowapi>=0.1.9",
     "sqlalchemy>=2.0.45",
     "uvicorn[standard]>=0.40.0",
     "weasyprint>=67.0",

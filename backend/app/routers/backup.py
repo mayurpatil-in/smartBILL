@@ -8,6 +8,9 @@ from app.services.backup_service import backup_manager, BACKUP_DIR
 from app.database.session import engine
 from app.models.user import User, UserRole
 from app.core.dependencies import require_role
+from app.models.audit_log import AuditLog
+from sqlalchemy.orm import Session
+from app.database.session import get_db
 
 router = APIRouter(
     prefix="/backup",
@@ -36,10 +39,23 @@ async def list_backups(
 async def create_backup(
     current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     password: Optional[str] = Form(None),
-    format: str = Form("sql") # sql or dump
+    format: str = Form("sql"), # sql or dump
+    db: Session = Depends(get_db)
 ):
     try:
         filename = backup_manager.create_backup(auto=False, password=password, format=format)
+        if not filename:
+             raise HTTPException(status_code=500, detail="Backup creation failed")
+
+        # [AUDIT]
+        db.add(AuditLog(
+            user_id=current_user.id,
+            action="BACKUP_CREATE",
+            details=f"Created backup {filename}",
+            company_id=current_user.company_id
+        ))
+        db.commit()
+
         return {"message": "Backup created successfully", "filename": filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -47,17 +63,29 @@ async def create_backup(
 @router.delete("/{filename}")
 async def delete_backup(
     filename: str,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    db: Session = Depends(get_db)
 ):
     success = backup_manager.delete_backup(filename)
     if not success:
         raise HTTPException(status_code=404, detail="Backup not found")
+
+    # [AUDIT]
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="BACKUP_DELETE",
+        details=f"Deleted backup {filename}",
+        company_id=current_user.company_id
+    ))
+    db.commit()
+
     return {"message": "Backup deleted"}
 
 @router.get("/download/{filename}")
 async def download_backup(
     filename: str,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    db: Session = Depends(get_db)
 ):
     """Download a specific backup file from the server history."""
     file_path = os.path.join(BACKUP_DIR, filename)
@@ -67,6 +95,15 @@ async def download_backup(
     media_type = "application/x-sql"
     if filename.endswith(".enc") or filename.endswith(".dump"):
         media_type = "application/octet-stream"
+
+    # [AUDIT]
+    db.add(AuditLog(
+        user_id=current_user.id,
+        action="BACKUP_DOWNLOAD",
+        details=f"Downloaded backup {filename}",
+        company_id=current_user.company_id
+    ))
+    db.commit()
 
     return FileResponse(
         path=file_path,

@@ -1399,8 +1399,6 @@ async def get_gst_report_pdf(
         datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else fy.end_date
     )
 
-    print(f"[REPORTS DEBUG] Generating GST PDF for range: {start} to {end}, Type: {type}")
-
     company = db.query(Company).filter(Company.id == company_id).first()
 
     report_rows = []
@@ -1539,7 +1537,6 @@ async def get_gst_report_pdf(
     )
 
     # 3. Generate PDF using shared service
-    print(f"[REPORTS DEBUG] Calling generate_pdf service...")
     try:
         pdf_data = await generate_pdf(html_content, options={
             "margin": {"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
@@ -1551,10 +1548,7 @@ async def get_gst_report_pdf(
             """,
             "header_template": "<div></div>"
         })
-        print(f"[REPORTS DEBUG] PDF Service returned {len(pdf_data)} bytes.")
     except Exception as e:
-        print(f"[REPORTS ERROR] PDF Generation Failed: {e}")
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"PDF Generation Failed: {str(e)}")
 
     return Response(
@@ -1567,4 +1561,3 @@ async def get_gst_report_pdf(
             "Access-Control-Allow-Headers": "*",
         },
     )
-

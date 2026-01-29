@@ -354,9 +354,14 @@ class BackupManager:
         return backups
 
     def delete_backup(self, filename: str):
+        # [SECURITY] Sanitize filename to prevent path traversal
+        filename = os.path.basename(filename)
         path = os.path.join(BACKUP_DIR, filename)
         if os.path.exists(path):
             os.remove(path)
+            # Delete encrypted version if exists
+            if os.path.exists(path + ".enc"):
+                os.remove(path + ".enc")
             return True
         return False
         
