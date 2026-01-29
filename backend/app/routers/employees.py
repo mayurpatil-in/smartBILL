@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 from app.services.pdf_service import generate_pdf
 
 from app.database.session import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.core.paths import UPLOAD_DIR
 from app.models.employee_profile import EmployeeProfile, SalaryType
 from app.models.attendance import Attendance, AttendanceStatus
@@ -30,7 +30,7 @@ from app.schemas.user import (
     AttendanceCreate, AttendanceResponse, SalarySlip,
     SalaryAdvanceCreate, SalaryAdvanceResponse
 )
-from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user
+from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user, require_role
 from app.core.security import get_password_hash
 from app.models.expense import Expense
 
@@ -272,6 +272,7 @@ def get_employees(
 @router.post("/", response_model=UserResponse)
 def create_employee(
     data: UserCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -363,6 +364,7 @@ def get_next_employee_id(
 def update_employee(
     user_id: int,
     data: UserUpdate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -409,6 +411,7 @@ def update_employee(
 @router.delete("/{user_id}")
 def delete_employee(
     user_id: int,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -749,8 +752,16 @@ def upload_document(
     user_dir = os.path.join(UPLOAD_DIR, str(user_id))
     os.makedirs(user_dir, exist_ok=True)
     
-    # Save file
-    safe_filename = f"{doc_type}_{file.filename}"
+    # Security: Validate File Extension
+    allowed_extensions = {".pdf", ".jpg", ".jpeg", ".png"}
+    filename_lower = file.filename.lower()
+    if not any(filename_lower.endswith(ext) for ext in allowed_extensions):
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, JPG, PNG allowed.")
+
+    # Security: Sanitize Filename (Prevent Path Traversal)
+    safe_basename = os.path.basename(file.filename)
+    safe_filename = f"{doc_type}_{safe_basename}"
+    
     file_path = os.path.join(user_dir, safe_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)

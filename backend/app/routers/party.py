@@ -4,10 +4,11 @@ from sqlalchemy import func
 
 from app.database.session import get_db
 from app.models.party import Party
+from app.models.user import User, UserRole
 from app.models.invoice import Invoice
 from app.models.payment import Payment
 from app.schemas.party import PartyCreate, PartyResponse
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role
 
 router = APIRouter(prefix="/party", tags=["Party"])
 
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/party", tags=["Party"])
 @router.post("/", response_model=PartyResponse)
 def create_party(
     data: PartyCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -77,6 +79,7 @@ def list_parties(
 def update_party(
     party_id: int,
     data: PartyCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -102,6 +105,7 @@ def update_party(
 @router.delete("/{party_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_party(
     party_id: int,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):

@@ -6,6 +6,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from fastapi.responses import FileResponse
 from app.services.backup_service import backup_manager, BACKUP_DIR
 from app.database.session import engine
+from app.models.user import User, UserRole
+from app.core.dependencies import require_role
 
 router = APIRouter(
     prefix="/backup",
@@ -24,12 +26,15 @@ async def get_backup_config():
 
 
 @router.get("/list")
-async def list_backups():
+async def list_backups(
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
+):
     """List all available backups on the server."""
     return backup_manager.list_backups()
 
 @router.post("/create")
 async def create_backup(
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     password: Optional[str] = Form(None),
     format: str = Form("sql") # sql or dump
 ):
@@ -40,14 +45,20 @@ async def create_backup(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{filename}")
-async def delete_backup(filename: str):
+async def delete_backup(
+    filename: str,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
+):
     success = backup_manager.delete_backup(filename)
     if not success:
         raise HTTPException(status_code=404, detail="Backup not found")
     return {"message": "Backup deleted"}
 
 @router.get("/download/{filename}")
-async def download_backup(filename: str):
+async def download_backup(
+    filename: str,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
+):
     """Download a specific backup file from the server history."""
     file_path = os.path.join(BACKUP_DIR, filename)
     if not os.path.exists(file_path):
@@ -69,7 +80,8 @@ async def download_backup(filename: str):
 @router.post("/import")
 async def import_backup(
     file: UploadFile = File(...),
-    password: Optional[str] = Form(None)
+    password: Optional[str] = Form(None),
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
 ):
     """
     Import a database backup (.sql or .enc).

@@ -5,16 +5,18 @@ from datetime import date
 
 from app.database.session import get_db
 from app.models.payment import Payment, PaymentType, PaymentMode
+from app.models.user import User, UserRole
 from app.models.invoice import Invoice
 from app.models.payment_allocation import PaymentAllocation
 from app.schemas.payment import PaymentCreate, PaymentUpdate, PaymentResponse
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 @router.post("/", response_model=PaymentResponse)
 def create_payment(
     data: PaymentCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -115,6 +117,7 @@ def get_payment(
 def update_payment(
     id: int,
     data: PaymentUpdate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -137,6 +140,7 @@ def update_payment(
 @router.delete("/{id}")
 def delete_payment(
     id: int,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):

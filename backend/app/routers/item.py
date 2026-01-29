@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database.session import get_db
 from app.models.item import Item
+from app.models.user import User, UserRole
 from app.models.delivery_challan_item import DeliveryChallanItem
 from app.models.invoice_item import InvoiceItem
 from app.schemas.item import ItemCreate, ItemResponse
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role
 
 router = APIRouter(prefix="/item", tags=["Item"])
 
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/item", tags=["Item"])
 @router.post("/", response_model=ItemResponse)
 def create_item(
     data: ItemCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -57,6 +59,7 @@ def list_items(
 def update_item(
     item_id: int,
     data: ItemCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -82,6 +85,7 @@ def update_item(
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_item(
     item_id: int,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):

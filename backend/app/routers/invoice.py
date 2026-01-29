@@ -21,9 +21,11 @@ from app.models.delivery_challan_item import DeliveryChallanItem
 from app.models.stock_transaction import StockTransaction
 from app.models.company import Company
 from app.models.party import Party
+import os
+from app.models.user import User, UserRole
 
 from app.schemas.invoice import InvoiceResponse, InvoiceCreate
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role
 from app.core.security import create_url_signature, verify_url_signature
 from app.utils.gst import calculate_gst
 from app.services.pdf_service import generate_pdf
@@ -160,6 +162,7 @@ def get_pending_invoices(
 @router.post("/", response_model=InvoiceResponse)
 def create_invoice(
     data: InvoiceCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -309,6 +312,7 @@ def get_invoice(
 def update_invoice(
     invoice_id: int,
     data: InvoiceCreate,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -471,6 +475,7 @@ def update_invoice(
 @router.delete("/{invoice_id}")
 def delete_invoice(
     invoice_id: int,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -542,6 +547,7 @@ def delete_invoice(
 @router.post("/from-challan/{challan_id}", response_model=InvoiceResponse)
 def create_invoice_from_challan(
     challan_id: int,
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)

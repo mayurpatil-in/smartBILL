@@ -68,7 +68,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
 # 🔁 REFRESH TOKEN
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(token: str = Depends(oauth2_scheme)):
+def refresh_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(
             token,
@@ -76,6 +76,16 @@ def refresh_token(token: str = Depends(oauth2_scheme)):
             algorithms=[settings.JWT_ALGORITHM],
             options={"verify_exp": False}
         )
+
+        user_id = payload.get("user_id")
+        
+        # [SECURITY FIX] Validate User Exists & Is Active
+        user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User account is inactive or deleted"
+            )
 
         exp = payload.get("exp")
         if not exp:
@@ -95,12 +105,12 @@ def refresh_token(token: str = Depends(oauth2_scheme)):
 
         new_token = create_access_token(
             data={
-                "user_id": payload["user_id"],
-                "name": payload.get("name"),
-                "company_id": payload.get("company_id"),
-                "role": payload["role"],
-                "role_name": payload.get("role_name"),
-                "company_name": payload.get("company_name"),
+                "user_id": user.id,
+                "name": user.name,
+                "company_id": user.company_id,
+                "role": user.legacy_role,
+                "role_name": user.role.name if user.role else None,
+                "company_name": user.company.name if user.company else None,
             }
         )
 

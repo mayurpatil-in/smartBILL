@@ -4,8 +4,9 @@ from typing import List
 
 from app.database.session import get_db
 from app.models.company import Company
+from app.models.user import User, UserRole
 from app.schemas.company import CompanyResponse
-from app.core.dependencies import get_company_id
+from app.core.dependencies import get_company_id, require_role
 
 router = APIRouter(prefix="/company", tags=["Company Settings"])
 
@@ -22,6 +23,7 @@ def get_company_settings(
 @router.put("/settings/off-days")
 def update_off_days(
     off_days: List[int],
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
