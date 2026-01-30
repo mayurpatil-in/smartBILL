@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useClientAuth } from "../../context/ClientAuthContext";
 import {
@@ -12,6 +12,9 @@ import {
   Phone,
   MapPin,
   X,
+  Shield,
+  Zap,
+  Clock,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -19,10 +22,33 @@ export default function ClientLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const navigate = useNavigate();
   const { login } = useClientAuth();
+
+  // Load remembered username on mount
+  useEffect(() => {
+    const rememberedUsername = localStorage.getItem(
+      "client_remembered_username",
+    );
+    if (rememberedUsername) {
+      setUsername(rememberedUsername);
+      setRememberMe(true);
+    }
+  }, []);
+
+  // Keyboard shortcut: Enter to submit
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === "Enter" && !showContactModal && username && password) {
+        handleSubmit(e);
+      }
+    };
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [username, password, showContactModal]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,6 +70,14 @@ export default function ClientLogin() {
       }
 
       const data = await res.json();
+
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem("client_remembered_username", username);
+      } else {
+        localStorage.removeItem("client_remembered_username");
+      }
+
       login(data.access_token, data.client);
       toast.success("Welcome back!");
       navigate("/portal/dashboard");
@@ -58,13 +92,23 @@ export default function ClientLogin() {
     <div className="min-h-screen flex">
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 p-12 flex-col justify-between relative overflow-hidden">
-        {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        {/* Animated Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse"></div>
+        <div
+          className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 animate-pulse"
+          style={{ animationDelay: "1s" }}
+        ></div>
 
         <div className="relative z-10">
-          <h1 className="text-5xl font-bold text-white mb-4">SmartBILL</h1>
-          <p className="text-blue-100 text-xl">Client Portal</p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-5xl font-bold text-white">SmartBILL</h1>
+              <p className="text-blue-100 text-lg">Client Portal</p>
+            </div>
+          </div>
         </div>
 
         <div className="relative z-10 space-y-8">
@@ -78,14 +122,21 @@ export default function ClientLogin() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="text-3xl font-bold text-white mb-1">24/7</div>
-              <div className="text-blue-100 text-sm">Access Anytime</div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 group">
+              <Clock className="w-6 h-6 text-white mb-2 group-hover:scale-110 transition-transform" />
+              <div className="text-2xl font-bold text-white mb-1">24/7</div>
+              <div className="text-blue-100 text-xs">Access Anytime</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="text-3xl font-bold text-white mb-1">100%</div>
-              <div className="text-blue-100 text-sm">Secure</div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 group">
+              <Shield className="w-6 h-6 text-white mb-2 group-hover:scale-110 transition-transform" />
+              <div className="text-2xl font-bold text-white mb-1">100%</div>
+              <div className="text-blue-100 text-xs">Secure</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 group">
+              <Zap className="w-6 h-6 text-white mb-2 group-hover:scale-110 transition-transform" />
+              <div className="text-2xl font-bold text-white mb-1">Fast</div>
+              <div className="text-blue-100 text-xs">Lightning Quick</div>
             </div>
           </div>
         </div>
@@ -130,9 +181,9 @@ export default function ClientLogin() {
           </Link>
 
           {/* Form Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 transform transition-all duration-300 hover:shadow-2xl">
             <div className="mb-8">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg animate-pulse">
                 <LogIn className="w-7 h-7 text-white" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -152,17 +203,19 @@ export default function ClientLogin() {
                 >
                   Username
                 </label>
-                <div className="relative">
+                <div className="relative group">
                   <User
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors"
                     size={20}
                   />
                   <input
                     id="username"
+                    name="username"
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
+                    autoComplete="username"
                     className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     placeholder="Enter your username"
                   />
@@ -177,17 +230,19 @@ export default function ClientLogin() {
                 >
                   Password
                 </label>
-                <div className="relative">
+                <div className="relative group">
                   <Lock
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors"
                     size={20}
                   />
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     placeholder="Enter your password"
                   />
@@ -199,6 +254,26 @@ export default function ClientLogin() {
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="remember-me"
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                    Remember me
+                  </span>
+                </label>
               </div>
 
               {/* Submit Button */}
@@ -228,9 +303,21 @@ export default function ClientLogin() {
                     Signing in...
                   </span>
                 ) : (
-                  "Sign In"
+                  <span className="flex items-center justify-center gap-2">
+                    <LogIn size={18} />
+                    Sign In
+                  </span>
                 )}
               </button>
+
+              {/* Keyboard Hint */}
+              <p className="text-xs text-center text-gray-400 dark:text-gray-500">
+                Press{" "}
+                <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono">
+                  Enter
+                </kbd>{" "}
+                to sign in
+              </p>
             </form>
 
             {/* Help Text */}
@@ -303,11 +390,11 @@ export default function ClientLogin() {
       {/* Contact Support Modal */}
       {showContactModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
           onClick={() => setShowContactModal(false)}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full transform transition-all"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full transform transition-all animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -416,7 +503,7 @@ export default function ClientLogin() {
                 </div>
               </a>
 
-              {/* Address/Availability */}
+              {/* Availability */}
               <div className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                 <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                   <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -444,6 +531,24 @@ export default function ClientLogin() {
           </div>
         </div>
       )}
+
+      {/* Custom Animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

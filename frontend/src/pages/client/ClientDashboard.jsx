@@ -174,8 +174,8 @@ export default function ClientDashboard() {
               <span>Amount (₹)</span>
             </div>
           </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="w-full">
+            <ResponsiveContainer width="100%" aspect={2.5} minHeight={256}>
               <BarChart data={stats.monthly_stats}>
                 <defs>
                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">

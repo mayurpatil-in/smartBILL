@@ -19,6 +19,7 @@ export default function ClientInvoices() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showFilters, setShowFilters] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -46,6 +47,7 @@ export default function ClientInvoices() {
   }, []);
 
   const handleDownload = async (invoiceId, invoiceNumber) => {
+    setDownloadingId(invoiceId);
     try {
       const token = localStorage.getItem("client_token");
       const res = await fetch(
@@ -69,9 +71,11 @@ export default function ClientInvoices() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success("Download started");
+      toast.success("Invoice downloaded successfully!");
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -115,9 +119,7 @@ export default function ClientInvoices() {
               </div>
               <p className="text-blue-100 text-sm font-medium">Total</p>
             </div>
-            <p className="text-3xl font-bold group-hover:scale-110 transition-transform">
-              {stats.total}
-            </p>
+            <p className="text-3xl font-bold">{stats.total}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
             <div className="flex items-center gap-2 mb-2">
@@ -138,9 +140,7 @@ export default function ClientInvoices() {
               </div>
               <p className="text-blue-100 text-sm font-medium">Paid</p>
             </div>
-            <p className="text-3xl font-bold group-hover:scale-110 transition-transform">
-              {stats.paid}
-            </p>
+            <p className="text-3xl font-bold">{stats.paid}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
             <div className="flex items-center gap-2 mb-2">
@@ -149,9 +149,7 @@ export default function ClientInvoices() {
               </div>
               <p className="text-blue-100 text-sm font-medium">Pending</p>
             </div>
-            <p className="text-3xl font-bold group-hover:scale-110 transition-transform">
-              {stats.pending}
-            </p>
+            <p className="text-3xl font-bold">{stats.pending}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
             <div className="flex items-center gap-2 mb-2">
@@ -172,9 +170,7 @@ export default function ClientInvoices() {
               </div>
               <p className="text-blue-100 text-sm font-medium">Overdue</p>
             </div>
-            <p className="text-3xl font-bold text-rose-200 group-hover:scale-110 transition-transform">
-              {stats.overdue}
-            </p>
+            <p className="text-3xl font-bold text-rose-200">{stats.overdue}</p>
           </div>
         </div>
       </div>
@@ -189,7 +185,10 @@ export default function ClientInvoices() {
               size={20}
             />
             <input
+              id="invoice-search"
+              name="invoice-search"
               type="text"
+              autoComplete="off"
               placeholder="Search by invoice number or amount..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -234,22 +233,24 @@ export default function ClientInvoices() {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {["ALL", "PAID", "PENDING", "OVERDUE", "DRAFT"].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    statusFilter === status
-                      ? "bg-blue-600 text-white shadow-md scale-105"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  {status}
-                  {statusFilter === status && (
-                    <span className="ml-1.5 inline-block w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-                  )}
-                </button>
-              ))}
+              {["ALL", "PAID", "OPEN", "PENDING", "OVERDUE", "DRAFT"].map(
+                (status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      statusFilter === status
+                        ? "bg-blue-600 text-white shadow-md scale-105"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {status}
+                    {statusFilter === status && (
+                      <span className="ml-1.5 inline-block w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                    )}
+                  </button>
+                ),
+              )}
             </div>
           </div>
         )}
@@ -286,77 +287,161 @@ export default function ClientInvoices() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredInvoices.map((inv) => (
+          <div className="grid grid-cols-1 gap-4">
+            {filteredInvoices.map((inv, index) => (
               <div
                 key={inv.id}
-                className="group p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200"
+                className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 overflow-hidden hover:shadow-xl"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="flex items-center justify-between gap-4">
-                  {/* Invoice Info */}
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl group-hover:scale-110 transition-transform">
-                      <FileText
-                        size={24}
-                        className="text-blue-600 dark:text-blue-400"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                          {inv.invoice_number}
-                        </h3>
-                        <span
-                          className={`text-xs uppercase font-bold px-3 py-1 rounded-full ${
-                            inv.status === "PAID"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : inv.status === "OVERDUE"
-                                ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                          }`}
-                        >
-                          {inv.status}
-                        </span>
+                <div className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* Left Section - Invoice Info */}
+                    <div className="flex items-start md:items-center gap-4 flex-1">
+                      {/* Icon */}
+                      <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800 group-hover:scale-110 transition-transform">
+                        <FileText
+                          size={24}
+                          className="text-blue-600 dark:text-blue-400"
+                        />
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
-                          {new Date(inv.invoice_date).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            },
-                          )}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <IndianRupee size={14} />₹
-                          {inv.grand_total.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Amount and Action */}
-                  <div className="flex items-center gap-4">
-                    <div className="text-right hidden md:block">
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                        Amount
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        ₹{inv.grand_total.toLocaleString("en-IN")}
-                      </p>
+                      {/* Invoice Details */}
+                      <div className="flex-1 min-w-0">
+                        {/* Invoice Number & Status */}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+                            {inv.invoice_number}
+                          </h3>
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs uppercase font-bold px-3 py-1.5 rounded-full shadow-sm ${
+                              inv.status === "PAID"
+                                ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white"
+                                : inv.status === "OVERDUE"
+                                  ? "bg-gradient-to-r from-rose-500 to-red-600 text-white"
+                                  : inv.status === "OPEN"
+                                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                                    : "bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+                            }`}
+                          >
+                            {inv.status === "PAID" && (
+                              <svg
+                                className="w-3 h-3"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                            {inv.status}
+                          </span>
+                        </div>
+
+                        {/* Date & Amount Info */}
+                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                          <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                            <Calendar size={16} className="text-gray-400" />
+                            <span className="font-medium">
+                              {new Date(inv.invoice_date).toLocaleDateString(
+                                "en-IN",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                            <IndianRupee size={16} className="text-gray-400" />
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              ₹{inv.grand_total.toLocaleString("en-IN")}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDownload(inv.id, inv.invoice_number)}
-                      className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
-                      aria-label="Download invoice"
-                    >
-                      <Download size={20} />
-                    </button>
+
+                    {/* Right Section - Amount & Action */}
+                    <div className="flex items-center justify-between md:justify-end gap-4 mt-4 md:mt-0">
+                      {/* Amount Display - Desktop */}
+                      <div className="hidden lg:block text-right">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+                          Total Amount
+                        </p>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                          ₹{inv.grand_total.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+
+                      {/* Download Button */}
+                      <button
+                        onClick={() =>
+                          handleDownload(inv.id, inv.invoice_number)
+                        }
+                        disabled={downloadingId === inv.id}
+                        className={`flex items-center gap-2 px-4 md:px-6 py-3 text-white rounded-xl font-medium transition-all duration-200 shadow-lg relative overflow-hidden ${
+                          downloadingId === inv.id
+                            ? "bg-blue-500 cursor-wait"
+                            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-xl"
+                        }`}
+                        aria-label="Download invoice"
+                      >
+                        {downloadingId === inv.id ? (
+                          <>
+                            <svg
+                              className="animate-spin h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            <span className="hidden sm:inline">
+                              Downloading...
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Download
+                              size={20}
+                              className="animate-bounce-subtle"
+                            />
+                            <span className="hidden sm:inline">Download</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Bottom Border Accent */}
+                <div
+                  className={`h-1 ${
+                    inv.status === "PAID"
+                      ? "bg-gradient-to-r from-emerald-500 to-green-600"
+                      : inv.status === "OVERDUE"
+                        ? "bg-gradient-to-r from-rose-500 to-red-600"
+                        : inv.status === "OPEN"
+                          ? "bg-gradient-to-r from-blue-500 to-indigo-600"
+                          : "bg-gradient-to-r from-amber-500 to-orange-600"
+                  }`}
+                />
               </div>
             ))}
           </div>

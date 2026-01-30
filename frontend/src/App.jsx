@@ -35,6 +35,8 @@ const ClientLogin = lazy(() => import("./pages/client/ClientLogin"));
 const ClientLayout = lazy(() => import("./layouts/ClientLayout"));
 const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard"));
 const ClientInvoices = lazy(() => import("./pages/client/ClientInvoices"));
+const ClientLedger = lazy(() => import("./pages/client/ClientLedger")); // [New Feature]
+const ClientSettings = lazy(() => import("./pages/client/ClientSettings")); // [New Feature]
 
 function AppRoutes() {
   const { isSuperAdmin, user } = useAuth();
@@ -109,6 +111,8 @@ function AppRoutes() {
           <Route element={<ClientLayout />}>
             <Route path="dashboard" element={<ClientDashboard />} />
             <Route path="invoices" element={<ClientInvoices />} />
+            <Route path="ledger" element={<ClientLedger />} />
+            <Route path="settings" element={<ClientSettings />} />
             {/* Redirect /portal to /portal/dashboard or login */}
             <Route index element={<Navigate to="dashboard" replace />} />
           </Route>
