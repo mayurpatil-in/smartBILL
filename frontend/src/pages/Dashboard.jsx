@@ -3,7 +3,21 @@ import { useAuth } from "../hooks/useAuth";
 import { usePermissions } from "../hooks/usePermissions";
 import DashboardStats from "../components/DashboardStats";
 import { getActiveFinancialYear } from "../api/financialYear";
-import { getDashboardStats } from "../api/reports";
+import {
+  getDashboardStats,
+  getTopCustomers,
+  getOverdueInvoices,
+  getCashFlowProjection,
+  getProductPerformance,
+  getCollectionMetrics,
+} from "../api/reports";
+
+// Analytics Components
+import TopCustomersWidget from "../components/analytics/TopCustomersWidget";
+import OverdueInvoicesAlert from "../components/analytics/OverdueInvoicesAlert";
+import CashFlowProjection from "../components/analytics/CashFlowProjection";
+import ProductPerformanceChart from "../components/analytics/ProductPerformanceChart";
+import CollectionMetricsCard from "../components/analytics/CollectionMetricsCard";
 import {
   AreaChart,
   Area,
@@ -44,6 +58,14 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
+  // Analytics State
+  const [topCustomers, setTopCustomers] = useState([]);
+  const [overdueInvoices, setOverdueInvoices] = useState(null);
+  const [cashFlowProjection, setCashFlowProjection] = useState(null);
+  const [productPerformance, setProductPerformance] = useState([]);
+  const [collectionMetrics, setCollectionMetrics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
   // Resize Observer for Chart
   const [chartWidth, setChartWidth] = useState(0);
   const resizeObserver = useRef(null);
@@ -67,6 +89,7 @@ export default function Dashboard() {
   const loadData = async () => {
     try {
       setStatsLoading(true);
+      setAnalyticsLoading(true);
 
       // 1. Get Active FY (Just for Context in Header)
       const fy = await getActiveFinancialYear();
@@ -79,6 +102,30 @@ export default function Dashboard() {
           setStats(dashboardData);
         } catch (err) {
           console.error("Failed to load dashboard stats", err);
+        }
+      }
+
+      // 3. Load Analytics Data
+      if (fy) {
+        try {
+          const [customers, overdue, cashFlow, products, metrics] =
+            await Promise.all([
+              getTopCustomers(10),
+              getOverdueInvoices(),
+              getCashFlowProjection(),
+              getProductPerformance(10),
+              getCollectionMetrics(),
+            ]);
+
+          setTopCustomers(customers);
+          setOverdueInvoices(overdue);
+          setCashFlowProjection(cashFlow);
+          setProductPerformance(products);
+          setCollectionMetrics(metrics);
+        } catch (err) {
+          console.error("Failed to load analytics", err);
+        } finally {
+          setAnalyticsLoading(false);
         }
       }
     } catch (error) {
@@ -243,7 +290,49 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* MIDDLE ROW: Charts & Activity */}
+      {/* ========================================
+          ANALYTICS SECTION
+          ======================================== */}
+
+      {/* OVERDUE INVOICES ALERT */}
+      {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+        <OverdueInvoicesAlert
+          overdueData={overdueInvoices}
+          loading={analyticsLoading}
+        />
+      )}
+
+      {/* CASH FLOW PROJECTION & COLLECTION METRICS */}
+      {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CashFlowProjection
+            projectionData={cashFlowProjection}
+            loading={analyticsLoading}
+          />
+          <CollectionMetricsCard
+            metrics={collectionMetrics}
+            loading={analyticsLoading}
+          />
+        </div>
+      )}
+
+      {/* TOP CUSTOMERS & PRODUCT PERFORMANCE */}
+      {(isCompanyAdmin || hasPermission("dashboard.view")) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopCustomersWidget
+            customers={topCustomers}
+            loading={analyticsLoading}
+          />
+          <ProductPerformanceChart
+            products={productPerformance}
+            loading={analyticsLoading}
+          />
+        </div>
+      )}
+
+      {/* ========================================
+          EXISTING CHARTS
+          ======================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SALES CHART */}
         {(isCompanyAdmin || hasPermission("dashboard.view")) && (

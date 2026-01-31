@@ -1561,3 +1561,397 @@ async def get_gst_report_pdf(
             "Access-Control-Allow-Headers": "*",
         },
     )
+
+
+# ============================================
+# ANALYTICS ENDPOINTS
+# ============================================
+
+@router.get("/analytics/top-customers")
+def get_top_customers(
+    limit: int = 10,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns top customers by revenue for the active financial year.
+    Includes total revenue, invoice count, average invoice value, and last invoice date.
+    """
+    from app.models.payment import Payment
+    
+    # Query top customers by total invoice amount
+    customers = db.query(
+        Party.id.label('party_id'),
+        Party.name.label('party_name'),
+        func.sum(Invoice.grand_total).label('total_revenue'),
+        func.count(Invoice.id).label('invoice_count'),
+        func.avg(Invoice.grand_total).label('avg_invoice_value'),
+        func.max(Invoice.invoice_date).label('last_invoice_date')
+    ).join(
+        Invoice, Party.id == Invoice.party_id
+    ).filter(
+        Party.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status != "CANCELLED"
+    ).group_by(
+        Party.id, Party.name
+    ).order_by(
+        func.sum(Invoice.grand_total).desc()
+    ).limit(limit).all()
+    
+    # Calculate total revenue for percentage
+    total_revenue = db.query(func.sum(Invoice.grand_total)).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status != "CANCELLED"
+    ).scalar() or 1  # Avoid division by zero
+    
+    result = []
+    for customer in customers:
+        result.append({
+            "party_id": customer.party_id,
+            "party_name": customer.party_name,
+            "total_revenue": float(customer.total_revenue or 0),
+            "invoice_count": customer.invoice_count,
+            "avg_invoice_value": float(customer.avg_invoice_value or 0),
+            "last_invoice_date": customer.last_invoice_date,
+            "revenue_percentage": (float(customer.total_revenue or 0) / float(total_revenue)) * 100
+        })
+    
+    return result
+
+
+@router.get("/analytics/overdue-invoices")
+def get_overdue_invoices(
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns overdue invoices summary grouped by aging buckets.
+    Buckets: Current, 1-30 days, 31-60 days, 61-90 days, 90+ days
+    """
+    from datetime import date, timedelta
+    
+    today = date.today()
+    
+    # Get all unpaid/partially paid invoices
+    invoices = db.query(Invoice).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN'])
+    ).all()
+    
+    # Initialize aging buckets
+    buckets = {
+        'Current': {'count': 0, 'amount': 0.0},
+        '1-30 Days': {'count': 0, 'amount': 0.0},
+        '31-60 Days': {'count': 0, 'amount': 0.0},
+        '61-90 Days': {'count': 0, 'amount': 0.0},
+        '90+ Days': {'count': 0, 'amount': 0.0}
+    }
+    
+    total_overdue = 0.0
+    total_count = 0
+    
+    for inv in invoices:
+        outstanding = float(inv.grand_total) - float(inv.paid_amount or 0)
+        
+        if outstanding <= 0:
+            continue
+        
+        # Calculate days overdue
+        due_date = inv.due_date or inv.invoice_date
+        days_overdue = (today - due_date).days
+        
+        # Categorize into bucket
+        if days_overdue <= 0:
+            bucket = 'Current'
+        elif days_overdue <= 30:
+            bucket = '1-30 Days'
+        elif days_overdue <= 60:
+            bucket = '31-60 Days'
+        elif days_overdue <= 90:
+            bucket = '61-90 Days'
+        else:
+            bucket = '90+ Days'
+        
+        buckets[bucket]['count'] += 1
+        buckets[bucket]['amount'] += outstanding
+        total_overdue += outstanding
+        total_count += 1
+    
+    # Format response
+    aging_buckets = []
+    for bucket_name, data in buckets.items():
+        percentage = (data['amount'] / total_overdue * 100) if total_overdue > 0 else 0
+        aging_buckets.append({
+            'bucket': bucket_name,
+            'count': data['count'],
+            'amount': data['amount'],
+            'percentage': percentage
+        })
+    
+    return {
+        'total_overdue': total_overdue,
+        'total_count': total_count,
+        'aging_buckets': aging_buckets
+    }
+
+
+@router.get("/analytics/cash-flow-projection")
+def get_cash_flow_projection(
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Projects cash flow for next 30, 60, and 90 days.
+    Calculates expected income (due invoices) and expected expenses (historical average).
+    """
+    from datetime import date, timedelta
+    from app.models.payment import Payment
+    from app.models.expense import Expense
+    
+    today = date.today()
+    
+    # 1. Calculate current cash (simplified - total received - total paid)
+    total_received = db.query(func.sum(Payment.amount)).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == "RECEIVED"
+    ).scalar() or 0
+    
+    total_paid = db.query(func.sum(Payment.amount)).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == "PAID"
+    ).scalar() or 0
+    
+    total_expenses = db.query(func.sum(Expense.amount)).filter(
+        Expense.company_id == company_id,
+        Expense.financial_year_id == fy.id,
+        Expense.status == "PAID"
+    ).scalar() or 0
+    
+    current_cash = float(total_received) - float(total_paid) - float(total_expenses)
+    
+    # 2. Calculate average monthly expense (last 3 months)
+    three_months_ago = today - timedelta(days=90)
+    
+    recent_vendor_payments = db.query(func.sum(Payment.amount)).filter(
+        Payment.company_id == company_id,
+        Payment.payment_date >= three_months_ago,
+        Payment.payment_type == "PAID"
+    ).scalar() or 0
+    
+    recent_expenses = db.query(func.sum(Expense.amount)).filter(
+        Expense.company_id == company_id,
+        Expense.date >= three_months_ago,
+        Expense.status == "PAID"
+    ).scalar() or 0
+    
+    total_recent_expenses = float(recent_vendor_payments) + float(recent_expenses)
+    avg_monthly_expense = total_recent_expenses / 3  # 3 months average
+    
+    # 3. Calculate expected income for each period
+    def calculate_period(days):
+        period_end = today + timedelta(days=days)
+        
+        # Expected income from invoices due by the period end
+        # This includes:
+        # - Overdue invoices (due_date < today)
+        # - Invoices due within the period (due_date <= period_end)
+        # - Invoices with NULL due_date (treated as invoice_date)
+        expected_income = db.query(
+            func.sum(Invoice.grand_total - Invoice.paid_amount)
+        ).filter(
+            Invoice.company_id == company_id,
+            Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN']),
+            # Use COALESCE to treat NULL due_date as invoice_date
+            func.coalesce(Invoice.due_date, Invoice.invoice_date) <= period_end
+        ).scalar() or 0
+        
+        # Expected expenses (prorated)
+        expected_expense = (avg_monthly_expense / 30) * days
+        
+        # Projected balance
+        projected_balance = current_cash + float(expected_income) - expected_expense
+        
+        return {
+            'expected_income': float(expected_income),
+            'expected_expense': expected_expense,
+            'projected_balance': projected_balance,
+            'period_end_date': period_end.isoformat()
+        }
+    
+    # 4. Calculate cash runway (days until cash runs out)
+    daily_burn_rate = avg_monthly_expense / 30 if avg_monthly_expense > 0 else 0
+    cash_runway_days = int(current_cash / daily_burn_rate) if daily_burn_rate > 0 and current_cash > 0 else None
+    
+    return {
+        'current_cash': current_cash,
+        'period_30_days': calculate_period(30),
+        'period_60_days': calculate_period(60),
+        'period_90_days': calculate_period(90),
+        'cash_runway_days': cash_runway_days
+    }
+
+
+@router.get("/analytics/product-performance")
+def get_product_performance(
+    limit: int = 10,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns top selling products by revenue.
+    Includes total quantity sold, total revenue, and average selling price.
+    """
+    
+    # Query top products by revenue
+    products = db.query(
+        Item.id.label('item_id'),
+        Item.name.label('item_name'),
+        func.sum(InvoiceItem.quantity).label('total_quantity_sold'),
+        func.sum(InvoiceItem.amount).label('total_revenue'),
+        func.avg(InvoiceItem.rate).label('avg_selling_price')
+    ).join(
+        InvoiceItem, Item.id == InvoiceItem.item_id
+    ).join(
+        Invoice, InvoiceItem.invoice_id == Invoice.id
+    ).filter(
+        Item.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status != "CANCELLED"
+    ).group_by(
+        Item.id, Item.name
+    ).order_by(
+        func.sum(InvoiceItem.amount).desc()
+    ).limit(limit).all()
+    
+    # Calculate total revenue for percentage
+    total_revenue = db.query(func.sum(InvoiceItem.amount)).join(
+        Invoice, InvoiceItem.invoice_id == Invoice.id
+    ).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status != "CANCELLED"
+    ).scalar() or 1  # Avoid division by zero
+    
+    result = []
+    for product in products:
+        result.append({
+            'item_id': product.item_id,
+            'item_name': product.item_name,
+            'total_quantity_sold': float(product.total_quantity_sold or 0),
+            'total_revenue': float(product.total_revenue or 0),
+            'avg_selling_price': float(product.avg_selling_price or 0),
+            'revenue_percentage': (float(product.total_revenue or 0) / float(total_revenue)) * 100
+        })
+    
+    return result
+
+
+@router.get("/analytics/collection-metrics")
+def get_collection_metrics(
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Calculates collection efficiency metrics:
+    - Days Sales Outstanding (DSO)
+    - Collection Effectiveness Index (CEI)
+    - Average Payment Delay
+    """
+    from app.models.payment import Payment
+    from datetime import date
+    
+    # 1. Calculate Days Sales Outstanding (DSO)
+    # DSO = Average time to collect payment
+    
+    # Get all paid invoices with payment dates
+    # Join through PaymentAllocation since Payment doesn't have direct invoice_id
+    from app.models.payment_allocation import PaymentAllocation
+    
+    paid_invoices = db.query(Invoice, Payment).join(
+        PaymentAllocation, Invoice.id == PaymentAllocation.invoice_id
+    ).join(
+        Payment, PaymentAllocation.payment_id == Payment.id
+    ).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status == 'PAID'
+    ).all()
+    
+    total_days = 0
+    count = 0
+    total_delay_days = 0
+    
+    for inv, pay in paid_invoices:
+        days_to_pay = (pay.payment_date - inv.invoice_date).days
+        total_days += days_to_pay
+        count += 1
+        
+        # Calculate delay from due date
+        due_date = inv.due_date or inv.invoice_date
+        delay = (pay.payment_date - due_date).days
+        if delay > 0:
+            total_delay_days += delay
+    
+    dso = total_days / count if count > 0 else 0
+    avg_payment_delay = total_delay_days / count if count > 0 else 0
+    
+    # 2. Calculate Collection Effectiveness Index (CEI)
+    # CEI = (Collections / (Opening AR + Sales - Closing AR)) × 100
+    
+    # Opening AR (beginning of FY)
+    opening_ar = db.query(
+        func.sum(Invoice.grand_total - Invoice.paid_amount)
+    ).filter(
+        Invoice.company_id == company_id,
+        Invoice.invoice_date < fy.start_date,
+        Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN'])
+    ).scalar() or 0
+    
+    # Total Sales in FY
+    total_sales = db.query(func.sum(Invoice.grand_total)).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status != 'CANCELLED'
+    ).scalar() or 0
+    
+    # Closing AR (current outstanding)
+    closing_ar = db.query(
+        func.sum(Invoice.grand_total - Invoice.paid_amount)
+    ).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id,
+        Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN'])
+    ).scalar() or 0
+    
+    # Total Collections in FY
+    collections = db.query(func.sum(Payment.amount)).filter(
+        Payment.company_id == company_id,
+        Payment.financial_year_id == fy.id,
+        Payment.payment_type == 'RECEIVED'
+    ).scalar() or 0
+    
+    denominator = float(opening_ar) + float(total_sales) - float(closing_ar)
+    cei = (float(collections) / denominator * 100) if denominator > 0 else 0
+    
+    # Industry benchmarks
+    target_dso = 30.0  # 30 days is typical target
+    target_cei = 95.0  # 95% is good collection efficiency
+    
+    return {
+        'days_sales_outstanding': round(dso, 1),
+        'collection_effectiveness_index': round(cei, 1),
+        'avg_payment_delay_days': round(avg_payment_delay, 1),
+        'target_dso': target_dso,
+        'target_cei': target_cei
+    }
+
