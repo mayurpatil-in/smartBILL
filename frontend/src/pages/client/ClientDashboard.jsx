@@ -10,6 +10,7 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle,
+  ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -26,17 +27,24 @@ export default function ClientDashboard() {
   const { client } = useClientAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [financialYears, setFinancialYears] = useState([]);
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(""); // "" means all years
+  const [showFYDropdown, setShowFYDropdown] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("client_token");
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/client/dashboard`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      let url = `${import.meta.env.VITE_API_URL}/client/dashboard`;
+
+      // Add financial year parameter if selected
+      if (selectedFinancialYear) {
+        url += `?financial_year_id=${selectedFinancialYear}`;
+      }
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error("Failed to fetch dashboard");
       const data = await res.json();
       setStats(data);
@@ -48,9 +56,38 @@ export default function ClientDashboard() {
     }
   };
 
+  const fetchFinancialYears = async () => {
+    try {
+      const token = localStorage.getItem("client_token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/client/financial-years`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) throw new Error("Failed to fetch financial years");
+      const data = await res.json();
+      setFinancialYears(data);
+
+      // Set default to active financial year
+      const activeFY = data.find((fy) => fy.is_active);
+      if (activeFY) {
+        setSelectedFinancialYear(activeFY.id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
-    fetchStats();
+    fetchFinancialYears();
   }, []);
+
+  useEffect(() => {
+    if (selectedFinancialYear !== null) {
+      fetchStats();
+    }
+  }, [selectedFinancialYear]);
 
   if (loading) {
     return (
@@ -87,13 +124,72 @@ export default function ClientDashboard() {
               Here's your account overview
             </p>
           </div>
-          <button
-            onClick={fetchStats}
-            className="p-3 hover:bg-white/20 rounded-xl transition-all duration-200 hover:scale-105"
-            aria-label="Refresh data"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Financial Year Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFYDropdown(!showFYDropdown)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/20"
+              >
+                <Calendar size={18} />
+                <span className="text-sm font-medium">
+                  {selectedFinancialYear
+                    ? financialYears.find(
+                        (fy) => fy.id === selectedFinancialYear,
+                      )?.year_name
+                    : "All Years"}
+                </span>
+                <ChevronDown size={16} />
+              </button>
+
+              {showFYDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  <button
+                    onClick={() => {
+                      setSelectedFinancialYear("");
+                      setShowFYDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      selectedFinancialYear === ""
+                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    All Years
+                  </button>
+                  {financialYears.map((fy) => (
+                    <button
+                      key={fy.id}
+                      onClick={() => {
+                        setSelectedFinancialYear(fy.id);
+                        setShowFYDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                        selectedFinancialYear === fy.id
+                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      {fy.year_name}
+                      {fy.is_active && (
+                        <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
+                          Active
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={fetchStats}
+              className="p-3 hover:bg-white/20 rounded-xl transition-all duration-200 hover:scale-105"
+              aria-label="Refresh data"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 

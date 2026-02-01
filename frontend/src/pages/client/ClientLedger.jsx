@@ -17,6 +17,7 @@ import {
   Printer,
   RefreshCw,
   Filter,
+  ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -32,6 +33,9 @@ export default function ClientLedger() {
     end: "",
   });
   const [activePreset, setActivePreset] = useState("");
+  const [financialYears, setFinancialYears] = useState([]);
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState("");
+  const [showFYDropdown, setShowFYDropdown] = useState(false);
 
   const fetchLedger = async () => {
     setLoading(true);
@@ -42,6 +46,8 @@ export default function ClientLedger() {
       const params = new URLSearchParams();
       if (dateRange.start) params.append("start_date", dateRange.start);
       if (dateRange.end) params.append("end_date", dateRange.end);
+      if (selectedFinancialYear)
+        params.append("financial_year_id", selectedFinancialYear);
 
       if (params.toString()) url += `?${params.toString()}`;
 
@@ -61,9 +67,38 @@ export default function ClientLedger() {
     }
   };
 
+  const fetchFinancialYears = async () => {
+    try {
+      const token = localStorage.getItem("client_token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/client/financial-years`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) throw new Error("Failed to fetch financial years");
+      const data = await res.json();
+      setFinancialYears(data);
+
+      // Set default to active financial year
+      const activeFY = data.find((fy) => fy.is_active);
+      if (activeFY) {
+        setSelectedFinancialYear(activeFY.id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
-    fetchLedger();
+    fetchFinancialYears();
   }, []);
+
+  useEffect(() => {
+    if (selectedFinancialYear !== null) {
+      fetchLedger();
+    }
+  }, [selectedFinancialYear]);
 
   // Date Preset Functions
   const applyDatePreset = (preset) => {
@@ -259,6 +294,66 @@ export default function ClientLedger() {
               {preset.label}
             </button>
           ))}
+
+          {/* Financial Year Dropdown */}
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setShowFYDropdown(!showFYDropdown)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedFinancialYear
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+              }`}
+            >
+              <Calendar size={16} />
+              <span>
+                {selectedFinancialYear
+                  ? financialYears.find((fy) => fy.id === selectedFinancialYear)
+                      ?.year_name
+                  : "All Years"}
+              </span>
+              <ChevronDown size={14} />
+            </button>
+
+            {showFYDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                <button
+                  onClick={() => {
+                    setSelectedFinancialYear("");
+                    setShowFYDropdown(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    selectedFinancialYear === ""
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  All Years
+                </button>
+                {financialYears.map((fy) => (
+                  <button
+                    key={fy.id}
+                    onClick={() => {
+                      setSelectedFinancialYear(fy.id);
+                      setShowFYDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      selectedFinancialYear === fy.id
+                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {fy.year_name}
+                    {fy.is_active && (
+                      <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Custom Date Range */}

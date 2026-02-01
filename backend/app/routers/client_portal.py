@@ -8,10 +8,56 @@ from app.client_dependencies import get_current_client
 from app.models.client_login import ClientLogin
 from app.models.invoice import Invoice
 from app.models.payment import Payment
+from app.models.financial_year import FinancialYear
 from app.schemas.invoice import InvoiceResponse
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/client", tags=["client-portal"])
+
+# Financial Year Schema
+class FinancialYearResponse(BaseModel):
+    id: int
+    start_date: str
+    end_date: str
+    is_active: bool
+    year_name: str  # Computed field like "2024-25"
+
+@router.get("/financial-years", response_model=List[FinancialYearResponse])
+def get_financial_years(
+    client: ClientLogin = Depends(get_current_client),
+    db: Session = Depends(get_db)
+):
+    """Get all financial years for the client's company"""
+    # Get company_id from the first invoice (all invoices belong to same company)
+    sample_invoice = db.query(Invoice).filter(
+        Invoice.party_id == client.party_id
+    ).first()
+    
+    if not sample_invoice:
+        return []
+    
+    company_id = sample_invoice.company_id
+    
+    financial_years = db.query(FinancialYear).filter(
+        FinancialYear.company_id == company_id
+    ).order_by(desc(FinancialYear.start_date)).all()
+    
+    result = []
+    for fy in financial_years:
+        # Create year_name like "2024-25"
+        start_year = fy.start_date.year
+        end_year = fy.end_date.year
+        year_name = f"{start_year}-{str(end_year)[-2:]}"
+        
+        result.append(FinancialYearResponse(
+            id=fy.id,
+            start_date=str(fy.start_date),
+            end_date=str(fy.end_date),
+            is_active=fy.is_active,
+            year_name=year_name
+        ))
+    
+    return result
 
 # Schemas
 class ClientDashboardStats(BaseModel):
@@ -25,6 +71,7 @@ class ClientDashboardStats(BaseModel):
 
 @router.get("/dashboard", response_model=ClientDashboardStats)
 def get_client_dashboard(
+    financial_year_id: int | None = None,
     client: ClientLogin = Depends(get_current_client),
     db: Session = Depends(get_db)
 ):
@@ -33,22 +80,31 @@ def get_client_dashboard(
     
     # 1. Calculate Balance (Using logic from Party router)
      # Sum of Invoices (Debit)
-    invoice_total = db.query(func.sum(Invoice.grand_total)).filter(
+    invoice_query = db.query(func.sum(Invoice.grand_total)).filter(
         Invoice.party_id == party_id,
         Invoice.status != "CANCELLED"
-    ).scalar() or 0
+    )
+    if financial_year_id:
+        invoice_query = invoice_query.filter(Invoice.financial_year_id == financial_year_id)
+    invoice_total = invoice_query.scalar() or 0
     
     # Sum of Payments Received
-    total_received = db.query(func.sum(Payment.amount)).filter(
+    payment_received_query = db.query(func.sum(Payment.amount)).filter(
         Payment.party_id == party_id,
         Payment.payment_type == "RECEIVED"
-    ).scalar() or 0
+    )
+    if financial_year_id:
+        payment_received_query = payment_received_query.filter(Payment.financial_year_id == financial_year_id)
+    total_received = payment_received_query.scalar() or 0
     
     # Sum of Payments Paid (Rare for clients, but usually refunds)
-    total_paid = db.query(func.sum(Payment.amount)).filter(
+    payment_paid_query = db.query(func.sum(Payment.amount)).filter(
         Payment.party_id == party_id,
         Payment.payment_type == "PAID"
-    ).scalar() or 0
+    )
+    if financial_year_id:
+        payment_paid_query = payment_paid_query.filter(Payment.financial_year_id == financial_year_id)
+    total_paid = payment_paid_query.scalar() or 0
     
     current_balance = float(party.opening_balance) + float(invoice_total) - float(total_received) + float(total_paid)
     
@@ -59,17 +115,23 @@ def get_client_dashboard(
     ).order_by(desc(Payment.payment_date)).first()
     
     # 3. Open Invoices Count
-    open_invoices = db.query(func.count(Invoice.id)).filter(
+    open_invoices_query = db.query(func.count(Invoice.id)).filter(
         Invoice.party_id == party_id,
         Invoice.status.in_(["DRAFT", "SENT", "OVERDUE", "PARTIALLY_PAID", "OPEN"]) 
         # Note: "PAID" is settled. "CANCELLED" is void.
-    ).scalar() or 0
+    )
+    if financial_year_id:
+        open_invoices_query = open_invoices_query.filter(Invoice.financial_year_id == financial_year_id)
+    open_invoices = open_invoices_query.scalar() or 0
     
     # 4. Recent Invoices (Limit 5)
-    recent_invoices = db.query(Invoice).filter(
+    recent_invoices_query = db.query(Invoice).filter(
         Invoice.party_id == party_id,
         Invoice.status != "CANCELLED"
-    ).order_by(desc(Invoice.invoice_date)).limit(5).all()
+    )
+    if financial_year_id:
+        recent_invoices_query = recent_invoices_query.filter(Invoice.financial_year_id == financial_year_id)
+    recent_invoices = recent_invoices_query.order_by(desc(Invoice.invoice_date)).limit(5).all()
 
     # 5. Monthly Stats (Last 6 months)
     # We want a list of {name: "Jan", total: 5000}
@@ -87,12 +149,15 @@ def get_client_dashboard(
         # Calculate next month start for range
         next_month = month_start + relativedelta(months=1)
             
-        total = db.query(func.sum(Invoice.grand_total)).filter(
+        monthly_query = db.query(func.sum(Invoice.grand_total)).filter(
             Invoice.party_id == party_id,
             Invoice.status != "CANCELLED",
             Invoice.invoice_date >= month_start,
             Invoice.invoice_date < next_month
-        ).scalar() or 0
+        )
+        if financial_year_id:
+            monthly_query = monthly_query.filter(Invoice.financial_year_id == financial_year_id)
+        total = monthly_query.scalar() or 0
         
         monthly_stats.append({
             "name": month_start.strftime("%b"),
@@ -112,13 +177,17 @@ def get_client_dashboard(
 
 @router.get("/invoices", response_model=List[InvoiceResponse])
 def get_client_invoices(
+    financial_year_id: int | None = None,
     client: ClientLogin = Depends(get_current_client),
     db: Session = Depends(get_db)
 ):
-    invoices = db.query(Invoice).filter(
+    invoices_query = db.query(Invoice).filter(
         Invoice.party_id == client.party_id,
         Invoice.status != "CANCELLED" # Show invalid? Maybe not.
-    ).order_by(desc(Invoice.invoice_date)).all()
+    )
+    if financial_year_id:
+        invoices_query = invoices_query.filter(Invoice.financial_year_id == financial_year_id)
+    invoices = invoices_query.order_by(desc(Invoice.invoice_date)).all()
     return invoices
 
 @router.get("/invoices/{invoice_id}/download")
@@ -256,6 +325,7 @@ class PasswordChange(BaseModel):
 def get_client_ledger(
     start_date: date | None = None,
     end_date: date | None = None,
+    financial_year_id: int | None = None,
     client: ClientLogin = Depends(get_current_client),
     db: Session = Depends(get_db)
 ):
@@ -267,6 +337,8 @@ def get_client_ledger(
         Invoice.party_id == party_id,
         Invoice.status != "CANCELLED"
     )
+    if financial_year_id:
+        invoices_query = invoices_query.filter(Invoice.financial_year_id == financial_year_id)
     if start_date:
         invoices_query = invoices_query.filter(Invoice.invoice_date >= start_date)
     if end_date:
@@ -280,6 +352,8 @@ def get_client_ledger(
         # Only consider RECEIVED for credit
         Payment.payment_type.in_(["RECEIVED"]) 
     )
+    if financial_year_id:
+        payments_query = payments_query.filter(Payment.financial_year_id == financial_year_id)
     if start_date:
         payments_query = payments_query.filter(Payment.payment_date >= start_date)
     if end_date:
@@ -292,18 +366,24 @@ def get_client_ledger(
     
     if start_date:
         # Sum prior invoices
-        prior_inv = db.query(func.sum(Invoice.grand_total)).filter(
+        prior_inv_query = db.query(func.sum(Invoice.grand_total)).filter(
             Invoice.party_id == party_id,
             Invoice.status != "CANCELLED",
             Invoice.invoice_date < start_date
-        ).scalar() or 0
+        )
+        if financial_year_id:
+            prior_inv_query = prior_inv_query.filter(Invoice.financial_year_id == financial_year_id)
+        prior_inv = prior_inv_query.scalar() or 0
         
         # Sum prior payments
-        prior_pay = db.query(func.sum(Payment.amount)).filter(
+        prior_pay_query = db.query(func.sum(Payment.amount)).filter(
             Payment.party_id == party_id,
             Payment.payment_type == "RECEIVED",
             Payment.payment_date < start_date
-        ).scalar() or 0
+        )
+        if financial_year_id:
+            prior_pay_query = prior_pay_query.filter(Payment.financial_year_id == financial_year_id)
+        prior_pay = prior_pay_query.scalar() or 0
         
         opening_balance = opening_balance + float(prior_inv) - float(prior_pay)
 

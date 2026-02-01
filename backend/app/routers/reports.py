@@ -1640,7 +1640,7 @@ def get_overdue_invoices(
     invoices = db.query(Invoice).filter(
         Invoice.company_id == company_id,
         Invoice.financial_year_id == fy.id,
-        Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN'])
+        Invoice.status.in_(['OPEN', 'SENT', 'OVERDUE', 'PARTIALLY_PAID'])
     ).all()
     
     # Initialize aging buckets
@@ -1768,7 +1768,7 @@ def get_cash_flow_projection(
             func.sum(Invoice.grand_total - Invoice.paid_amount)
         ).filter(
             Invoice.company_id == company_id,
-            Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN']),
+            Invoice.status.in_(['OPEN', 'SENT', 'OVERDUE', 'PARTIALLY_PAID']),
             # Use COALESCE to treat NULL due_date as invoice_date
             func.coalesce(Invoice.due_date, Invoice.invoice_date) <= period_end
         ).scalar() or 0
@@ -1914,7 +1914,7 @@ def get_collection_metrics(
     ).filter(
         Invoice.company_id == company_id,
         Invoice.invoice_date < fy.start_date,
-        Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN'])
+        Invoice.status.in_(['OPEN', 'SENT', 'OVERDUE', 'PARTIALLY_PAID'])
     ).scalar() or 0
     
     # Total Sales in FY
@@ -1930,7 +1930,7 @@ def get_collection_metrics(
     ).filter(
         Invoice.company_id == company_id,
         Invoice.financial_year_id == fy.id,
-        Invoice.status.in_(['BILLED', 'PARTIAL', 'OPEN'])
+        Invoice.status.in_(['OPEN', 'SENT', 'OVERDUE', 'PARTIALLY_PAID'])
     ).scalar() or 0
     
     # Total Collections in FY
