@@ -73,21 +73,19 @@ def get_client_dashboard(
 
     # 5. Monthly Stats (Last 6 months)
     # We want a list of {name: "Jan", total: 5000}
-    # This is a bit complex in pure SQL cross-db, so we can do it in python for simplicity or simple group by
-    # Let's do a simple python aggregation for the last 6 months to ensure all months are present even if 0
-    from datetime import datetime, timedelta
+    from datetime import datetime
+    from dateutil.relativedelta import relativedelta
+    
     today = datetime.now()
     monthly_stats = []
     
     for i in range(5, -1, -1):
-        # iterate back 6 months
-        d = today - timedelta(days=i*30) # approx
-        month_start = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        # End of month is tricky, so let's just use start of next month for range
-        if d.month == 12:
-            next_month = d.replace(year=d.year+1, month=1, day=1)
-        else:
-            next_month = d.replace(month=d.month+1, day=1)
+        # Go back exactly i months using relativedelta
+        target_month = today - relativedelta(months=i)
+        month_start = target_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Calculate next month start for range
+        next_month = month_start + relativedelta(months=1)
             
         total = db.query(func.sum(Invoice.grand_total)).filter(
             Invoice.party_id == party_id,
@@ -97,7 +95,7 @@ def get_client_dashboard(
         ).scalar() or 0
         
         monthly_stats.append({
-            "name": d.strftime("%b"),
+            "name": month_start.strftime("%b"),
             "total": float(total)
         })
 
