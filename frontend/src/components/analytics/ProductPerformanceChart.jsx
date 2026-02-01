@@ -70,11 +70,11 @@ const ProductPerformanceChart = ({ products, loading }) => {
 
       {/* Chart */}
       <div className="h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={320}>
           <BarChart
             data={products}
             layout="vertical"
-            margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
             <XAxis
               type="number"
@@ -83,7 +83,7 @@ const ProductPerformanceChart = ({ products, loading }) => {
             <YAxis
               dataKey="item_name"
               type="category"
-              width={90}
+              width={150}
               tick={{ fontSize: 12 }}
             />
             <Tooltip
