@@ -16,4 +16,5 @@ class ClientLogin(Base):
     is_active = Column(Boolean, default=True)
 
     # Relationships
-    party = relationship("Party", backref="client_login")
+    party = relationship("Party", back_populates="client_login")
+

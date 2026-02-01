@@ -61,7 +61,11 @@ def list_parties(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
-    parties = db.query(Party).filter(
+    from sqlalchemy.orm import joinedload
+    
+    parties = db.query(Party).options(
+        joinedload(Party.client_login)
+    ).filter(
         Party.company_id == company_id
     ).all()
     

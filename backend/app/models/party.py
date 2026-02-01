@@ -32,3 +32,6 @@ class Party(Base):
 
     company = relationship(Company)
     financial_year = relationship(FinancialYear)
+    client_login = relationship("ClientLogin", back_populates="party", uselist=False)
+
+

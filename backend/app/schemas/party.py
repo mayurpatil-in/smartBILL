@@ -15,10 +15,21 @@ class PartyCreate(BaseModel):
     portal_password: Optional[str] = None
 
 
+class ClientLoginResponse(BaseModel):
+    id: int
+    username: str
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+
 class PartyResponse(PartyCreate):
     id: int
     current_balance: float = 0
     total_received: float = 0
+    client_login: Optional[ClientLoginResponse] = None
 
     class Config:
         from_attributes = True
+

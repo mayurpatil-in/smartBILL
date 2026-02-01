@@ -38,8 +38,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
         address: party.address || "",
         opening_balance: party.opening_balance || 0,
         is_active: party.is_active,
-        portal_username: "", // We don't fetch existing password for security
-        portal_password: "",
+        portal_username: party.client_login?.username || "", // Show existing username
+        portal_password: "", // Leave empty for security
       });
     } else {
       setForm({
@@ -227,17 +227,23 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
                 <Input
                   label="Portal Username"
                   name="portal_username"
+                  id="portal_username"
                   value={form.portal_username}
                   onChange={(v) => setForm({ ...form, portal_username: v })}
-                  placeholder="e.g. client123"
+                  placeholder={
+                    party ? "Current or new username" : "e.g. client123"
+                  }
                 />
                 <Input
                   label="Portal Password"
                   type="password"
                   name="portal_password"
+                  id="portal_password"
                   value={form.portal_password}
                   onChange={(v) => setForm({ ...form, portal_password: v })}
-                  placeholder="Min. 6 chars"
+                  placeholder={
+                    party ? "Leave empty to keep current" : "Min. 6 chars"
+                  }
                 />
               </div>
             </div>
