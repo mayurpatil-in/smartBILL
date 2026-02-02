@@ -134,16 +134,16 @@ export default function MonthlyAttendanceReport() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl text-white shadow-lg">
-            <Calendar size={28} />
+      <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl text-white shadow-lg">
+            <Calendar size={24} className="sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               Monthly Attendance Report
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               View attendance summary for{" "}
               {new Date(0, month - 1).toLocaleString("default", {
                 month: "long",
@@ -153,15 +153,15 @@ export default function MonthlyAttendanceReport() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+            <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
               Month:
             </span>
             <select
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value))}
-              className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-sm"
               name="report_month"
               id="report_month"
             >
@@ -174,26 +174,26 @@ export default function MonthlyAttendanceReport() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+            <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
               Year:
             </span>
             <input
               type="number"
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-24 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+              className="flex-1 sm:flex-none sm:w-24 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-sm"
               name="report_year"
               id="report_year"
             />
           </div>
           <button
             onClick={exportToExcel}
-            className="group px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 flex items-center gap-2 hover:scale-105"
+            className="group px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 flex items-center justify-center gap-2 hover:scale-105 text-sm w-full sm:w-auto"
           >
             <Download
-              size={18}
-              className="group-hover:-translate-y-0.5 transition-transform duration-300"
+              size={16}
+              className="group-hover:-translate-y-0.5 transition-transform duration-300 sm:w-[18px] sm:h-[18px]"
             />
             Export
           </button>

@@ -177,16 +177,16 @@ export default function Dashboard() {
       <div
         className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between
                 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 animate-gradient
-                p-8 md:p-10
-                rounded-3xl
+                p-6 sm:p-8 md:p-10
+                rounded-2xl sm:rounded-3xl
                 shadow-2xl shadow-blue-900/30
                 text-white overflow-hidden"
       >
         {/* Animated Background Decorations */}
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none animate-float">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none animate-float hidden md:block">
           <Calendar size={140} />
         </div>
-        <div className="absolute bottom-0 left-0 p-8 opacity-5 pointer-events-none">
+        <div className="absolute bottom-0 left-0 p-8 opacity-5 pointer-events-none hidden md:block">
           <Sparkles size={100} />
         </div>
 
@@ -198,28 +198,35 @@ export default function Dashboard() {
         />
 
         {/* LEFT: Title + Context */}
-        <div className="relative z-10 flex items-center gap-6">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-6">
           {user?.companyLogo && (
-            <div className="w-24 h-24 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 p-2.5 shadow-2xl flex-shrink-0 flex items-center justify-center hover:scale-105 transition-transform duration-300">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 p-2 sm:p-2.5 shadow-2xl flex-shrink-0 flex items-center justify-center hover:scale-105 transition-transform duration-300">
               <img
                 src={`${API_URL}${user.companyLogo}`}
                 alt="Company Logo"
-                className="w-full h-full object-contain rounded-xl"
+                className="w-full h-full object-contain rounded-lg sm:rounded-xl"
               />
             </div>
           )}
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
-              Welcome back, {user?.name || "Admin"}
-              <span className="animate-float inline-block">👋</span>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-1 sm:mb-2 flex items-center gap-2 sm:gap-3">
+              <span className="truncate">
+                Welcome back, {user?.name || "Admin"}
+              </span>
+              <span className="animate-float inline-block flex-shrink-0">
+                👋
+              </span>
             </h1>
-            <p className="text-blue-100 text-lg font-medium opacity-90 flex items-center gap-2">
-              <Zap size={18} className="text-yellow-300" />
-              Here's what's happening in{" "}
-              <span className="font-bold underline decoration-blue-300 underline-offset-4">
+            <p className="text-blue-100 text-sm sm:text-base md:text-lg font-medium opacity-90 flex flex-wrap items-center gap-1 sm:gap-2">
+              <Zap
+                size={16}
+                className="text-yellow-300 flex-shrink-0 sm:w-[18px] sm:h-[18px]"
+              />
+              <span>Here's what's happening in</span>
+              <span className="font-bold underline decoration-blue-300 underline-offset-4 break-words">
                 {user?.companyName}
-              </span>{" "}
-              today.
+              </span>
+              <span>today.</span>
             </p>
           </div>
         </div>
@@ -228,12 +235,12 @@ export default function Dashboard() {
         {activeFY && (
           <button
             onClick={() => navigate("/settings")}
-            className="group relative z-10 glass-card px-5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-white/30"
+            className="group relative z-10 glass-card px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-white/30 w-full md:w-auto"
             title="Manage Financial Years"
           >
             <Calendar
-              size={20}
-              className="text-blue-200 group-hover:text-white transition-colors"
+              size={18}
+              className="text-blue-200 group-hover:text-white transition-colors sm:w-5 sm:h-5 flex-shrink-0"
             />
             <span className="text-blue-100 group-hover:text-white transition-colors">
               FY:{" "}

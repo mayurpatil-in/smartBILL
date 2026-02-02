@@ -383,19 +383,19 @@ export default function AddDeliveryChallanModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-[90rem] shadow-2xl overflow-hidden animate-scale-in max-h-[92vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-purple-500 via-purple-600 to-blue-600 sticky top-0 backdrop-blur-xl z-10 shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xl border border-white/30">
-              <FileText size={24} className="text-white" />
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-purple-500 via-purple-600 to-blue-600 sticky top-0 backdrop-blur-xl z-10 shadow-lg">
+          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xl border border-white/30 flex-shrink-0">
+              <FileText size={20} className="text-white sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white drop-shadow-md">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-md truncate">
                 {deliveryChallan
                   ? "Edit Delivery Challan"
                   : "Create Delivery Challan"}
               </h2>
               {!deliveryChallan && nextChallanNumber && (
-                <p className="text-sm text-white/80 font-medium mt-0.5">
+                <p className="text-xs sm:text-sm text-white/80 font-medium mt-0.5 truncate">
                   Challan No: {nextChallanNumber}
                 </p>
               )}
@@ -403,11 +403,11 @@ export default function AddDeliveryChallanModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2.5 hover:bg-white/20 rounded-xl transition-all duration-200 group"
+            className="p-2 sm:p-2.5 hover:bg-white/20 rounded-lg sm:rounded-xl transition-all duration-200 group flex-shrink-0"
           >
             <X
-              size={22}
-              className="text-white group-hover:rotate-90 transition-transform duration-200"
+              size={20}
+              className="text-white group-hover:rotate-90 transition-transform duration-200 sm:w-[22px] sm:h-[22px]"
             />
           </button>
         </div>

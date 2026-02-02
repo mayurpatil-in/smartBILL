@@ -112,43 +112,43 @@ export default function EmployeeAttendance() {
   return (
     <div className="space-y-6">
       {/* Date Selection Header */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl text-white shadow-lg">
-            <Calendar size={28} />
+      <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl text-white shadow-lg">
+            <Calendar size={24} className="sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              Daily Attendance
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <span>Daily Attendance</span>
               {isMarked ? (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                <span className="px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 w-fit">
                   ✓ Saved
                 </span>
               ) : (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                <span className="px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800 w-fit">
                   ⚠ Not Marked
                 </span>
               )}
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               Mark attendance for {format(new Date(date), "MMMM d, yyyy")}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-sm"
             name="attendance_date"
             id="attendance_date"
           />
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="group px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:scale-105"
+            className="group px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 text-sm w-full sm:w-auto"
           >
             {saving ? (
               <>
@@ -158,8 +158,8 @@ export default function EmployeeAttendance() {
             ) : (
               <>
                 <Save
-                  size={18}
-                  className="group-hover:rotate-12 transition-transform duration-300"
+                  size={16}
+                  className="group-hover:rotate-12 transition-transform duration-300 sm:w-[18px] sm:h-[18px]"
                 />
                 Save Changes
               </>

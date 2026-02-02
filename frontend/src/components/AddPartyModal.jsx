@@ -82,21 +82,21 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scale-in">
         {/* Header with Gradient */}
-        <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+        <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl flex-shrink-0">
                 {party ? (
-                  <UserCheck size={24} className="text-white" />
+                  <UserCheck size={20} className="text-white sm:w-6 sm:h-6" />
                 ) : (
-                  <UserPlus size={24} className="text-white" />
+                  <UserPlus size={20} className="text-white sm:w-6 sm:h-6" />
                 )}
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
                   {party ? "Edit Party" : "Add New Party"}
                 </h2>
-                <p className="text-blue-100 text-sm mt-0.5">
+                <p className="text-blue-100 text-xs sm:text-sm mt-0.5 truncate">
                   {party
                     ? "Update party information"
                     : "Create a new party entry"}
@@ -105,9 +105,9 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-full transition-all duration-200"
+              className="p-1.5 sm:p-2 hover:bg-white/20 rounded-full transition-all duration-200 flex-shrink-0"
             >
-              <X size={22} className="text-white" />
+              <X size={20} className="text-white sm:w-[22px] sm:h-[22px]" />
             </button>
           </div>
         </div>

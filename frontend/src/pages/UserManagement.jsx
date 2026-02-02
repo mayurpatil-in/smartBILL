@@ -155,26 +155,26 @@ export default function UserManagement() {
           ></div>
         </div>
 
-        <div className="relative flex justify-between items-center">
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-4 mb-2">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
                 <UsersIcon className="text-white" size={32} />
               </div>
-              <h1 className="text-4xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
                 User Management
               </h1>
             </div>
-            <p className="text-blue-100 text-lg ml-16">
+            <p className="text-blue-100 text-sm md:text-lg md:ml-16">
               Manage users and assign roles in your company
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <PermissionGuard permission="users.create">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="group flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 font-semibold"
+                className="group flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 font-semibold"
               >
                 <UserPlus
                   size={20}
@@ -186,7 +186,7 @@ export default function UserManagement() {
 
             <button
               onClick={loadData}
-              className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-all shadow-lg font-semibold"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-all shadow-lg font-semibold"
             >
               <RefreshCw size={20} />
               Refresh
@@ -226,9 +226,9 @@ export default function UserManagement() {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl"></div>
 
               <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
                   {/* User Info */}
-                  <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-4 flex-1 w-full lg:w-auto">
                     <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-bold text-2xl shadow-lg">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
@@ -272,8 +272,8 @@ export default function UserManagement() {
                   </div>
 
                   {/* Role Assignment */}
-                  <div className="flex items-center gap-3">
-                    <div className="min-w-[200px]">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
+                    <div className="w-full sm:min-w-[200px]">
                       <label
                         htmlFor={`role_assign_${user.id}`}
                         className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide"
@@ -304,7 +304,7 @@ export default function UserManagement() {
                       <button
                         onClick={() => handleSaveRole(user.id)}
                         disabled={saving}
-                        className="mt-5 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="sm:mt-5 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Save Role"
                       >
                         <Save size={16} />
@@ -312,7 +312,7 @@ export default function UserManagement() {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 mt-5">
+                    <div className="flex items-center gap-2 sm:mt-5">
                       <PermissionGuard permission="users.edit">
                         <button
                           onClick={() => handleEdit(user)}

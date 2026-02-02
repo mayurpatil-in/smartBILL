@@ -217,17 +217,17 @@ export default function RoleManagement() {
           ></div>
         </div>
 
-        <div className="relative flex justify-between items-center">
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-4 mb-2">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
                 <Shield className="text-white" size={32} />
               </div>
-              <h1 className="text-4xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
                 Role Management
               </h1>
             </div>
-            <p className="text-blue-100 text-lg ml-16">
+            <p className="text-blue-100 text-sm md:text-lg md:ml-16">
               Configure user roles and granular permissions
             </p>
           </div>
@@ -235,7 +235,7 @@ export default function RoleManagement() {
           <PermissionGuard permission="roles.create">
             <button
               onClick={handleCreate}
-              className="group flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 font-semibold"
+              className="group flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 font-semibold w-full md:w-auto"
             >
               <Plus
                 size={20}
@@ -278,13 +278,13 @@ export default function RoleManagement() {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl"></div>
 
               <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
                       <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
                         <Shield className="text-white" size={20} />
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                         {role.name}
                       </h3>
                       {role.is_system_role && (
@@ -299,12 +299,12 @@ export default function RoleManagement() {
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 dark:text-gray-400 ml-12">
+                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 sm:ml-12">
                       {role.description || "No description provided"}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button
                       onClick={() => toggleRoleExpansion(role.id)}
                       className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 rounded-xl transition-all duration-300"
@@ -361,7 +361,7 @@ export default function RoleManagement() {
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       {rolePermissionsMap[role.id] ? (
                         rolePermissionsMap[role.id].length > 0 ? (
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                             {rolePermissionsMap[role.id].map((perm) => (
                               <div
                                 key={perm.id}
@@ -536,7 +536,7 @@ export default function RoleManagement() {
                             {allSelected ? "Deselect All" : "Select All"}
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                           {perms.map((perm) => {
                             const isChecked = formData.permission_ids.includes(
                               perm.id,
@@ -576,7 +576,7 @@ export default function RoleManagement() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-3 mt-8 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

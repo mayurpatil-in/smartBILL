@@ -107,7 +107,7 @@ export default function Items() {
   const activeItems = filteredItems.filter((i) => i.is_active).length;
   const totalValue = filteredItems.reduce(
     (sum, item) => sum + Number(item.rate) * Number(item.casting_weight),
-    0
+    0,
   );
 
   return (
@@ -115,10 +115,10 @@ export default function Items() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Stock / Items
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
             Manage your product inventory efficiently
           </p>
         </div>
@@ -127,11 +127,11 @@ export default function Items() {
             setEditingItem(null);
             setShowAddModal(true);
           }}
-          className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105"
+          className="group flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
         >
           <Plus
-            size={20}
-            className="group-hover:rotate-90 transition-transform duration-300"
+            size={18}
+            className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
           />
           Add Item
         </button>
@@ -588,24 +588,24 @@ function StatCard({ label, value, icon: Icon, color }) {
 
   return (
     <div
-      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+      className={`group relative ${colorScheme.bg} p-4 sm:p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
     >
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
-      <div className="relative flex items-center gap-4">
+      <div className="relative flex items-center gap-3 sm:gap-4">
         <div
-          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+          className={`p-3 sm:p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
         >
-          <Icon size={28} className="text-white" />
+          <Icon size={24} className="text-white sm:w-7 sm:h-7" />
         </div>
         <div className="flex-1">
           <h3
-            className={`text-3xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+            className={`text-2xl sm:text-3xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
           >
             {value}
           </h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wider mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wider mt-1">
             {label}
           </p>
         </div>

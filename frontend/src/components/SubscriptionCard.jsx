@@ -29,12 +29,12 @@ export default function SubscriptionCard({ company, loading }) {
 
   // Calculate total subscription days and progress
   const totalDays = Math.ceil(
-    (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)
+    (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24),
   );
   const daysElapsed = totalDays - daysRemaining;
   const progressPercentage = Math.max(
     0,
-    Math.min(100, (daysElapsed / totalDays) * 100)
+    Math.min(100, (daysElapsed / totalDays) * 100),
   );
 
   return (
@@ -45,42 +45,42 @@ export default function SubscriptionCard({ company, loading }) {
 
       <div className="relative z-10">
         {/* Header Section */}
-        <div className="p-8 pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4">
+        <div className="p-6 sm:p-8 pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-50"></div>
-                <div className="relative p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl">
-                  <Clock size={28} className="text-white" />
+                <div className="relative p-3 sm:p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl">
+                  <Clock size={24} className="sm:w-7 sm:h-7 text-white" />
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-black bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                <h3 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                   Subscription Plan
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
                   Active license management
                 </p>
               </div>
             </div>
 
             <div
-              className={`px-5 py-2.5 rounded-2xl text-sm font-black flex items-center gap-2 shadow-xl backdrop-blur-sm border-2 ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 shadow-xl backdrop-blur-sm border-2 ${
                 isExpired
                   ? "bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-300 dark:border-red-700 shadow-red-500/30"
                   : isWarning
-                  ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 dark:border-orange-700 shadow-orange-500/30 animate-pulse"
-                  : "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-300 dark:border-green-700 shadow-green-500/30"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-300 dark:border-orange-700 shadow-orange-500/30 animate-pulse"
+                    : "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-300 dark:border-green-700 shadow-green-500/30"
               }`}
             >
               {isExpired ? (
                 <>
-                  <AlertCircle size={18} />
+                  <AlertCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
                   <span>EXPIRED</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={18} />
+                  <CheckCircle2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                   <span>ACTIVE</span>
                 </>
               )}
@@ -98,8 +98,8 @@ export default function SubscriptionCard({ company, loading }) {
                   isExpired
                     ? "text-red-600 dark:text-red-400"
                     : isWarning
-                    ? "text-orange-600 dark:text-orange-400"
-                    : "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent"
+                      ? "text-orange-600 dark:text-orange-400"
+                      : "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent"
                 }`}
               >
                 {daysRemaining > 0 ? daysRemaining : 0}
@@ -121,8 +121,8 @@ export default function SubscriptionCard({ company, loading }) {
                 isExpired
                   ? "bg-gradient-to-r from-red-500 to-rose-600"
                   : isWarning
-                  ? "bg-gradient-to-r from-orange-500 to-amber-600"
-                  : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-600"
+                    : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
               }`}
               style={{ width: `${progressPercentage}%` }}
             >

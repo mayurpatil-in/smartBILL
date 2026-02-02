@@ -305,20 +305,20 @@ export default function PaymentList() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Payments
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
             Track inward and outward payments
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="group flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:scale-105"
+          className="group flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
         >
           <Plus
-            size={20}
-            className="group-hover:rotate-90 transition-transform duration-300"
+            size={18}
+            className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
           />
           Record Payment
         </button>
@@ -672,26 +672,28 @@ export default function PaymentList() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl border border-gray-200 dark:border-gray-700 animate-scale-in overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="relative p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-emerald-600 to-teal-700 overflow-hidden">
+            <div className="relative p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-emerald-600 to-teal-700 overflow-hidden">
               {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 hidden sm:block"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24 hidden sm:block"></div>
 
-              <div className="relative flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <div className="relative flex justify-between items-start sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
                     {editId ? (
-                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <Edit size={24} className="text-white" />
+                      <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm flex-shrink-0">
+                        <Edit size={20} className="text-white sm:w-6 sm:h-6" />
                       </div>
                     ) : (
-                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <Plus size={24} className="text-white" />
+                      <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm flex-shrink-0">
+                        <Plus size={20} className="text-white sm:w-6 sm:h-6" />
                       </div>
                     )}
-                    {editId ? "Edit Payment" : "Record New Payment"}
+                    <span className="truncate">
+                      {editId ? "Edit Payment" : "Record New Payment"}
+                    </span>
                   </h2>
-                  <p className="text-sm text-emerald-50 mt-2 ml-14">
+                  <p className="text-xs sm:text-sm text-emerald-50 mt-1 sm:mt-2 ml-8 sm:ml-14">
                     {editId
                       ? "Update payment details and allocations"
                       : "Enter payment details and allocate to invoices"}
@@ -699,9 +701,9 @@ export default function PaymentList() {
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-xl transition-all duration-200 text-white hover:scale-110 backdrop-blur-sm"
+                  className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg sm:rounded-xl transition-all duration-200 text-white hover:scale-110 backdrop-blur-sm flex-shrink-0"
                 >
-                  <X size={24} />
+                  <X size={20} className="sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
@@ -1148,23 +1150,23 @@ function StatCard({ label, value, icon: Icon, color }) {
 
   return (
     <div
-      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+      className={`group relative ${colorScheme.bg} p-4 sm:p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
     >
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
-      <div className="relative flex items-center gap-4">
+      <div className="relative flex items-center gap-3 sm:gap-4">
         <div
-          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+          className={`p-3 sm:p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
         >
-          <Icon size={28} className="text-white" />
+          <Icon size={24} className="text-white sm:w-7 sm:h-7" />
         </div>
         <div className="flex-1">
           <h3
-            className={`text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+            className={`text-xl sm:text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
           >
             {value}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
             {label}
           </p>
         </div>

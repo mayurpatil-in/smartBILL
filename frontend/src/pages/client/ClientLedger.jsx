@@ -227,11 +227,11 @@ export default function ClientLedger() {
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <Wallet className="text-blue-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <Wallet className="text-blue-600 w-5 h-5 sm:w-6 sm:h-6" />
             Statement of Account
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
             View your complete transaction history
           </p>
         </div>
@@ -296,17 +296,17 @@ export default function ClientLedger() {
           ))}
 
           {/* Financial Year Dropdown */}
-          <div className="relative ml-auto">
+          <div className="relative w-full sm:w-auto sm:ml-auto">
             <button
               onClick={() => setShowFYDropdown(!showFYDropdown)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all w-full sm:w-auto ${
                 selectedFinancialYear
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               <Calendar size={16} />
-              <span>
+              <span className="truncate">
                 {selectedFinancialYear
                   ? financialYears.find((fy) => fy.id === selectedFinancialYear)
                       ?.year_name
@@ -404,22 +404,22 @@ export default function ClientLedger() {
 
       {/* Enhanced Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 text-white p-6 rounded-2xl shadow-lg">
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 text-white p-4 sm:p-6 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-400 text-sm">Opening Balance</p>
-            <Wallet size={20} className="text-gray-400" />
+            <p className="text-gray-400 text-xs sm:text-sm">Opening Balance</p>
+            <Wallet size={18} className="text-gray-400 sm:w-5 sm:h-5" />
           </div>
-          <p className="text-3xl font-bold">
+          <p className="text-2xl sm:text-3xl font-bold">
             ₹{ledgerData.opening_balance.toLocaleString("en-IN")}
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-rose-600 to-red-700 text-white p-6 rounded-2xl shadow-lg">
+        <div className="bg-gradient-to-br from-rose-600 to-red-700 text-white p-4 sm:p-6 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-white/80 text-sm">Total Invoiced</p>
-            <TrendingUp size={20} className="text-white/80" />
+            <p className="text-white/80 text-xs sm:text-sm">Total Invoiced</p>
+            <TrendingUp size={18} className="text-white/80 sm:w-5 sm:h-5" />
           </div>
-          <p className="text-3xl font-bold">
+          <p className="text-2xl sm:text-3xl font-bold">
             ₹{periodStats.totalInvoiced.toLocaleString("en-IN")}
           </p>
           <p className="text-xs text-white/60 mt-1">
@@ -428,12 +428,12 @@ export default function ClientLedger() {
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-600 to-green-700 text-white p-6 rounded-2xl shadow-lg">
+        <div className="bg-gradient-to-br from-emerald-600 to-green-700 text-white p-4 sm:p-6 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-white/80 text-sm">Total Paid</p>
-            <TrendingDown size={20} className="text-white/80" />
+            <p className="text-white/80 text-xs sm:text-sm">Total Paid</p>
+            <TrendingDown size={18} className="text-white/80 sm:w-5 sm:h-5" />
           </div>
-          <p className="text-3xl font-bold">
+          <p className="text-2xl sm:text-3xl font-bold">
             ₹{periodStats.totalPaid.toLocaleString("en-IN")}
           </p>
           <p className="text-xs text-white/60 mt-1">
@@ -443,17 +443,17 @@ export default function ClientLedger() {
         </div>
 
         <div
-          className={`p-6 rounded-2xl shadow-lg text-white ${
+          className={`p-4 sm:p-6 rounded-2xl shadow-lg text-white ${
             ledgerData.closing_balance > 0
               ? "bg-gradient-to-br from-amber-600 to-orange-700"
               : "bg-gradient-to-br from-blue-600 to-indigo-700"
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-white/80 text-sm">Closing Balance</p>
-            <FileText size={20} className="text-white/80" />
+            <p className="text-white/80 text-xs sm:text-sm">Closing Balance</p>
+            <FileText size={18} className="text-white/80 sm:w-5 sm:h-5" />
           </div>
-          <p className="text-3xl font-bold">
+          <p className="text-2xl sm:text-3xl font-bold">
             ₹{ledgerData.closing_balance.toLocaleString("en-IN")}
           </p>
           <p className="text-xs text-white/60 mt-1">

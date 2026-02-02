@@ -30,6 +30,40 @@ export default function ClientDashboard() {
   const [financialYears, setFinancialYears] = useState([]);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState(""); // "" means all years
   const [showFYDropdown, setShowFYDropdown] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownload = async (invoiceId, invoiceNumber) => {
+    setDownloadingId(invoiceId);
+    try {
+      const token = localStorage.getItem("client_token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/client/invoices/${invoiceId}/download`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Download failed");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice-${invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Invoice downloaded successfully!");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -114,32 +148,32 @@ export default function ClientDashboard() {
   return (
     <div className="space-y-8">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-xl">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
               Welcome back, {stats.party_name}!
             </h1>
-            <p className="text-blue-100 text-lg">
+            <p className="text-blue-100 text-sm sm:text-base md:text-lg">
               Here's your account overview
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full md:w-auto">
             {/* Financial Year Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1 md:flex-none">
               <button
                 onClick={() => setShowFYDropdown(!showFYDropdown)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/20"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/20 w-full md:w-auto text-sm"
               >
-                <Calendar size={18} />
-                <span className="text-sm font-medium">
+                <Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="font-medium truncate">
                   {selectedFinancialYear
                     ? financialYears.find(
                         (fy) => fy.id === selectedFinancialYear,
                       )?.year_name
                     : "All Years"}
                 </span>
-                <ChevronDown size={16} />
+                <ChevronDown size={14} className="sm:w-4 sm:h-4" />
               </button>
 
               {showFYDropdown && (
@@ -184,10 +218,10 @@ export default function ClientDashboard() {
 
             <button
               onClick={fetchStats}
-              className="p-3 hover:bg-white/20 rounded-xl transition-all duration-200 hover:scale-105"
+              className="p-2 sm:p-3 hover:bg-white/20 rounded-xl transition-all duration-200 hover:scale-105"
               aria-label="Refresh data"
             >
-              <RefreshCw className="w-5 h-5" />
+              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -196,35 +230,35 @@ export default function ClientDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Outstanding Balance */}
-        <div className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl shadow-lg">
-              <TrendingUp className="w-6 h-6 text-white" />
+        <div className="group bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl shadow-lg">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <span className="text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-3 py-1 rounded-full">
+            <span className="text-[10px] sm:text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-2 sm:px-3 py-1 rounded-full">
               DUE
             </span>
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             Total Outstanding
           </p>
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             ₹{stats.total_outstanding.toLocaleString("en-IN")}
           </h3>
         </div>
 
         {/* Last Payment */}
-        <div className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg">
-              <CheckCircle className="w-6 h-6 text-white" />
+        <div className="group bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg">
+              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <Calendar className="w-5 h-5 text-gray-400" />
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             Last Payment
           </p>
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
             ₹{stats.last_payment_amount.toLocaleString("en-IN")}
           </h3>
           <p className="text-xs text-gray-400">
@@ -235,17 +269,17 @@ export default function ClientDashboard() {
         </div>
 
         {/* Open Invoices */}
-        <div className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <FileText className="w-6 h-6 text-white" />
+        <div className="group bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <AlertCircle className="w-5 h-5 text-amber-500" />
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             Open Invoices
           </p>
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {stats.open_invoices_count}
           </h3>
           <Link
@@ -378,13 +412,19 @@ export default function ClientDashboard() {
                       </span>
                     </div>
                     <button
-                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                      onClick={() => handleDownload(inv.id, inv.invoice_number)}
+                      disabled={downloadingId === inv.id}
+                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all disabled:opacity-50"
                       aria-label="Download invoice"
                     >
-                      <Download
-                        size={16}
-                        className="text-blue-600 dark:text-blue-400"
-                      />
+                      {downloadingId === inv.id ? (
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Download
+                          size={16}
+                          className="text-blue-600 dark:text-blue-400"
+                        />
+                      )}
                     </button>
                   </div>
                 </div>

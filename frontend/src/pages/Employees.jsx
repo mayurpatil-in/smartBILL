@@ -75,23 +75,23 @@ function StatCard({ label, value, icon: Icon, color }) {
 
   return (
     <div
-      className={`group relative ${colorScheme.bg} p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
+      className={`group relative ${colorScheme.bg} p-4 sm:p-6 rounded-2xl shadow-lg ${colorScheme.shadow} ${colorScheme.hoverShadow} border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:scale-105 hover:-translate-y-1 overflow-hidden`}
     >
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
-      <div className="relative flex items-center gap-4">
+      <div className="relative flex items-center gap-3 sm:gap-4">
         <div
-          className={`p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+          className={`p-3 sm:p-4 rounded-xl ${colorScheme.iconBg} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
         >
-          <Icon size={28} className="text-white" />
+          <Icon size={24} className="text-white sm:w-7 sm:h-7" />
         </div>
         <div className="flex-1">
           <h3
-            className={`text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
+            className={`text-xl sm:text-2xl font-bold ${colorScheme.text} tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left`}
           >
             {value}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
             {label}
           </p>
         </div>
@@ -199,10 +199,10 @@ export default function Employees() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             Employee Management
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm sm:text-base">
             Manage your team, attendance, and payroll
           </p>
         </div>
@@ -211,11 +211,11 @@ export default function Employees() {
             setSelectedEmployee(null);
             setIsAddModalOpen(true);
           }}
-          className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105"
+          className="group flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
         >
           <Plus
-            size={20}
-            className="group-hover:rotate-90 transition-transform duration-300"
+            size={18}
+            className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
           />
           Add Employee
         </button>
@@ -600,16 +600,16 @@ function PayrollView({ employees }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
-            <IndianRupee size={28} />
+      <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
+            <IndianRupee size={24} className="sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               Payroll Management
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               Calculate and manage salaries for{" "}
               {new Date(0, month - 1).toLocaleString("default", {
                 month: "long",
@@ -619,9 +619,9 @@ function PayrollView({ employees }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+            <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
               Month:
             </span>
             <select
@@ -629,7 +629,7 @@ function PayrollView({ employees }) {
               id="payroll_month"
               value={month}
               onChange={(e) => setMonth(parseInt(e.target.value))}
-              className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-sm"
             >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m}>
@@ -640,8 +640,8 @@ function PayrollView({ employees }) {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+            <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
               Year:
             </span>
             <input
@@ -650,16 +650,16 @@ function PayrollView({ employees }) {
               id="payroll_year"
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-24 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+              className="flex-1 sm:flex-none sm:w-24 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-sm"
             />
           </div>
           <button
             onClick={calculateAll}
-            className="group px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 flex items-center gap-2 hover:scale-105"
+            className="group px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 flex items-center justify-center gap-2 hover:scale-105 text-sm w-full sm:w-auto"
           >
             <Calendar
-              size={18}
-              className="group-hover:rotate-12 transition-transform duration-300"
+              size={16}
+              className="group-hover:rotate-12 transition-transform duration-300 sm:w-[18px] sm:h-[18px]"
             />
             Refresh
           </button>

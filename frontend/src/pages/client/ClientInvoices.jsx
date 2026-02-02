@@ -138,31 +138,37 @@ export default function ClientInvoices() {
   return (
     <div className="space-y-6">
       {/* Header with Stats */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-xl">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My Invoices</h1>
-            <p className="text-blue-100">Track and download your invoices</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+              My Invoices
+            </h1>
+            <p className="text-blue-100 text-sm sm:text-base">
+              Track and download your invoices
+            </p>
           </div>
           <div className="hidden md:block p-4 bg-white/10 backdrop-blur-sm rounded-xl">
             <FileText className="w-8 h-8" />
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-white/20 rounded-lg">
-                <FileText className="w-4 h-4" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 hover:bg-white/20 transition-all duration-200 group">
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+              <div className="p-1 sm:p-1.5 bg-white/20 rounded-lg">
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <p className="text-blue-100 text-sm font-medium">Total</p>
+              <p className="text-blue-100 text-xs sm:text-sm font-medium">
+                Total
+              </p>
             </div>
-            <p className="text-3xl font-bold">{stats.total}</p>
+            <p className="text-2xl sm:text-3xl font-bold">{stats.total}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-emerald-500/30 rounded-lg">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 hover:bg-white/20 transition-all duration-200 group">
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+              <div className="p-1 sm:p-1.5 bg-emerald-500/30 rounded-lg">
                 <svg
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -175,24 +181,28 @@ export default function ClientInvoices() {
                   />
                 </svg>
               </div>
-              <p className="text-blue-100 text-sm font-medium">Paid</p>
+              <p className="text-blue-100 text-xs sm:text-sm font-medium">
+                Paid
+              </p>
             </div>
-            <p className="text-3xl font-bold">{stats.paid}</p>
+            <p className="text-2xl sm:text-3xl font-bold">{stats.paid}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-amber-500/30 rounded-lg">
-                <Clock className="w-4 h-4" />
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 hover:bg-white/20 transition-all duration-200 group">
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+              <div className="p-1 sm:p-1.5 bg-amber-500/30 rounded-lg">
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <p className="text-blue-100 text-sm font-medium">Pending</p>
+              <p className="text-blue-100 text-xs sm:text-sm font-medium">
+                Pending
+              </p>
             </div>
-            <p className="text-3xl font-bold">{stats.pending}</p>
+            <p className="text-2xl sm:text-3xl font-bold">{stats.pending}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all duration-200 group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-rose-500/30 rounded-lg">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 hover:bg-white/20 transition-all duration-200 group">
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+              <div className="p-1 sm:p-1.5 bg-rose-500/30 rounded-lg">
                 <svg
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -205,9 +215,13 @@ export default function ClientInvoices() {
                   />
                 </svg>
               </div>
-              <p className="text-blue-100 text-sm font-medium">Overdue</p>
+              <p className="text-blue-100 text-xs sm:text-sm font-medium">
+                Overdue
+              </p>
             </div>
-            <p className="text-3xl font-bold text-rose-200">{stats.overdue}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-rose-200">
+              {stats.overdue}
+            </p>
           </div>
         </div>
       </div>
@@ -234,26 +248,26 @@ export default function ClientInvoices() {
           </div>
 
           {/* Filter Button */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Financial Year Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <button
                 onClick={() => setShowFYDropdown(!showFYDropdown)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-xl font-medium transition-all w-full text-sm ${
                   selectedFinancialYear
                     ? "bg-blue-600 text-white shadow-lg"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                 }`}
               >
-                <Calendar size={20} />
-                <span className="hidden sm:inline">
+                <Calendar size={18} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline truncate">
                   {selectedFinancialYear
                     ? financialYears.find(
                         (fy) => fy.id === selectedFinancialYear,
                       )?.year_name
                     : "All Years"}
                 </span>
-                <ChevronDown size={16} />
+                <ChevronDown size={14} className="sm:w-4 sm:h-4" />
               </button>
 
               {showFYDropdown && (

@@ -210,7 +210,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" })
+        new Blob([blob], { type: "application/pdf" }),
       );
 
       setPreviewDoc({
@@ -243,7 +243,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" })
+        new Blob([blob], { type: "application/pdf" }),
       );
 
       setPreviewDoc({
@@ -270,7 +270,7 @@ export default function Reports() {
       if (selectedJobWorkParty) {
         // Find party_id from data
         const partyRecord = data.find(
-          (p) => p.party_name === selectedJobWorkParty
+          (p) => p.party_name === selectedJobWorkParty,
         );
         if (partyRecord) {
           partyId = partyRecord.party_id;
@@ -280,12 +280,12 @@ export default function Reports() {
       const blob = await getStockLedgerPDF(
         partyId,
         dateRange.start_date,
-        dateRange.end_date
+        dateRange.end_date,
       );
 
       // Create blob URL for preview
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" })
+        new Blob([blob], { type: "application/pdf" }),
       );
 
       setPreviewDoc({
@@ -320,7 +320,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" })
+        new Blob([blob], { type: "application/pdf" }),
       );
 
       setPreviewDoc({
@@ -341,7 +341,7 @@ export default function Reports() {
   const handleRecalculateStock = async () => {
     if (
       !confirm(
-        "Are you sure? This will wipe and rebuild the entire Stock Ledger from original documents. Use this only to fix data discrepancies."
+        "Are you sure? This will wipe and rebuild the entire Stock Ledger from original documents. Use this only to fix data discrepancies.",
       )
     )
       return;
@@ -406,9 +406,9 @@ export default function Reports() {
     ...new Set(
       data
         .filter(
-          (i) => !selectedJobWorkParty || i.party_name === selectedJobWorkParty
+          (i) => !selectedJobWorkParty || i.party_name === selectedJobWorkParty,
         )
-        .map((i) => i.item_name)
+        .map((i) => i.item_name),
     ),
   ];
 
@@ -502,7 +502,7 @@ export default function Reports() {
       }, {});
 
     return Object.values(rawMap).filter(
-      (r) => r.opening !== 0 || r.in !== 0 || r.out !== 0
+      (r) => r.opening !== 0 || r.in !== 0 || r.out !== 0,
     );
   }, [data, selectedJobWorkParty, dateRange]);
 
@@ -542,11 +542,11 @@ export default function Reports() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <div className="flex gap-6">
+      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
+        <div className="flex gap-6 min-w-max px-2">
           <button
             onClick={() => setActiveTab("jobwork")}
-            className={`pb-3 text-sm font-medium transition-all relative ${
+            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
               activeTab === "jobwork"
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -559,7 +559,7 @@ export default function Reports() {
           </button>
           <button
             onClick={() => setActiveTab("ledger")}
-            className={`pb-3 text-sm font-medium transition-all relative ${
+            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
               activeTab === "ledger"
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -572,7 +572,7 @@ export default function Reports() {
           </button>
           <button
             onClick={() => setActiveTab("statement")}
-            className={`pb-3 text-sm font-medium transition-all relative ${
+            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
               activeTab === "statement"
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -585,7 +585,7 @@ export default function Reports() {
           </button>
           <button
             onClick={() => setActiveTab("stock")}
-            className={`pb-3 text-sm font-medium transition-all relative ${
+            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
               activeTab === "stock"
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -598,7 +598,7 @@ export default function Reports() {
           </button>
           <button
             onClick={() => setActiveTab("gst")}
-            className={`pb-3 text-sm font-medium transition-all relative ${
+            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
               activeTab === "gst"
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -757,12 +757,12 @@ export default function Reports() {
 
               {/* Right Side: Status and Export */}
               <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-xl border-2 border-gray-200 dark:border-gray-700">
+                <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-xl border-2 border-gray-200 dark:border-gray-700">
                   {["all", "pending", "completed"].map((status) => (
                     <button
                       key={status}
                       onClick={() => setFilterStatus(status)}
-                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all capitalize ${
+                      className={`flex-1 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all capitalize whitespace-nowrap ${
                         filterStatus === status
                           ? "bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-md"
                           : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -957,7 +957,7 @@ export default function Reports() {
                         );
                       }
                       return null;
-                    }
+                    },
                   )}
 
                   <button
@@ -1341,7 +1341,7 @@ export default function Reports() {
                   id="stock_ledger_party"
                   value={selectedStockParty}
                   onChange={(e) => setSelectedStockParty(e.target.value)}
-                  className="w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  className="w-full sm:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
                   <option value="">-- All Parties --</option>
                   {parties.map((p) => (
@@ -1364,7 +1364,7 @@ export default function Reports() {
                   id="stock_ledger_item"
                   value={selectedItem}
                   onChange={(e) => setSelectedItem(e.target.value)}
-                  className="w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  className="w-full sm:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
                   <option value="">-- Select Item --</option>
                   {items
@@ -1372,7 +1372,7 @@ export default function Reports() {
                       selectedStockParty
                         ? i.party_id === parseInt(selectedStockParty) ||
                           !i.party_id
-                        : true
+                        : true,
                     )
                     .map((i) => (
                       <option key={i.id} value={i.id}>
@@ -1397,7 +1397,7 @@ export default function Reports() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, start_date: e.target.value })
                   }
-                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
@@ -1416,7 +1416,7 @@ export default function Reports() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, end_date: e.target.value })
                   }
-                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
@@ -1497,8 +1497,8 @@ export default function Reports() {
                               row.type === "IN"
                                 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800"
                                 : row.type === "OUT"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
+                                  : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
                             }`}
                           >
                             {row.type}
@@ -1563,7 +1563,7 @@ export default function Reports() {
                     id="gst_party"
                     value={selectedGSTParty}
                     onChange={(e) => setSelectedGSTParty(e.target.value)}
-                    className="w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    className="w-full sm:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   >
                     <option value="">-- All Parties --</option>
                     {parties.map((p) => (
@@ -1588,7 +1588,7 @@ export default function Reports() {
                     onChange={(e) =>
                       setDateRange({ ...dateRange, start_date: e.target.value })
                     }
-                    className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
                 </div>
                 <div>
@@ -1650,7 +1650,7 @@ export default function Reports() {
                     .filter(
                       (item) =>
                         !selectedGSTParty ||
-                        item.party_name === selectedGSTParty
+                        item.party_name === selectedGSTParty,
                     )
                     .reduce((sum, item) => sum + item.taxable_value, 0)
                     .toLocaleString()}
@@ -1669,11 +1669,11 @@ export default function Reports() {
                     .filter(
                       (item) =>
                         !selectedGSTParty ||
-                        item.party_name === selectedGSTParty
+                        item.party_name === selectedGSTParty,
                     )
                     .reduce(
                       (sum, item) => sum + item.igst + item.cgst + item.sgst,
-                      0
+                      0,
                     )
                     .toLocaleString()}
                 </h3>
@@ -1690,7 +1690,7 @@ export default function Reports() {
                     gstData.filter(
                       (item) =>
                         !selectedGSTParty ||
-                        item.party_name === selectedGSTParty
+                        item.party_name === selectedGSTParty,
                     ).length
                   }
                 </h3>
@@ -1739,7 +1739,7 @@ export default function Reports() {
                   ) : gstData.filter(
                       (item) =>
                         !selectedGSTParty ||
-                        item.party_name === selectedGSTParty
+                        item.party_name === selectedGSTParty,
                     ).length === 0 ? (
                     <tr>
                       <td colSpan="9" className="px-6 py-12 text-center">
@@ -1758,7 +1758,7 @@ export default function Reports() {
                       .filter(
                         (item) =>
                           !selectedGSTParty ||
-                          item.party_name === selectedGSTParty
+                          item.party_name === selectedGSTParty,
                       )
                       .map((row) => (
                         <tr

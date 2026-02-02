@@ -116,7 +116,7 @@ export default function Settings() {
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("general")}
-            className={`flex-1 py-3 px-6 text-sm font-semibold rounded-xl transition-all duration-300 ${
+            className={`flex-1 py-3 px-3 sm:px-6 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 ${
               activeTab === "general"
                 ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white"
@@ -124,12 +124,12 @@ export default function Settings() {
           >
             <div className="flex items-center justify-center gap-2">
               <LayoutGrid size={18} />
-              <span>General</span>
+              <span className="hidden xs:inline sm:inline">General</span>
             </div>
           </button>
           <button
             onClick={() => setActiveTab("backup")}
-            className={`flex-1 py-3 px-6 text-sm font-semibold rounded-xl transition-all duration-300 ${
+            className={`flex-1 py-3 px-3 sm:px-6 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 ${
               activeTab === "backup"
                 ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white"
@@ -137,7 +137,9 @@ export default function Settings() {
           >
             <div className="flex items-center justify-center gap-2">
               <Database size={18} />
-              <span>Backup & Restore</span>
+              <span className="hidden xs:inline sm:inline">
+                Backup & Restore
+              </span>
             </div>
           </button>
         </div>
