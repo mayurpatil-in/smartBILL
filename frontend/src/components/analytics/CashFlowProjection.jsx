@@ -76,7 +76,10 @@ const CashFlowProjection = ({ projectionData, loading }) => {
         <div
           className={`text-3xl font-bold ${getStatusColor(projectionData.current_cash)}`}
         >
-          ₹{projectionData.current_cash.toLocaleString()}
+          ₹
+          {projectionData.current_cash.toLocaleString("en-IN", {
+            maximumFractionDigits: 2,
+          })}
         </div>
       </div>
 
@@ -140,7 +143,10 @@ const CashFlowProjection = ({ projectionData, loading }) => {
                     Expected Income
                   </div>
                   <div className="text-sm font-bold text-green-600">
-                    +₹{period.data.expected_income.toLocaleString()}
+                    +₹
+                    {period.data.expected_income.toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                 </div>
                 <div>
@@ -148,7 +154,10 @@ const CashFlowProjection = ({ projectionData, loading }) => {
                     Expected Expense
                   </div>
                   <div className="text-sm font-bold text-red-600">
-                    -₹{period.data.expected_expense.toLocaleString()}
+                    -₹
+                    {period.data.expected_expense.toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                 </div>
                 <div>
@@ -172,7 +181,7 @@ const CashFlowProjection = ({ projectionData, loading }) => {
                     ₹
                     {(
                       period.data.expected_income - period.data.expected_expense
-                    ).toLocaleString()}
+                    ).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>
@@ -186,7 +195,10 @@ const CashFlowProjection = ({ projectionData, loading }) => {
                   <span
                     className={`text-lg font-bold ${getStatusColor(period.data.projected_balance)}`}
                   >
-                    ₹{period.data.projected_balance.toLocaleString()}
+                    ₹
+                    {period.data.projected_balance.toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
                 </div>
               </div>

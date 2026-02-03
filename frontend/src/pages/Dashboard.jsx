@@ -362,11 +362,9 @@ export default function Dashboard() {
                   <div className="absolute inset-0 animate-shimmer" />
                 </div>
               ) : (
-                <div ref={onChartContainerRefChange} className="h-full w-full">
-                  {chartWidth > 0 && (
+                <div className="h-full w-full">
+                  <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      width={chartWidth}
-                      height={320}
                       data={stats?.monthly_cashflow || []}
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
@@ -471,7 +469,7 @@ export default function Dashboard() {
                         name="expense"
                       />
                     </AreaChart>
-                  )}
+                  </ResponsiveContainer>
                 </div>
               )}
             </div>

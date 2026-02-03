@@ -370,7 +370,7 @@ export default function ClientLedger() {
               name="date-range-start"
               type="date"
               autoComplete="off"
-              className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+              className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 flex-1"
               value={dateRange.start}
               onChange={(e) => {
                 setDateRange({ ...dateRange, start: e.target.value });
@@ -385,7 +385,7 @@ export default function ClientLedger() {
               name="date-range-end"
               type="date"
               autoComplete="off"
-              className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+              className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 flex-1"
               value={dateRange.end}
               onChange={(e) => {
                 setDateRange({ ...dateRange, end: e.target.value });

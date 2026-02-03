@@ -260,7 +260,7 @@ export default function ClientInvoices() {
                 }`}
               >
                 <Calendar size={18} className="sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline truncate">
+                <span className="truncate">
                   {selectedFinancialYear
                     ? financialYears.find(
                         (fy) => fy.id === selectedFinancialYear,

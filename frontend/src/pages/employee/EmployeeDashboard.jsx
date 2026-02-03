@@ -245,6 +245,17 @@ export default function EmployeeDashboard() {
     }
   };
 
+  const handleDownloadAttendance = () => {
+    try {
+      // Use browser's print functionality to save as PDF
+      window.print();
+      toast.success("Opening print dialog...");
+    } catch (error) {
+      console.error("Failed to download attendance:", error);
+      toast.error("Failed to download attendance report");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -358,6 +369,88 @@ export default function EmployeeDashboard() {
           </div>
         </div>
 
+        {/* Quick Stats Cards - NEW FEATURE */}
+        {attendance?.summary && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Present Days */}
+            <div className="group bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-green-400/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-white/20 rounded-xl">
+                  <CheckCircle size={24} className="text-white" />
+                </div>
+                <TrendingUp size={20} className="text-white/60" />
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {attendance.summary.present_days}
+              </div>
+              <div className="text-sm text-white/80 font-semibold uppercase tracking-wide">
+                Days Present
+              </div>
+            </div>
+
+            {/* Overtime Hours */}
+            <div className="group bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-cyan-400/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-white/20 rounded-xl">
+                  <Clock size={24} className="text-white" />
+                </div>
+                <TrendingUp size={20} className="text-white/60" />
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {attendance.summary.total_overtime_hours.toFixed(1)}h
+              </div>
+              <div className="text-sm text-white/80 font-semibold uppercase tracking-wide">
+                Overtime
+              </div>
+            </div>
+
+            {/* Attendance Rate */}
+            <div className="group bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-purple-400/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-white/20 rounded-xl">
+                  <Target size={24} className="text-white" />
+                </div>
+                <Award size={20} className="text-white/60" />
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {(() => {
+                  const totalDays =
+                    attendance.summary.present_days +
+                    attendance.summary.half_days * 0.5 +
+                    attendance.summary.absent_days;
+                  const effectiveDays =
+                    attendance.summary.present_days +
+                    attendance.summary.half_days * 0.5;
+                  return totalDays > 0
+                    ? ((effectiveDays / totalDays) * 100).toFixed(0)
+                    : 0;
+                })()}
+                %
+              </div>
+              <div className="text-sm text-white/80 font-semibold uppercase tracking-wide">
+                Attendance
+              </div>
+            </div>
+
+            {/* Leaves Taken */}
+            <div className="group bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-orange-400/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-white/20 rounded-xl">
+                  <Coffee size={24} className="text-white" />
+                </div>
+                <Calendar size={20} className="text-white/60" />
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {(attendance.summary.leave_days || 0) +
+                  attendance.summary.absent_days}
+              </div>
+              <div className="text-sm text-white/80 font-semibold uppercase tracking-wide">
+                Leaves/Absent
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Attendance Calendar with Enhanced Design */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
           <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 p-4 sm:p-6 border-b border-blue-100 dark:border-blue-900/30">
@@ -376,30 +469,43 @@ export default function EmployeeDashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between w-full sm:w-auto bg-white dark:bg-gray-700/50 p-2 rounded-2xl shadow-md border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {/* Download Button - NEW FEATURE */}
                 <button
-                  onClick={handlePreviousMonth}
-                  className="p-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-all transform hover:scale-110 active:scale-95"
+                  onClick={handleDownloadAttendance}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold text-sm"
+                  title="Download Attendance Report"
                 >
-                  <ChevronLeft
-                    size={20}
-                    className="text-gray-700 dark:text-gray-300"
-                  />
+                  <Download size={18} />
+                  <span className="hidden sm:inline">Download</span>
                 </button>
-                <div className="text-center min-w-[120px] sm:min-w-[150px] px-3">
-                  <div className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    {getMonthName(selectedMonth)} {selectedYear}
+
+                {/* Month Selector */}
+                <div className="flex items-center justify-between flex-1 sm:flex-initial bg-white dark:bg-gray-700/50 p-2 rounded-2xl shadow-md border border-gray-200 dark:border-gray-600">
+                  <button
+                    onClick={handlePreviousMonth}
+                    className="p-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-all transform hover:scale-110 active:scale-95"
+                  >
+                    <ChevronLeft
+                      size={20}
+                      className="text-gray-700 dark:text-gray-300"
+                    />
+                  </button>
+                  <div className="text-center min-w-[120px] sm:min-w-[150px] px-3">
+                    <div className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      {getMonthName(selectedMonth)} {selectedYear}
+                    </div>
                   </div>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-all transform hover:scale-110 active:scale-95"
+                  >
+                    <ChevronRight
+                      size={20}
+                      className="text-gray-700 dark:text-gray-300"
+                    />
+                  </button>
                 </div>
-                <button
-                  onClick={handleNextMonth}
-                  className="p-2.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-all transform hover:scale-110 active:scale-95"
-                >
-                  <ChevronRight
-                    size={20}
-                    className="text-gray-700 dark:text-gray-300"
-                  />
-                </button>
               </div>
             </div>
           </div>
@@ -559,6 +665,179 @@ export default function EmployeeDashboard() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity Timeline - NEW FEATURE */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 p-4 sm:p-6 border-b border-indigo-100 dark:border-indigo-900/30">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 rounded-2xl shadow-lg">
+                <Clock className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Recent Activity
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-medium">
+                  Your latest attendance and payments
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            <div className="space-y-4">
+              {/* Combine attendance and salary records */}
+              {(() => {
+                const activities = [];
+
+                // Add recent attendance records (last 5)
+                if (attendance?.records) {
+                  const recentAttendance = [...attendance.records]
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 5);
+
+                  recentAttendance.forEach((record) => {
+                    activities.push({
+                      type: "attendance",
+                      date: record.date,
+                      status: record.status,
+                      overtime: record.overtime_hours,
+                    });
+                  });
+                }
+
+                // Add recent salary slips (last 3)
+                if (salarySlips?.length > 0) {
+                  const recentSlips = [...salarySlips].slice(0, 3);
+                  recentSlips.forEach((slip) => {
+                    activities.push({
+                      type: "salary",
+                      date: slip.payment_date,
+                      month: slip.month_name,
+                      year: slip.year,
+                      amount: slip.amount,
+                    });
+                  });
+                }
+
+                // Sort by date (most recent first)
+                activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                // Take top 8 activities
+                const topActivities = activities.slice(0, 8);
+
+                if (topActivities.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <div className="inline-flex p-6 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-3xl mb-4">
+                        <Clock
+                          className="text-gray-400 dark:text-gray-500"
+                          size={48}
+                        />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        No Recent Activity
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Your recent activities will appear here
+                      </p>
+                    </div>
+                  );
+                }
+
+                return topActivities.map((activity, index) => {
+                  if (activity.type === "attendance") {
+                    const statusUpper = activity.status?.toUpperCase() || "";
+                    let bgColor = "bg-gray-100 dark:bg-gray-700";
+                    let textColor = "text-gray-700 dark:text-gray-300";
+                    let icon = <CheckCircle size={20} />;
+                    let statusText = activity.status;
+
+                    if (statusUpper === "PRESENT") {
+                      bgColor = "bg-green-100 dark:bg-green-900/30";
+                      textColor = "text-green-700 dark:text-green-400";
+                      icon = <CheckCircle size={20} />;
+                      statusText = "Present";
+                    } else if (
+                      statusUpper === "HALF_DAY" ||
+                      statusUpper === "HALF DAY"
+                    ) {
+                      bgColor = "bg-yellow-100 dark:bg-yellow-900/30";
+                      textColor = "text-yellow-700 dark:text-yellow-400";
+                      icon = <Clock size={20} />;
+                      statusText = "Half Day";
+                    } else if (statusUpper === "ABSENT") {
+                      bgColor = "bg-red-100 dark:bg-red-900/30";
+                      textColor = "text-red-700 dark:text-red-400";
+                      icon = <XCircle size={20} />;
+                      statusText = "Absent";
+                    } else if (statusUpper === "LEAVE") {
+                      bgColor = "bg-blue-100 dark:bg-blue-900/30";
+                      textColor = "text-blue-700 dark:text-blue-400";
+                      icon = <Coffee size={20} />;
+                      statusText = "Leave";
+                    }
+
+                    return (
+                      <div
+                        key={`attendance-${index}`}
+                        className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all"
+                      >
+                        <div
+                          className={`p-3 rounded-xl ${bgColor} ${textColor} shrink-0`}
+                        >
+                          {icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 dark:text-white">
+                            Attendance: {statusText}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {new Date(activity.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "short",
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
+                            {activity.overtime > 0 && (
+                              <span className="ml-2 text-cyan-600 dark:text-cyan-400 font-semibold">
+                                +{activity.overtime}h OT
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    // Salary activity
+                    return (
+                      <div
+                        key={`salary-${index}`}
+                        className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800 hover:shadow-md transition-all"
+                      >
+                        <div className="p-3 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 shrink-0">
+                          <IndianRupee size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 dark:text-white">
+                            Salary Paid: ₹{activity.amount.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {activity.month} {activity.year} •{" "}
+                            {new Date(activity.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                });
+              })()}
             </div>
           </div>
         </div>

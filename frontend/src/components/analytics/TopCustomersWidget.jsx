@@ -47,7 +47,7 @@ const TopCustomersWidget = ({ customers, loading }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Users size={24} className="text-blue-600" />
@@ -107,9 +107,9 @@ const TopCustomersWidget = ({ customers, loading }) => {
                   {customer.last_invoice_date && (
                     <span className="flex items-center gap-1">
                       <Calendar size={12} />
-                      {new Date(
-                        customer.last_invoice_date,
-                      ).toLocaleDateString()}
+                      {new Date(customer.last_invoice_date).toLocaleDateString(
+                        "en-IN",
+                      )}
                     </span>
                   )}
                 </div>
@@ -118,10 +118,16 @@ const TopCustomersWidget = ({ customers, loading }) => {
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="font-bold text-gray-900 dark:text-white">
-                      ₹{customer.total_revenue.toLocaleString()}
+                      ₹
+                      {customer.total_revenue.toLocaleString("en-IN", {
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                     <span className="text-gray-500">
-                      Avg: ₹{customer.avg_invoice_value.toLocaleString()}
+                      Avg: ₹
+                      {customer.avg_invoice_value.toLocaleString("en-IN", {
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
