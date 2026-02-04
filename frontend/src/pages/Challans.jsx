@@ -22,6 +22,7 @@ import {
   getDeliveryChallans,
   deleteDeliveryChallan,
   printDeliveryChallan,
+  printBulkDeliveryChallans,
   getChallanStats,
 } from "../api/challans";
 import { getParties } from "../api/parties";
@@ -46,6 +47,7 @@ export default function Challans() {
   const [currentPage, setCurrentPage] = useState(1);
   const [challansPerPage, setChallansPerPage] = useState(10);
   const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0 });
+  const [selectedChallans, setSelectedChallans] = useState(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState({
     open: false,
     challan: null,
@@ -128,6 +130,54 @@ export default function Challans() {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
+  };
+
+  const handleBulkPrint = async () => {
+    if (selectedChallans.size === 0) return;
+
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(`Bulk Print (${selectedChallans.size} Challans)`);
+
+    let toastId;
+    try {
+      toastId = toast.loading("Generating Bulk PDF...");
+      const blob = await printBulkDeliveryChallans(
+        Array.from(selectedChallans),
+      );
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" }),
+      );
+      setPreviewUrl(url);
+      toast.success("PDF generated", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      setPreviewOpen(false);
+
+      let msg = err.message;
+      if (err.response?.data?.detail) {
+        msg = err.response.data.detail;
+      }
+      toast.error(`Failed: ${msg}`, { id: toastId });
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedChallans.size === paginatedChallans.length) {
+      setSelectedChallans(new Set());
+    } else {
+      setSelectedChallans(new Set(paginatedChallans.map((c) => c.id)));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selectedChallans);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedChallans(newSelected);
   };
 
   const filteredChallans = challans
@@ -233,19 +283,23 @@ export default function Challans() {
             Manage delivery challans and track shipments
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingChallan(null);
-            setShowAddModal(true);
-          }}
-          className="group flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
-        >
-          <Plus
-            size={18}
-            className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
-          />
-          Create Challan
-        </button>
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* Print Button Moved to Filters */}
+          <button
+            onClick={() => {
+              setEditingChallan(null);
+              setShowAddModal(true);
+            }}
+            className="group flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
+          >
+            <Plus
+              size={18}
+              className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
+            />
+            Create Challan
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -354,6 +408,19 @@ export default function Challans() {
                 <option value="delivered">Delivered</option>
               </select>
             </div>
+
+            {/* Print Selected Button */}
+            {selectedChallans.size > 0 && (
+              <div className="w-full sm:w-auto">
+                <button
+                  onClick={handleBulkPrint}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-900 border-2 border-blue-100 dark:border-blue-900/50 hover:border-blue-500 dark:hover:border-blue-500 text-blue-600 dark:text-blue-400 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-sm hover:shadow-md animate-fade-in whitespace-nowrap"
+                >
+                  <Printer size={18} />
+                  <span>Print ({selectedChallans.size})</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -362,6 +429,19 @@ export default function Challans() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
+                <th className="px-6 py-4 whitespace-nowrap w-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 transition-all cursor-pointer"
+                      checked={
+                        paginatedChallans.length > 0 &&
+                        selectedChallans.size === paginatedChallans.length
+                      }
+                      onChange={toggleSelectAll}
+                    />
+                  </div>
+                </th>
                 <th className="px-6 py-4 whitespace-nowrap">Challan No.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Date</th>
                 <th className="px-6 py-4 whitespace-nowrap">Party</th>
@@ -375,7 +455,7 @@ export default function Challans() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <div className="flex flex-col items-center gap-3">
@@ -389,7 +469,7 @@ export default function Challans() {
               ) : paginatedChallans.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -419,6 +499,8 @@ export default function Challans() {
                     onDelete={() => handleDelete(challan)}
                     onPrint={() => handlePrint(challan)}
                     getStatusColor={getStatusColor}
+                    selected={selectedChallans.has(challan.id)}
+                    onSelect={() => toggleSelect(challan.id)}
                   />
                 ))
               )}
@@ -563,14 +645,30 @@ function ChallanRow({
   onDelete,
   onPrint,
   getStatusColor,
+  selected,
+  onSelect,
 }) {
   return (
     <tr
-      className="group hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/30 dark:hover:from-green-900/10 dark:hover:to-emerald-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(34,197,94)]"
+      className={`group transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(34,197,94)] ${
+        selected
+          ? "bg-green-50/80 dark:bg-green-900/20"
+          : "hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/30 dark:hover:from-green-900/10 dark:hover:to-emerald-900/10"
+      }`}
       style={{
         animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
       }}
     >
+      <td className="px-6 py-5">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 transition-all cursor-pointer opacity-70 group-hover:opacity-100"
+            checked={selected}
+            onChange={onSelect}
+          />
+        </div>
+      </td>
       <td className="px-6 py-5">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-green-50 dark:bg-green-900/30 rounded-md">

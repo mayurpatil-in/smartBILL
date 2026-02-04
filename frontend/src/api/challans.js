@@ -50,6 +50,17 @@ export const getChallanStats = async () => {
   return response.data;
 };
 
+export const printBulkDeliveryChallans = async (challan_ids) => {
+  const response = await api.post(
+    "/challan/bulk-print",
+    { challan_ids },
+    {
+      responseType: "blob",
+    },
+  );
+  return response.data;
+};
+
 export const printDeliveryChallan = async (id) => {
   const response = await api.get(`/challan/${id}/print`, {
     responseType: "blob",

@@ -1,0 +1,671 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Delivery Challans (Bulk)</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        color: #1f2937;
+        margin: 0;
+        padding: 0;
+        line-height: 1.4;
+        background-color: #fff;
+      }
+
+      /* Each Challan Page Container */
+      .challan-page {
+        page-break-after: always;
+        height: 296mm; /* Reduced slightly from 297mm to prevent overflow */
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      /* Last page shouldn't force a break */
+      .challan-page:last-of-type {
+        page-break-after: auto;
+      }
+
+      .page-half {
+        height: 135mm;
+        padding: 4mm;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 2px solid #1e293b;
+        margin: 5mm;
+        border-radius: 4px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        align-items: flex-start;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      .company-info {
+        max-width: 60%;
+      }
+
+      .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 4px 0;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+      }
+
+      .company-details {
+        font-size: 10px;
+        color: #475569;
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+
+      .challan-header {
+        text-align: right;
+      }
+
+      .title {
+        font-size: 18px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #1e40af;
+        margin: 0 0 6px 0;
+        letter-spacing: 1.5px;
+      }
+
+      .challan-meta {
+        font-size: 11px;
+        color: #374151;
+      }
+
+      .challan-meta strong {
+        color: #0f172a;
+      }
+
+      .recipient-box {
+        background: linear-gradient(to bottom, #f8fafc, #ffffff);
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 5px;
+        margin-bottom: 5px;
+        font-size: 11px;
+        display: flex;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      .to-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 3px;
+        letter-spacing: 0.5px;
+      }
+
+      .party-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0f172a;
+      }
+
+      .vehicle-info {
+        text-align: right;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+        margin-bottom: auto;
+      }
+
+      th {
+        background: linear-gradient(to bottom, #f1f5f9, #e2e8f0);
+        color: #1e293b;
+        font-weight: 700;
+        text-align: left;
+        padding: 10px 10px;
+        border-bottom: 2px solid #cbd5e1;
+        text-transform: uppercase;
+        font-size: 9px;
+        letter-spacing: 0.8px;
+      }
+
+      td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #e2e8f0;
+        color: #334155;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #f9fafb;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+      .text-center {
+        text-align: center;
+      }
+
+      .footer-section {
+        margin-top: auto;
+        padding-top: 1px;
+        border-top: 2px solid #e2e8f0;
+      }
+
+      .terms {
+        font-size: 7px;
+        color: #64748b;
+        margin-bottom: 6px;
+        padding: 6px 8px;
+        background-color: #f8fafc;
+        border-radius: 4px;
+        border-left: 3px solid #3b82f6;
+        line-height: 1.3;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        font-size: 9px;
+        padding-bottom: 5px; /* Added spacing to lift signature off border */
+      }
+
+      .signature-block {
+        text-align: center;
+        width: 140px;
+      }
+
+      .sign-line {
+        border-top: 1.5px solid #94a3b8;
+        margin-bottom: 3px;
+        padding-top: 1px;
+      }
+
+      .designation {
+        font-size: 8px;
+        color: #64748b;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    {% macro render_challan(copy_label, data_obj) %}
+    <div class="page-half">
+      <!-- Header -->
+      <div class="header">
+        <div class="company-info">
+          <h1 class="company-name">{{ company.name }}</h1>
+          <div class="company-details">
+            {% if company.address %}{{ company.address }}<br />{% endif %} {% if
+            company.phone %}Phone: {{ company.phone }} | {% endif %} {% if
+            company.email %}Email: {{ company.email }}{% endif %} {% if
+            company.gst_number %}<br />GSTIN:
+            <strong>{{ company.gst_number }}</strong>{% endif %}
+          </div>
+        </div>
+        <div class="challan-header">
+          <div class="title">Delivery Challan</div>
+          {% if copy_label %}
+          <div
+            style="
+              display: inline-block;
+              font-size: 9px;
+              font-weight: 600;
+              text-transform: uppercase;
+              color: #3b82f6;
+              background-color: #dbeafe;
+              padding: 3px 8px;
+              border-radius: 4px;
+              margin-bottom: 4px;
+            "
+          >
+            {{ copy_label }}
+          </div>
+          {% endif %}
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+              align-items: center;
+            "
+          >
+            {% if data_obj.qr_code %}
+            <img
+              src="data:image/png;base64,{{ data_obj.qr_code }}"
+              style="width: 40px; height: 40px"
+            />
+            {% endif %}
+            <div class="challan-meta">
+              No:
+              <strong style="font-size: 14px"
+                >{{ data_obj.challan.challan_number }}</strong
+              ><br />
+              Date:
+              <strong
+                >{{ data_obj.challan.challan_date.strftime('%d-%m-%Y') }}</strong
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recipient & Vehicle -->
+      <div class="recipient-box">
+        <div>
+          <div class="to-label">Billed To</div>
+          <div class="party-name">{{ data_obj.party.name }}</div>
+          {% if data_obj.party.address %}{{ data_obj.party.address }}<br />{%
+          endif %} {% if data_obj.party.gst_number %}GSTIN: {{
+          data_obj.party.gst_number }}{% endif %}
+        </div>
+        <div class="vehicle-info">
+          <div class="to-label">Transport Mode</div>
+          <div>
+            Vehicle No:
+            <strong>{{ data_obj.challan.vehicle_number or 'N/A' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th style="background-color: #f1f5f9; text-align: center">
+                Discription
+              </th>
+              <th
+                style="background-color: #f1f5f9; text-align: center"
+                width="180"
+              >
+                Quantity
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data_obj['items'] %}
+            <tr>
+              <td style="vertical-align: top; padding: 0">
+                <div style="padding: 8px">
+                  <!-- Item Name & Process -->
+                  <div
+                    style="
+                      font-weight: 700;
+                      font-size: 11px;
+                      text-transform: uppercase;
+                      color: #0f172a;
+                      margin-bottom: 4px;
+                    "
+                  >
+                    {{ row.item_obj.party_challan_item.item.name }} {% if
+                    row.item_obj.process %}
+                    <span
+                      style="
+                        font-weight: 400;
+                        font-size: 9px;
+                        color: #64748b;
+                        margin-left: 8px;
+                      "
+                      >({{ row.item_obj.process.name }})</span
+                    >
+                    {% endif %}
+                  </div>
+
+                  <!-- Item Code if exists -->
+                  {% if row.item_obj.party_challan_item.item.code %}
+                  <div
+                    style="font-size: 9px; color: #64748b; margin-bottom: 4px"
+                  >
+                    Code: {{ row.item_obj.party_challan_item.item.code }}
+                  </div>
+                  {% endif %}
+
+                  <!-- Ref Challan Details: Segmented Display -->
+                  <div
+                    style="
+                      margin-bottom: 5px;
+                      display: flex;
+                      align-items: center;
+                      flex-wrap: wrap;
+                    "
+                  >
+                    <span
+                      style="
+                        font-weight: 600;
+                        color: #3b82f6;
+                        text-transform: uppercase;
+                        font-size: 8px;
+                        letter-spacing: 0.5px;
+                        margin-right: 6px;
+                      "
+                      >Ref:</span
+                    >
+                    {% for ref in row.ref_list %}
+                    <div
+                      style="
+                        display: inline-flex;
+                        background-color: #f1f5f9;
+                        border: 1.5px solid #cbd5e1;
+                        border-radius: 3px;
+                        overflow: hidden;
+                        margin-right: 6px;
+                        margin-bottom: 3px;
+                        font-size: 8px;
+                      "
+                    >
+                      {% set parts = ref.split(' | ') %}
+                      <div
+                        style="
+                          padding: 3px 6px;
+                          background-color: #ffffff;
+                          border-right: 1px solid #cbd5e1;
+                          font-weight: 600;
+                          color: #0f172a;
+                        "
+                      >
+                        {{ parts[0] }}
+                      </div>
+                      {% if parts|length > 1 %}
+                      <div
+                        style="
+                          padding: 3px 6px;
+                          border-right: 1px solid #cbd5e1;
+                          color: #475569;
+                        "
+                      >
+                        {{ parts[1] }}
+                      </div>
+                      {% endif %} {% if parts|length > 2 %}
+                      <div style="padding: 3px 6px; color: #475569">
+                        {{ parts[2] }}
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                  </div>
+
+                  <!-- Scan/Ref Stats Box -->
+                  <div
+                    style="
+                      display: flex;
+                      border: 1.5px solid #cbd5e1;
+                      font-size: 10px;
+                      text-align: center;
+                      border-radius: 6px;
+                      overflow: hidden;
+                      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                    "
+                  >
+                    <div
+                      style="
+                        flex: 1;
+                        border-right: 1px solid #e2e8f0;
+                        padding: 6px;
+                        background-color: #f0f9ff;
+                      "
+                    >
+                      <div
+                        style="
+                          color: #64748b;
+                          margin-bottom: 2px;
+                          font-size: 8px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                        "
+                      >
+                        Opening
+                      </div>
+                      <div style="font-weight: 700; color: #0f172a">
+                        {{ row.opening }}
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        flex: 1;
+                        border-right: 1px solid #e2e8f0;
+                        padding: 6px;
+                        background-color: #dbeafe;
+                      "
+                    >
+                      <div
+                        style="
+                          color: #64748b;
+                          margin-bottom: 2px;
+                          font-size: 8px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                        "
+                      >
+                        Dispatch
+                      </div>
+                      <div style="font-weight: 700; color: #1e40af">
+                        {{ row.dispatch }}
+                      </div>
+                    </div>
+                    <div
+                      style="flex: 1; padding: 6px; background-color: #f0fdf4"
+                    >
+                      <div
+                        style="
+                          color: #64748b;
+                          margin-bottom: 2px;
+                          font-size: 8px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                        "
+                      >
+                        Closing
+                      </div>
+                      <div style="font-weight: 700; color: #15803d">
+                        {{ row.balance }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td
+                style="
+                  vertical-align: top;
+                  padding: 0;
+                  border-left: 1px solid #f1f5f9;
+                "
+              >
+                <table
+                  style="width: 100%; border-collapse: collapse; margin: 0"
+                >
+                  <tr style="border-bottom: 1px solid #f1f5f9">
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        color: #64748b;
+                        font-size: 10px;
+                      "
+                    >
+                      OK Qty
+                    </td>
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        text-align: right;
+                        font-weight: 600;
+                        font-size: 10px;
+                      "
+                    >
+                      {{ row.item_obj.ok_qty }}
+                    </td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f1f5f9">
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        color: #64748b;
+                        font-size: 10px;
+                      "
+                    >
+                      CR Qty
+                    </td>
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        text-align: right;
+                        font-weight: 600;
+                        font-size: 10px;
+                      "
+                    >
+                      {{ row.item_obj.cr_qty }}
+                    </td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f1f5f9">
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        color: #64748b;
+                        font-size: 10px;
+                      "
+                    >
+                      MR Qty
+                    </td>
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        text-align: right;
+                        font-weight: 600;
+                        font-size: 10px;
+                      "
+                    >
+                      {{ row.item_obj.mr_qty }}
+                    </td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f1f5f9">
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        color: #0f172a;
+                        font-weight: 700;
+                        font-size: 10px;
+                      "
+                    >
+                      Total Qty
+                    </td>
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        text-align: right;
+                        font-weight: 700;
+                        font-size: 11px;
+                      "
+                    >
+                      {{ row.dispatch }}
+                    </td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #f1f5f9">
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        color: #64748b;
+                        font-size: 10px;
+                      "
+                    >
+                      Rate
+                    </td>
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        text-align: right;
+                        font-weight: 600;
+                        font-size: 10px;
+                      "
+                    >
+                      &#8377; {{ "%.2f"|format(row.item_obj.rate) }}
+                    </td>
+                  </tr>
+                  <tr style="background-color: #f8fafc">
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        color: #0f172a;
+                        font-weight: 700;
+                        font-size: 10px;
+                      "
+                    >
+                      Amount
+                    </td>
+                    <td
+                      style="
+                        padding: 6px 10px;
+                        text-align: right;
+                        font-weight: 700;
+                        font-size: 11px;
+                      "
+                    >
+                      &#8377; {{ "%.2f"|format((row.item_obj.ok_qty +
+                      row.item_obj.cr_qty + row.item_obj.mr_qty) *
+                      row.item_obj.rate) }}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer / Signatures -->
+      <div class="footer-section">
+        <div class="terms">
+          Declaration: We declare that this delivery challan shows the actual
+          price of the goods described and that all particulars are true and
+          correct.
+        </div>
+        <div class="footer">
+          <div class="signature-block">
+            <div class="sign-line"></div>
+            Receiver's Signature
+          </div>
+          <div class="signature-block">
+            <div style="margin-bottom: 20px; font-size: 9px; color: #64748b">
+              For <strong>{{ company.name }}</strong>
+            </div>
+            <div class="sign-line"></div>
+            <div class="designation">Authorised Signatory</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endmacro %}
+
+    {% for data in challans_list %}
+    <div class="challan-page">
+      <!-- Render Original -->
+      {{ render_challan("Original Copy", data) }}
+
+      <!-- Dashed Separator -->
+      <div style="border-top: 2px dashed #e5e7eb; margin: 0 10px"></div>
+
+      <!-- Render Duplicate -->
+      {{ render_challan("Duplicate Copy", data) }}
+    </div>
+    {% endfor %}
+  </body>
+</html>

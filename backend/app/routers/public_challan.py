@@ -128,7 +128,7 @@ async def public_download_challan(
                 self.ok_qty = int(ok)
                 self.cr_qty = int(cr)
                 self.mr_qty = int(mr)
-                self.rate = original.rate
+                self.rate = original.rate if original.rate and original.rate > 0 else (original.party_challan_item.rate if original.party_challan_item and original.party_challan_item.rate and original.party_challan_item.rate > 0 else (original.party_challan_item.item.rate if original.party_challan_item and original.party_challan_item.item and original.party_challan_item.item.rate else 0.0))
         
         proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
 

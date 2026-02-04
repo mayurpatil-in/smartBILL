@@ -677,36 +677,19 @@ from fastapi.responses import Response
 from jinja2 import Environment, FileSystemLoader
 from app.services.pdf_service import generate_pdf
 from app.models.company import Company
+from pydantic import BaseModel
+from typing import List, Dict, Any, Set
 import os
 
 # Set up Jinja2
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 env = Environment(loader=FileSystemLoader(templates_dir))
 
-@router.get("/{challan_id}/print")
-async def print_challan(
-    challan_id: int,
-    request: Request,
-    company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
-):
-    # Fetch challan
-    challan = db.query(DeliveryChallan).options(
-        joinedload(DeliveryChallan.party),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
-    ).filter(
-        DeliveryChallan.id == challan_id,
-        DeliveryChallan.company_id == company_id
-    ).first()
-    
-    if not challan:
-        raise HTTPException(status_code=404, detail="Delivery Challan not found")
-    
-    # Fetch company
-    company = db.query(Company).filter(Company.id == company_id).first()
-    
+class BulkPrintRequest(BaseModel):
+    challan_ids: List[int]
+
+def prepare_challan_print_data(challan) -> Dict[str, Any]:
+    """Helper to prepare data for a single challan print"""
     # Calculate Total Qty
     total_qty = sum(float(item.quantity) for item in challan.items)
 
@@ -722,8 +705,8 @@ async def print_challan(
     base_url = get_backend_url()
             
     # Sign the ID to prevent IDOR
-    signature = create_url_signature(str(challan_id))
-    download_url = f"{base_url}/public/challan/{challan_id}/download?token={signature}"
+    signature = create_url_signature(str(challan.id))
+    download_url = f"{base_url}/public/challan/{challan.id}/download?token={signature}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(download_url)
@@ -774,6 +757,10 @@ async def print_challan(
         data = grouped_data[key]
         current_dispatch = data["dispatch"]
         
+        # Initialize
+        opening_qty = 0
+        balance_qty = 0
+        
         # Calculate stats specific to this Item across ALL involved Party Challans
         if data["pc_items"]:
             # Sum the Ordered/Delivered from ALL referenced Party Challan Items for this product
@@ -819,16 +806,122 @@ async def print_challan(
             "balance": int(balance_qty),
             "ref_list": ref_list # Pass list of ref strings
         })
+        
+    return {
+        "challan": challan,
+        "party": challan.party,
+        "items": items_data,
+        "total_qty": total_qty,
+        "qr_code": qr_code_b64
+    }
+
+@router.post("/bulk-print")
+async def bulk_print_challans(
+    request: BulkPrintRequest,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    """Generate a single PDF containing multiple delivery challans"""
+    try:
+        if not request.challan_ids:
+            raise HTTPException(status_code=400, detail="No challan IDs provided")
+
+        # Fetch all challans
+        challans = db.query(DeliveryChallan).options(
+            joinedload(DeliveryChallan.party),
+            joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
+            joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
+            joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
+        ).filter(
+            DeliveryChallan.id.in_(request.challan_ids),
+            DeliveryChallan.company_id == company_id
+        ).all()
+        
+        if not challans:
+            raise HTTPException(status_code=404, detail="No valid challans found")
+
+        # Sort challans by ID desc (or user preference? Usually Descending or as provided)
+        # We will map to input order.
+        challan_map = {c.id: c for c in challans}
+        ordered_challans = []
+        for cid in request.challan_ids:
+            if cid in challan_map:
+                ordered_challans.append(challan_map[cid])
+            
+        # Fetch company
+        company = db.query(Company).filter(Company.id == company_id).first()
+        
+        # Prepare data for each challan
+        challans_data = []
+        for challan in ordered_challans:
+            data = prepare_challan_print_data(challan)
+            challans_data.append(data)
+            
+        # Render Template
+        template = env.get_template("delivery_challan_bulk.html")
+        html = template.render(
+            challans_list=challans_data,
+            company=company
+        )
+        
+        # Generate PDF
+        pdf_content = await generate_pdf(html)
+        
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "inline; filename=bulk-delivery-challans.pdf"}
+        )
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        # Log to file for debugging
+        try:
+            with open("debug_log.txt", "a") as f:
+                f.write(f"\n--- Bulk Print Error ---\n{error_msg}\n------------------------\n")
+        except:
+            pass
+        
+        # print to console as well
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Bulk Print Error: {str(e)}")
+
+@router.get("/{challan_id}/print")
+async def print_challan(
+    challan_id: int,
+    request: Request,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    # Fetch challan
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.party),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
+    ).filter(
+        DeliveryChallan.id == challan_id,
+        DeliveryChallan.company_id == company_id
+    ).first()
+    
+    if not challan:
+        raise HTTPException(status_code=404, detail="Delivery Challan not found")
+    
+    # Fetch company
+    company = db.query(Company).filter(Company.id == company_id).first()
+    
+    # Prepare data
+    data = prepare_challan_print_data(challan)
 
     # Render Template
     template = env.get_template("delivery_challan.html")
     html = template.render(
-        challan=challan,
+        challan=data["challan"],
+        party=data["party"],
         company=company,
-        party=challan.party,
-        items=items_data, # Pass calculated data
-        total_qty=total_qty,
-        qr_code=qr_code_b64
+        items=data["items"],
+        total_qty=data["total_qty"],
+        qr_code=data["qr_code"]
     )
     
     # Generate PDF
