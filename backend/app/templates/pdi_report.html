@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDI Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm; /* Reduced margin */
+        }
+        
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #34495e;
+            --border-color: #e2e8f0;
+            --text-color: #1f2937;
+            --light-bg: #f8fafc;
+            --success-color: #059669;
+            --danger-color: #dc2626;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 10pt; /* Reduced font size from 11pt */
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.3; /* Tighter line height */
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            margin-bottom: 20px; /* Reduced from 30px */
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px; /* Reduced from 15px */
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .company-info {
+            width: 60%;
+            vertical-align: top;
+        }
+
+        .company-name {
+            font-size: 20px; /* Reduced from 24px */
+            font-weight: 700;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .company-details {
+            font-size: 9pt; /* Reduced from 10pt */
+            color: #64748b;
+        }
+
+        .report-header {
+            width: 40%;
+            text-align: right;
+            vertical-align: top;
+        }
+
+        .report-title {
+            font-size: 16px; /* Reduced from 18px */
+            font-weight: 700;
+            color: #fff;
+            background-color: var(--primary-color);
+            padding: 5px 12px; /* Reduced padding */
+            display: inline-block;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .meta-info {
+            font-size: 9pt;
+        }
+
+        /* Details Section */
+        .section-title {
+            font-size: 12px; /* Reduced from 14px */
+            font-weight: 700;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 3px;
+            margin-bottom: 10px; /* Reduced margin */
+            margin-top: 15px; /* Reduced margin */
+            text-transform: uppercase;
+        }
+
+        .details-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px; /* Reduced margin */
+        }
+
+        .details-grid td {
+            padding: 6px 10px; /* Reduced padding */
+            border: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .label-cell {
+            background-color: var(--light-bg);
+            font-weight: 600;
+            color: var(--accent-color);
+            width: 20%;
+        }
+
+        .value-cell {
+            width: 30%;
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 10px; /* Reduced padding */
+            border-radius: 10px;
+            font-size: 9pt;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .badge-pass {
+            background-color: #dcfce7;
+            color: var(--success-color);
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-fail {
+            background-color: #fee2e2;
+            color: var(--danger-color);
+            border: 1px solid #fecaca;
+        }
+
+        /* Checklist Table */
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+
+        .checklist-table th {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 6px 10px; /* Reduced padding */
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .checklist-table td {
+            padding: 6px 10px; /* Reduced padding */
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .checklist-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        /* Remarks Box */
+        .remarks-box {
+            border: 1px solid var(--border-color);
+            background-color: #fff;
+            padding: 10px; /* Reduced padding */
+            border-radius: 6px;
+            min-height: 50px; /* Reduced height */
+            margin-top: 5px;
+            font-style: italic;
+            color: #4b5563;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px; /* Reduced from 50px */
+            page-break-inside: avoid;
+        }
+
+        .signature-section {
+            width: 100%;
+            margin-top: 20px; /* Reduced from 40px */
+        }
+
+        .signature-box {
+            width: 250px;
+            float: right;
+            text-align: center;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .signature-text {
+            font-weight: 600;
+            font-size: 9pt;
+        }
+
+        .disclaimer {
+            margin-top: 40px; /* Reduced from 80px */
+            font-size: 7pt; /* Reduced from 8pt */
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table class="header-table">
+            <tr>
+                <td class="company-info">
+                    <div class="company-name">{{ company.name }}</div>
+                    <div class="company-details">
+                        {{ company.address }}<br>
+                        GST: {{ company.gst_number or 'N/A' }} | Phone: {{ company.phone or 'N/A' }}<br>
+                        Email: {{ company.email or 'N/A' }}
+                    </div>
+                </td>
+                <td class="report-header">
+                    <div class="report-title">PDI REPORT</div>
+                    <div class="meta-info">
+                        <strong>Date:</strong> {{ report.inspection_date }}<br>
+                        <strong>Report ID:</strong> PDI-{{ report.id }}<br>
+                        <strong>Ref Challan:</strong> {{ challan.challan_number }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Machine/Vehicle Information -->
+    <div class="section-title">Inspection Details</div>
+    <table class="details-grid">
+        <tr>
+            <td class="label-cell">Customer Name</td>
+            <td class="value-cell">{{ party.name }}</td>
+            <td class="label-cell">Inspector</td>
+            <td class="value-cell">{{ report.inspector_name }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Vehicle/Machine No.</td>
+            <td class="value-cell">{{ challan.vehicle_number or 'N/A' }}</td>
+            <td class="label-cell">Overall Result</td>
+            <td class="value-cell">
+                <span class="badge {% if report.status == 'Pass' %}badge-pass{% else %}badge-fail{% endif %}">
+                    {{ report.status|upper }}
+                </span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Inspection Checklist -->
+    <div class="section-title">Checklist Points</div>
+    <table class="checklist-table">
+        <thead>
+            <tr>
+                <th style="width: 70%">Inspection Item</th>
+                <th style="width: 30%">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, value in report.checklist.items() %}
+            <tr>
+                <td>{{ key }}</td>
+                <td>
+                    {% if value == 'Pass' %}
+                        <span style="color: green; font-weight: bold;">&#10003; Pass</span>
+                    {% elif value == 'Fail' %}
+                        <span style="color: red; font-weight: bold;">&#10007; Fail</span>
+                    {% else %}
+                        <span style="color: #666;">- {{ value }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Observations/Remarks -->
+    <div class="section-title">Inspector Remarks & Observations</div>
+    <div class="remarks-box">
+        {{ report.remarks or "No additional remarks recorded for this inspection." }}
+    </div>
+
+    <!-- Footer / Signatures -->
+    <div class="footer">
+        <table class="signature-section">
+            <tr>
+                <td></td> <!-- Spacer -->
+                <td style="width: 250px;">
+                    <div class="signature-box">
+                        <br><br> <!-- Reduced signature space -->
+                        <div class="signature-line"></div>
+                        <div class="signature-text">Authorized Signature</div>
+                        <div style="font-size: 8pt; color: #666;">(For {{ company.name }})</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="disclaimer">
+            This document certifies that a Pre-Delivery Inspection has been conducted. 
+            Generated by SmartBill on {{ report.updated_at.strftime('%Y-%m-%d %H:%M:%S') if report.updated_at else report.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        </div>
+    </div>
+
+</body>
+</html>

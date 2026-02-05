@@ -16,6 +16,7 @@ import {
   Send,
   CheckCircle,
   Weight,
+  ClipboardCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -30,6 +31,7 @@ import { getItems } from "../api/items";
 import AddDeliveryChallanModal from "../components/AddDeliveryChallanModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PDIReportModal from "../components/PDIReportModal";
 
 const PdfPreviewModal = lazy(() => import("../components/PdfPreviewModal"));
 
@@ -56,6 +58,9 @@ export default function Challans() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewTitle, setPreviewTitle] = useState("");
+
+  const [showPDIModal, setShowPDIModal] = useState(false);
+  const [selectedPDIChallan, setSelectedPDIChallan] = useState(null);
 
   const loadChallans = async () => {
     try {
@@ -496,6 +501,10 @@ export default function Challans() {
                       setEditingChallan(challan);
                       setShowAddModal(true);
                     }}
+                    onEditPDI={(c) => {
+                      setSelectedPDIChallan(c);
+                      setShowPDIModal(true);
+                    }}
                     onDelete={() => handleDelete(challan)}
                     onPrint={() => handlePrint(challan)}
                     getStatusColor={getStatusColor}
@@ -634,6 +643,15 @@ export default function Challans() {
           title={previewTitle}
         />
       </Suspense>
+
+      <PDIReportModal
+        isOpen={showPDIModal}
+        onClose={() => {
+          setShowPDIModal(false);
+          setSelectedPDIChallan(null);
+        }}
+        challan={selectedPDIChallan}
+      />
     </div>
   );
 }
@@ -642,6 +660,7 @@ function ChallanRow({
   challan,
   index,
   onEdit,
+  onEditPDI,
   onDelete,
   onPrint,
   getStatusColor,
@@ -760,6 +779,17 @@ function ChallanRow({
       </td>
       <td className="px-6 py-5">
         <div className="flex items-center justify-end gap-2">
+          {/* PDI Report Button */}
+          <button
+            onClick={() => {
+              onEditPDI(challan);
+            }}
+            className="p-2 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+            title="PDI Report"
+          >
+            <ClipboardCheck size={16} />
+          </button>
+
           {/* Print Button */}
           <button
             onClick={onPrint}

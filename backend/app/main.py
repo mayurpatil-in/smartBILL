@@ -49,6 +49,7 @@ from app.models.notification import Notification
 from app.models.audit_log import AuditLog
 from app.models.holiday import Holiday
 from app.models.client_login import ClientLogin
+from app.models.pdi_report import PDIReport
 
 # [NEW] Import super admin creator
 from create_super_admin import create_default_super_admin
@@ -258,6 +259,9 @@ app.include_router(public_invoice_router)
 from app.routers import client_auth, client_portal
 app.include_router(client_auth.router)
 app.include_router(client_portal.router)
+
+from app.routers.pdi_report import router as pdi_report_router
+app.include_router(pdi_report_router, prefix="/pdi", tags=["PDI Reports"])
 
 # ===================== ROOT =====================
 @app.get("/")

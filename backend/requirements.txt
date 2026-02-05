@@ -45,3 +45,4 @@ jinja2
 qrcode[pil]
 APScheduler
 cryptography
+cryptography
