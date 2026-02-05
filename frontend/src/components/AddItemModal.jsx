@@ -32,6 +32,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
     rate: 0,
     party_id: "",
     process_id: "",
+    barcode: "",
     is_active: true,
   });
 
@@ -63,6 +64,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
         rate: item.rate || 0,
         party_id: item.party_id || "",
         process_id: item.process_id || "",
+        barcode: item.barcode || "",
         is_active: item.is_active,
       });
     } else {
@@ -174,6 +176,34 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                 autoFocus
                 placeholder="Enter item name"
               />
+
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Input
+                    label="Barcode"
+                    icon={<Tag size={16} />}
+                    name="barcode"
+                    id="barcode"
+                    value={form.barcode || ""}
+                    onChange={(v) => setForm({ ...form, barcode: v })}
+                    placeholder="Scan or enter barcode"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const randomCode = Math.floor(
+                      100000000000 + Math.random() * 900000000000,
+                    ).toString();
+                    setForm({ ...form, barcode: randomCode });
+                    toast.success("Generated random barcode");
+                  }}
+                  className="px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl font-medium text-sm transition-colors mb-[1px]"
+                  title="Generate Random Barcode"
+                >
+                  Generate
+                </button>
+              </div>
             </div>
 
             {/* Linking & Process Section */}

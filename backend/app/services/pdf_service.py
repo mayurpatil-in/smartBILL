@@ -125,15 +125,22 @@ class PDFManager:
             
             # Default Options
             pdf_options = {
-                "format": "A4",
                 "print_background": True,
                 "margin": {"top": "20px", "right": "20px", "bottom": "20px", "left": "20px"}
             }
             
+            # Use A4 default only if width/height NOT provided in overrides
+            # (Because Playwright prioritizes 'format' over 'width'/'height')
+            user_has_dimensions = options and ("width" in options or "height" in options)
+            if not user_has_dimensions:
+                pdf_options["format"] = "A4"
+            
             # Merge provided options
             if options:
                 pdf_options.update(options)
-                
+            
+            # print(f"[PDF DEBUG] Final PDF Options passed to Playwright: {pdf_options}")
+            
             pdf_data = await page.pdf(**pdf_options)
             return pdf_data
         finally:

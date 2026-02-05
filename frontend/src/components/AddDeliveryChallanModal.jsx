@@ -22,6 +22,7 @@ import {
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
 import { getPartyChallansByItem } from "../api/partyChallans";
+import useBarcodeScanner from "../hooks/useBarcodeScanner";
 
 export default function AddDeliveryChallanModal({
   open,
@@ -138,6 +139,36 @@ export default function AddDeliveryChallanModal({
       });
     }
   }, [deliveryChallan, open]);
+
+  // Barcode Scanner Integration
+  useBarcodeScanner({
+    onScan: (scannedCode) => {
+      if (!open) return;
+
+      const matchedItem = items.find(
+        (i) => i.barcode === scannedCode || i.hsn_code === scannedCode,
+      );
+
+      if (matchedItem) {
+        toast.success(`Scanned: ${matchedItem.name}`);
+        // If party is selected, ensure item belongs to it or is global
+        if (form.party_id) {
+          if (
+            matchedItem.party_id &&
+            matchedItem.party_id !== Number(form.party_id)
+          ) {
+            toast.error("Item belongs to a different party");
+            return;
+          }
+        }
+
+        handleItemChange(matchedItem.id);
+      } else {
+        toast.error(`Unknown Barcode: ${scannedCode}`);
+      }
+    },
+    minLength: 3,
+  });
 
   if (!open) return null;
 

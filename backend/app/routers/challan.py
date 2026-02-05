@@ -575,6 +575,7 @@ def get_pending_challan_items(
                  "challan_date": base_item.challan.challan_date,
                  "item_id": item_obj.id if item_obj else None,
                  "item_name": item_obj.name if item_obj else "Unknown",
+                 "barcode": item_obj.barcode if item_obj else None,
                  "delivery_challan_item_id": base_item.id, # Primary ID for reference
                  "delivery_challan_item_ids": group["ids"], # List of all IDs for backend logic
                  "ok_qty": rem_ok,

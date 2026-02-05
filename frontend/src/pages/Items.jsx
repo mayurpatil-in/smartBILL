@@ -16,12 +16,19 @@ import {
   TrendingUp,
   IndianRupee,
   Boxes,
+  Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getItems, deleteItem, updateItem } from "../api/items";
+import {
+  getItems,
+  deleteItem,
+  updateItem,
+  printItemBarcode,
+} from "../api/items";
 import { getParties } from "../api/parties";
 import AddItemModal from "../components/AddItemModal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import useBarcodeScanner from "../hooks/useBarcodeScanner";
 
 export default function Items() {
   const [items, setItems] = useState([]);
@@ -36,6 +43,12 @@ export default function Items() {
   const [deleteConfirm, setDeleteConfirm] = useState({
     open: false,
     item: null,
+  });
+  const [printModal, setPrintModal] = useState({
+    open: false,
+    item: null,
+    count: 1,
+    format: "thermal",
   });
 
   const loadItems = async () => {
@@ -58,6 +71,13 @@ export default function Items() {
     loadItems();
   }, []);
 
+  useBarcodeScanner({
+    onScan: (code) => {
+      setSearchTerm(code);
+      toast.success(`Filtered by barcode: ${code}`);
+    },
+  });
+
   const handleToggleStatus = async (item) => {
     try {
       await updateItem(item.id, { ...item, is_active: !item.is_active });
@@ -79,11 +99,53 @@ export default function Items() {
     }
   };
 
+  const handlePrintClick = (item) => {
+    setPrintModal({
+      open: true,
+      item: item,
+      count: 1,
+      format: "thermal",
+    });
+  };
+
+  const handleConfirmPrint = async () => {
+    try {
+      if (!printModal.item) return;
+
+      const blob = await printItemBarcode(
+        printModal.item.id,
+        printModal.count,
+        printModal.format,
+      );
+      const url = window.URL.createObjectURL(blob);
+
+      // Auto-print
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.contentWindow.onload = function () {
+        iframe.contentWindow.print();
+        // Cleanup after a delay to ensure print dialog opened
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          window.URL.revokeObjectURL(url);
+        }, 60000);
+      };
+
+      toast.success(`Printing ${printModal.count} barcode(s)...`);
+      setPrintModal({ open: false, item: null, count: 1 });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to print barcode");
+    }
+  };
+
   const filteredItems = items
     .filter((i) => {
-      const matchesSearch = i.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (i.barcode &&
+          i.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesParty = selectedParty
         ? i.party_id === Number(selectedParty)
         : true;
@@ -218,6 +280,7 @@ export default function Items() {
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Item Name</th>
+                <th className="px-6 py-4 whitespace-nowrap">Barcode</th>
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
                 <th className="px-6 py-4 whitespace-nowrap">Party</th>
                 <th className="px-6 py-4 whitespace-nowrap">Process</th>
@@ -275,6 +338,7 @@ export default function Items() {
                     }}
                     onDelete={() => setDeleteConfirm({ open: true, item })}
                     onToggleStatus={() => handleToggleStatus(item)}
+                    handlePrintBarcode={handlePrintClick}
                   />
                 ))
               )}
@@ -395,11 +459,186 @@ export default function Items() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm({ open: false, item: null })}
       />
+
+      {/* Print Barcode Modal */}
+      {printModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700 transform transition-all scale-100">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Print Barcodes
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Configure print settings for{" "}
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {printModal.item?.name}
+              </span>
+            </p>
+
+            <div className="space-y-6">
+              {/* Count Input */}
+              <div>
+                <label
+                  htmlFor="print_count"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Number of Copies
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() =>
+                      setPrintModal((p) => ({
+                        ...p,
+                        count: Math.max(1, p.count - 1),
+                      }))
+                    }
+                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <input
+                    type="number"
+                    id="print_count"
+                    min="1"
+                    max="100"
+                    value={printModal.count}
+                    onChange={(e) =>
+                      setPrintModal((p) => ({
+                        ...p,
+                        count: Math.max(1, parseInt(e.target.value) || 1),
+                      }))
+                    }
+                    className="w-20 text-center px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-transparent font-bold focus:border-blue-500 outline-none"
+                  />
+                  <button
+                    onClick={() =>
+                      setPrintModal((p) => ({ ...p, count: p.count + 1 }))
+                    }
+                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Format Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Paper Size
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() =>
+                      setPrintModal((p) => ({ ...p, format: "thermal" }))
+                    }
+                    className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
+                      printModal.format === "thermal"
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          printModal.format === "thermal"
+                            ? "border-blue-500"
+                            : "border-gray-400"
+                        }`}
+                      >
+                        {printModal.format === "thermal" && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        )}
+                      </div>
+                      <span
+                        className={`font-semibold text-sm ${
+                          printModal.format === "thermal"
+                            ? "text-blue-700 dark:text-blue-300"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        Thermal Roll
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
+                      50mm x 25mm labels
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() =>
+                      setPrintModal((p) => ({ ...p, format: "a4" }))
+                    }
+                    className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
+                      printModal.format === "a4"
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          printModal.format === "a4"
+                            ? "border-blue-500"
+                            : "border-gray-400"
+                        }`}
+                      >
+                        {printModal.format === "a4" && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        )}
+                      </div>
+                      <span
+                        className={`font-semibold text-sm ${
+                          printModal.format === "a4"
+                            ? "text-blue-700 dark:text-blue-300"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        A4 Sheet
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
+                      Grid layout on A4
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-8">
+              <button
+                onClick={() =>
+                  setPrintModal({
+                    open: false,
+                    item: null,
+                    count: 1,
+                    format: "thermal",
+                  })
+                }
+                className="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPrint}
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105 transition-all"
+              >
+                Print
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ItemRow({ item, index, onEdit, onDelete, onToggleStatus }) {
+function ItemRow({
+  item,
+  index,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+  handlePrintBarcode,
+}) {
   return (
     <tr
       className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/30 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
@@ -419,6 +658,17 @@ function ItemRow({ item, index, onEdit, onDelete, onToggleStatus }) {
             </div>
           )}
         </div>
+      </td>
+      <td className="px-6 py-5">
+        {item.barcode ? (
+          <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
+            {item.barcode}
+          </span>
+        ) : (
+          <span className="text-gray-400 dark:text-gray-600 text-xs italic">
+            —
+          </span>
+        )}
       </td>
       <td className="px-6 py-5">
         <span
@@ -520,6 +770,17 @@ function ItemRow({ item, index, onEdit, onDelete, onToggleStatus }) {
       </td>
       <td className="px-6 py-5">
         <div className="flex items-center justify-end gap-2">
+          {/* Print Barcode Button - Only if barcode exists */}
+          {item.barcode && (
+            <button
+              onClick={() => handlePrintBarcode(item)}
+              className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Print Barcode"
+            >
+              <Printer size={16} />
+            </button>
+          )}
+
           {/* Edit Button */}
           <button
             onClick={onEdit}

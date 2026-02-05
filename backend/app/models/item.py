@@ -40,6 +40,7 @@ class Item(Base):
     casting_weight = Column(Numeric(10, 3), default=0)
     scrap_weight = Column(Numeric(10, 3), default=0)
     rate = Column(Numeric(10, 2), nullable=False)
+    barcode = Column(String(50), unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
 
     company = relationship(Company)

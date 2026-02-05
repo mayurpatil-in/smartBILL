@@ -25,6 +25,7 @@ import {
 import { getParties } from "../api/parties";
 import { getPendingChallanItems } from "../api/challans";
 import { getActiveFinancialYear } from "../api/financialYear";
+import useBarcodeScanner from "../hooks/useBarcodeScanner";
 
 export default function InvoiceForm() {
   const navigate = useNavigate();
@@ -35,6 +36,31 @@ export default function InvoiceForm() {
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useState([]);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState("");
+
+  // Barcode Scanner Integration
+  useBarcodeScanner({
+    onScan: (scannedCode) => {
+      console.log("Scanned:", scannedCode);
+      // Find item in pending items list
+      const matchedItem = pendingItems.find(
+        (i) =>
+          i.barcode === scannedCode ||
+          // Also check item object if nested, though our backend flattens it mostly
+          (i.item_name && i.item_name.includes(scannedCode)) || // Weak fallback
+          i.hsn_code === scannedCode,
+      );
+
+      if (matchedItem) {
+        toast.success(`Scanned: ${matchedItem.item_name}`);
+        // We need to call the function that handles item selection
+        // Since handleItemSelect is defined later in the component, we can access it here as it's a closure
+        handleItemSelect(matchedItem.delivery_challan_item_id);
+      } else {
+        toast.error(`Item not found in pending challans: ${scannedCode}`);
+      }
+    },
+    minLength: 3,
+  });
 
   // Pending items from backend
   const [pendingItems, setPendingItems] = useState([]);

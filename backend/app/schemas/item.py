@@ -11,6 +11,7 @@ class ItemCreate(BaseModel):
     rate: float
     party_id: Optional[int] = None
     process_id: Optional[int] = None
+    barcode: Optional[str] = None
     is_active: bool = True
 
 
