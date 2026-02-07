@@ -17,6 +17,7 @@ import {
   IndianRupee,
   Boxes,
   Printer,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -462,148 +463,277 @@ export default function Items() {
 
       {/* Print Barcode Modal */}
       {printModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700 transform transition-all scale-100">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Print Barcodes
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Configure print settings for{" "}
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {printModal.item?.name}
-              </span>
-            </p>
-
-            <div className="space-y-6">
-              {/* Count Input */}
-              <div>
-                <label
-                  htmlFor="print_count"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Number of Copies
-                </label>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 transform transition-all scale-100 overflow-hidden">
+            {/* Header with Gradient */}
+            <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() =>
-                      setPrintModal((p) => ({
-                        ...p,
-                        count: Math.max(1, p.count - 1),
-                      }))
-                    }
-                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <input
-                    type="number"
-                    id="print_count"
-                    min="1"
-                    max="100"
-                    value={printModal.count}
-                    onChange={(e) =>
-                      setPrintModal((p) => ({
-                        ...p,
-                        count: Math.max(1, parseInt(e.target.value) || 1),
-                      }))
-                    }
-                    className="w-20 text-center px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-transparent font-bold focus:border-blue-500 outline-none"
-                  />
-                  <button
-                    onClick={() =>
-                      setPrintModal((p) => ({ ...p, count: p.count + 1 }))
-                    }
-                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
+                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                    <Printer size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Print Barcode Labels
+                    </h3>
+                    <p className="text-blue-100 text-sm mt-0.5">
+                      Configure and preview your labels
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    setPrintModal({
+                      open: false,
+                      item: null,
+                      count: 1,
+                      format: "thermal",
+                    })
+                  }
+                  className="p-2 hover:bg-white/20 rounded-full transition-all duration-200"
+                >
+                  <X size={22} className="text-white" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Item Info Card */}
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-4 border-2 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-600 rounded-lg">
+                    <Package size={20} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      Printing labels for
+                    </p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {printModal.item?.name}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      Price
+                    </p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                      ₹{Number(printModal.item?.rate || 0).toFixed(2)}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Format Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Paper Size
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div
-                    onClick={() =>
-                      setPrintModal((p) => ({ ...p, format: "thermal" }))
-                    }
-                    className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
-                      printModal.format === "thermal"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          printModal.format === "thermal"
-                            ? "border-blue-500"
-                            : "border-gray-400"
-                        }`}
-                      >
-                        {printModal.format === "thermal" && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        )}
-                      </div>
-                      <span
-                        className={`font-semibold text-sm ${
-                          printModal.format === "thermal"
-                            ? "text-blue-700 dark:text-blue-300"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
-                      >
-                        Thermal Roll
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column - Settings */}
+                <div className="space-y-6">
+                  {/* Count Input */}
+                  <div>
+                    <label
+                      htmlFor="print_count"
+                      className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2"
+                    >
+                      <span className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <Package
+                          size={14}
+                          className="text-blue-600 dark:text-blue-400"
+                        />
                       </span>
+                      Number of Copies
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() =>
+                          setPrintModal((p) => ({
+                            ...p,
+                            count: Math.max(1, p.count - 1),
+                          }))
+                        }
+                        className="p-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 transition-all"
+                      >
+                        <ChevronLeft
+                          size={18}
+                          className="text-gray-700 dark:text-gray-300"
+                        />
+                      </button>
+                      <input
+                        type="number"
+                        id="print_count"
+                        min="1"
+                        max="100"
+                        value={printModal.count}
+                        onChange={(e) =>
+                          setPrintModal((p) => ({
+                            ...p,
+                            count: Math.max(1, parseInt(e.target.value) || 1),
+                          }))
+                        }
+                        className="flex-1 text-center px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold text-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition-all"
+                      />
+                      <button
+                        onClick={() =>
+                          setPrintModal((p) => ({ ...p, count: p.count + 1 }))
+                        }
+                        className="p-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 transition-all"
+                      >
+                        <ChevronRight
+                          size={18}
+                          className="text-gray-700 dark:text-gray-300"
+                        />
+                      </button>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                      50mm x 25mm labels
-                    </p>
                   </div>
 
-                  <div
-                    onClick={() =>
-                      setPrintModal((p) => ({ ...p, format: "a4" }))
-                    }
-                    className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
-                      printModal.format === "a4"
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          printModal.format === "a4"
-                            ? "border-blue-500"
-                            : "border-gray-400"
-                        }`}
-                      >
-                        {printModal.format === "a4" && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        )}
-                      </div>
-                      <span
-                        className={`font-semibold text-sm ${
-                          printModal.format === "a4"
-                            ? "text-blue-700 dark:text-blue-300"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
-                      >
-                        A4 Sheet
+                  {/* Format Selection */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <span className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                        <FileText
+                          size={14}
+                          className="text-purple-600 dark:text-purple-400"
+                        />
                       </span>
+                      Paper Format
+                    </label>
+                    <div className="space-y-3">
+                      <div
+                        onClick={() =>
+                          setPrintModal((p) => ({ ...p, format: "thermal" }))
+                        }
+                        className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 ${
+                          printModal.format === "thermal"
+                            ? "border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 shadow-lg shadow-blue-500/20"
+                            : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                              printModal.format === "thermal"
+                                ? "border-blue-500 bg-blue-500"
+                                : "border-gray-400"
+                            }`}
+                          >
+                            {printModal.format === "thermal" && (
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <span
+                              className={`font-bold text-sm block ${
+                                printModal.format === "thermal"
+                                  ? "text-blue-700 dark:text-blue-300"
+                                  : "text-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              Thermal Roll
+                            </span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              50mm × 25mm labels
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() =>
+                          setPrintModal((p) => ({ ...p, format: "a4" }))
+                        }
+                        className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 ${
+                          printModal.format === "a4"
+                            ? "border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 shadow-lg shadow-purple-500/20"
+                            : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                              printModal.format === "a4"
+                                ? "border-purple-500 bg-purple-500"
+                                : "border-gray-400"
+                            }`}
+                          >
+                            {printModal.format === "a4" && (
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <span
+                              className={`font-bold text-sm block ${
+                                printModal.format === "a4"
+                                  ? "text-purple-700 dark:text-purple-300"
+                                  : "text-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              A4 Sheet
+                            </span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              Multiple labels per page
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                      Grid layout on A4
-                    </p>
                   </div>
+                </div>
+
+                {/* Right Column - Preview */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <span className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                      <Tag
+                        size={14}
+                        className="text-green-600 dark:text-green-400"
+                      />
+                    </span>
+                    Label Preview
+                  </label>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl p-6 border-2 border-gray-200 dark:border-gray-700 min-h-[280px] flex items-center justify-center">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-gray-300 dark:border-gray-600 p-3 w-full max-w-[200px]">
+                      {/* Preview Header */}
+                      <div className="text-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-2">
+                        <p className="text-[8px] font-bold text-gray-900 dark:text-white uppercase truncate">
+                          {printModal.item?.name}
+                        </p>
+                      </div>
+
+                      {/* Preview Body */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                            <Tag size={16} className="text-gray-400" />
+                          </div>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <p className="text-[6px] text-gray-500 dark:text-gray-400">
+                            MRP
+                          </p>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">
+                            ₹{Number(printModal.item?.rate || 0).toFixed(2)}
+                          </p>
+                          <p className="text-[6px] font-mono text-gray-600 dark:text-gray-400 mt-1">
+                            {printModal.item?.barcode || "BARCODE"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Preview Footer */}
+                      <div className="text-center border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                        <p className="text-[7px] font-semibold text-gray-700 dark:text-gray-300 uppercase">
+                          Your Company
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
+                    This is a simplified preview. Actual label will include QR
+                    code.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-8">
+            {/* Footer */}
+            <div className="flex justify-end gap-3 p-6 border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
               <button
                 onClick={() =>
                   setPrintModal({
@@ -613,15 +743,17 @@ export default function Items() {
                     format: "thermal",
                   })
                 }
-                className="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+                className="px-6 py-2.5 rounded-xl text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold transition-all border-2 border-gray-300 dark:border-gray-600"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmPrint}
-                className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105 transition-all"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-semibold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105 transition-all duration-200"
               >
-                Print
+                <Printer size={18} />
+                Print{" "}
+                {printModal.count > 1 ? `${printModal.count} Labels` : "Label"}
               </button>
             </div>
           </div>

@@ -18,56 +18,71 @@
             {% if format == 'a4' %}
             display: flex;
             flex-wrap: wrap;
-            gap: 4mm; /* Increased from 2mm */
+            gap: 4mm;
             align-content: flex-start;
             justify-content: flex-start; 
             {% endif %}
         }
         .container {
-            /* A4 Default Width for 4-column layout */
-            width: 46.5mm; /* Slightly reduced (47->46.5) to ensure 4mm gap fits perfectly (46.5*4 + 4*3 = 186+12 = 198 < 200) */
+            width: 46.5mm;
             height: 23mm;
-            border: 1px solid #333;
+            border: 2px solid #2563eb;
             border-radius: 4px;
             box-sizing: border-box;
-            background-color: white;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             padding: 2px 4px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             
             {% if format == 'thermal' %}
             width: 50mm;
             height: 25mm;
-            border: none; 
+            border: 2px solid #2563eb;
             padding: 1mm;
             {% else %}
-            /* No margin right/bottom needed due to flex gap */
             break-inside: avoid;
             page-break-inside: avoid;
             {% endif %}
+        }
+
+        /* Decorative corner accent */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8mm;
+            height: 8mm;
+            background: linear-gradient(135deg, transparent 50%, rgba(37, 99, 235, 0.1) 50%);
+            border-bottom-left-radius: 4px;
         }
 
         /* Header: Item Name */
         .header {
             width: 100%;
             text-align: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0px; 
-            margin-bottom: 0px; 
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 3px;
+            padding: 1.5px 2px;
+            margin-bottom: 1px;
             line-height: 1.2;
+            box-shadow: 0 1px 2px rgba(59, 130, 246, 0.3);
         }
         .item-name {
-            font-size: 8px; 
-            font-weight: 700;
-            color: #000;
+            font-size: 8px;
+            font-weight: 800;
+            color: #ffffff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             display: block;
             text-transform: uppercase;
+            letter-spacing: 0.3px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
 
         /* Body: Flex row for QR and Info */
@@ -77,18 +92,24 @@
             justify-content: space-between;
             align-items: center;
             flex-grow: 1;
-            padding: 0; 
-            min-height: 0; 
-            gap: 2mm; /* Added gap between QR and Text */
+            padding: 0;
+            min-height: 0;
+            gap: 2mm;
         }
 
         .qr-section {
             flex: 0 0 auto;
+            position: relative;
         }
         .qr-code {
-            width: 12mm; /* Reduced from 14mm */
-            height: 12mm; /* Reduced from 14mm */
+            width: 12mm;
+            height: 12mm;
             display: block;
+            border: 2px solid #e5e7eb;
+            border-radius: 2px;
+            padding: 0.5mm;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .info-section {
@@ -99,46 +120,63 @@
             align-items: flex-end;
             text-align: right;
             padding-left: 2px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border-radius: 3px;
+            padding: 2px 3px;
         }
 
         .price-label {
-            font-size: 5px; /* Reduced */
-            color: #666;
+            font-size: 5px;
+            color: #6b7280;
             margin-bottom: 0px;
             line-height: 1;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         .price-value {
-            font-size: 10px; /* Reduced from 11px */
-            font-weight: 800;
-            color: #000;
+            font-size: 10px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             line-height: 1.1;
+            text-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
         }
         .barcode-text {
             font-family: 'Courier New', monospace;
-            font-size: 6px; /* Reduced */
+            font-size: 6px;
             margin-top: 1px;
             letter-spacing: 0.5px;
             line-height: 1;
+            color: #374151;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 0.5px 2px;
+            border-radius: 2px;
         }
 
         /* Footer: Company Name */
         .footer {
             width: 100%;
             text-align: center;
-            border-top: 1px solid #ddd;
-            padding-top: 1px; /* Reduced */
-            margin-top: 0px; /* Reduced */
-            /* Ensure footer stays at bottom */
-            flex-shrink: 0; 
+            background: linear-gradient(90deg, #1f2937 0%, #374151 100%);
+            border-radius: 3px;
+            padding: 1.5px 2px;
+            margin-top: 1px;
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
         .company-name {
-            font-size: 7px; /* Adjusted */
-            color: #000;
-            font-weight: 600;
+            font-size: 7px;
+            color: #ffffff;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             display: block;
             line-height: 1.1;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
 
     </style>
