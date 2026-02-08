@@ -138,127 +138,148 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
+        {/* Header with Gradient */}
+        <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                <ClipboardCheck
-                  className="text-blue-600 dark:text-blue-400"
-                  size={24}
-                />
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                <ClipboardCheck size={24} className="text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  PDI Report
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <h2 className="text-2xl font-bold text-white">PDI Report</h2>
+                <p className="text-blue-100 text-sm mt-0.5">
                   Challan #{challan?.challan_number}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              className="p-2 hover:bg-white/20 rounded-full transition-all duration-200"
             >
-              <X size={20} />
+              <X size={22} className="text-white" />
             </button>
           </div>
+        </div>
 
+        {/* Form Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Inspector Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.inspector_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, inspector_name: e.target.value })
-                  }
-                  className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  placeholder="Enter Name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Inspection Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.inspection_date}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      inspection_date: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  required
-                />
+            {/* Inspector Info Section */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 border-2 border-blue-200 dark:border-blue-800">
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-4 flex items-center gap-2">
+                <div className="p-1.5 bg-blue-600 rounded-lg">
+                  <ClipboardCheck size={14} className="text-white" />
+                </div>
+                Inspection Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Inspector Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.inspector_name}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        inspector_name: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all font-medium"
+                    placeholder="Enter inspector name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Inspection Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.inspection_date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        inspection_date: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all font-medium"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-medium border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-4 py-3">Inspection Point</th>
-                    <th className="px-4 py-3 w-[200px]">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                  {Object.keys(formData.checklist).map((key) => (
-                    <tr
-                      key={key}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
-                    >
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                        {key}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          {["Pass", "Fail", "NA"].map((status) => (
-                            <label
-                              key={status}
-                              className={`
-                                                        px-2 py-1 rounded-md text-xs font-bold cursor-pointer transition-all border
+            {/* Checklist Section */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-600 rounded-lg">
+                  <CheckCircle size={14} className="text-white" />
+                </div>
+                Inspection Checklist
+              </h3>
+
+              <div className="border-2 border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold">
+                    <tr>
+                      <th className="px-4 py-4">Inspection Point</th>
+                      <th className="px-4 py-4 w-[220px]">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                    {Object.keys(formData.checklist).map((key) => (
+                      <tr
+                        key={key}
+                        className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/30 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all"
+                      >
+                        <td className="px-4 py-4 font-semibold text-gray-900 dark:text-white">
+                          {key}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex gap-2">
+                            {["Pass", "Fail", "NA"].map((status) => (
+                              <label
+                                key={status}
+                                className={`
+                                                        px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all border-2 flex-1 text-center
                                                         ${
                                                           formData.checklist[
                                                             key
                                                           ] === status
                                                             ? status === "Pass"
-                                                              ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                                              ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-600 shadow-lg shadow-green-500/30"
                                                               : status ===
                                                                   "Fail"
-                                                                ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-                                                                : "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600"
-                                                            : "bg-white text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                                ? "bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-600 shadow-lg shadow-red-500/30"
+                                                                : "bg-gradient-to-r from-gray-500 to-gray-600 text-white border-gray-600 shadow-lg shadow-gray-500/30"
+                                                            : "bg-white text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                                                         }
                                                     `}
-                            >
-                              <input
-                                type="radio"
-                                name={`checklist-${key}`}
-                                value={status}
-                                checked={formData.checklist[key] === status}
-                                onChange={() =>
-                                  handleChecklistChange(key, status)
-                                }
-                                className="hidden"
-                              />
-                              {status}
-                            </label>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                              >
+                                <input
+                                  type="radio"
+                                  name={`checklist-${key}`}
+                                  value={status}
+                                  checked={formData.checklist[key] === status}
+                                  onChange={() =>
+                                    handleChecklistChange(key, status)
+                                  }
+                                  className="hidden"
+                                />
+                                {status}
+                              </label>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div>
@@ -322,11 +343,12 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-between pt-6 border-t-2 border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2 rounded-xl text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="px-6 py-2.5 rounded-xl text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold transition-all border-2 border-gray-300 dark:border-gray-600"
               >
                 Cancel
               </button>
@@ -336,7 +358,7 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
                     type="button"
                     onClick={handlePrint}
                     disabled={loading}
-                    className="flex items-center gap-2 px-6 py-2 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 font-medium border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105 transition-all duration-200 disabled:opacity-50"
                   >
                     <Printer size={18} />
                     Print PDF
@@ -346,7 +368,7 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center gap-2 px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-medium hover:from-blue-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105 transition-all duration-200 disabled:opacity-50"
                 >
                   {loading ? (
                     <>Saving...</>

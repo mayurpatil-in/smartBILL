@@ -6,34 +6,33 @@
     <style>
         @page {
             size: A4;
-            margin: 10mm; /* Reduced margin */
+            margin: 10mm;
         }
         
         :root {
-            --primary-color: #2c3e50;
-            --accent-color: #34495e;
-            --border-color: #e2e8f0;
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             --text-color: #1f2937;
-            --light-bg: #f8fafc;
-            --success-color: #059669;
-            --danger-color: #dc2626;
+            --border-color: #e5e7eb;
         }
 
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            font-size: 10pt; /* Reduced font size from 11pt */
+            font-size: 10pt;
             color: var(--text-color);
             margin: 0;
             padding: 0;
-            line-height: 1.3; /* Tighter line height */
+            line-height: 1.3;
         }
 
-        /* Header Section */
+        /* Header Section with Gradient */
         .header {
-            display: flex;
-            margin-bottom: 20px; /* Reduced from 30px */
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 10px; /* Reduced from 15px */
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
         }
 
         .header-table {
@@ -47,17 +46,19 @@
         }
 
         .company-name {
-            font-size: 20px; /* Reduced from 24px */
-            font-weight: 700;
-            color: var(--primary-color);
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .company-details {
-            font-size: 9pt; /* Reduced from 10pt */
-            color: #64748b;
+            font-size: 9pt;
+            color: #e0e7ff;
+            line-height: 1.5;
         }
 
         .report-header {
@@ -67,151 +68,219 @@
         }
 
         .report-title {
-            font-size: 16px; /* Reduced from 18px */
-            font-weight: 700;
-            color: #fff;
-            background-color: var(--primary-color);
-            padding: 5px 12px; /* Reduced padding */
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
             display: inline-block;
-            border-radius: 4px;
-            margin-bottom: 5px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .meta-info {
             font-size: 9pt;
+            color: #e0e7ff;
+            line-height: 1.6;
         }
 
-        /* Details Section */
+        .meta-info strong {
+            color: #ffffff;
+        }
+
+        /* Section Titles with Gradient */
         .section-title {
-            font-size: 12px; /* Reduced from 14px */
-            font-weight: 700;
-            color: var(--accent-color);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 3px;
-            margin-bottom: 10px; /* Reduced margin */
-            margin-top: 15px; /* Reduced margin */
+            font-size: 13px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+            color: #ffffff;
+            padding: 8px 16px;
+            margin-bottom: 12px;
+            margin-top: 18px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
         }
 
+        /* Details Grid with Modern Styling */
         .details-grid {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px; /* Reduced margin */
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .details-grid td {
-            padding: 6px 10px; /* Reduced padding */
-            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
             vertical-align: middle;
         }
 
         .label-cell {
-            background-color: var(--light-bg);
-            font-weight: 600;
-            color: var(--accent-color);
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            font-weight: 700;
+            color: #374151;
             width: 20%;
         }
 
         .value-cell {
             width: 30%;
+            background: #ffffff;
+            font-weight: 600;
         }
 
-        /* Status Badges */
+        /* Enhanced Status Badges with Gradients */
         .badge {
             display: inline-block;
-            padding: 2px 10px; /* Reduced padding */
-            border-radius: 10px;
+            padding: 4px 12px;
+            border-radius: 12px;
             font-size: 9pt;
-            font-weight: 700;
+            font-weight: 800;
             text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .badge-pass {
-            background-color: #dcfce7;
-            color: var(--success-color);
-            border: 1px solid #bbf7d0;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
 
         .badge-fail {
-            background-color: #fee2e2;
-            color: var(--danger-color);
-            border: 1px solid #fecaca;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
         }
 
-        /* Checklist Table */
+        .badge-pending {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Checklist Table with Gradient Header */
         .checklist-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 10pt;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .checklist-table th {
-            background-color: var(--primary-color);
-            color: #fff;
-            padding: 6px 10px; /* Reduced padding */
+            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+            color: #ffffff;
+            padding: 10px 12px;
             text-align: left;
-            font-weight: 600;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .checklist-table td {
-            padding: 6px 10px; /* Reduced padding */
-            border-bottom: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #ffffff;
         }
 
-        .checklist-table tr:nth-child(even) {
-            background-color: #f8fafc;
+        .checklist-table tr:nth-child(even) td {
+            background: #f9fafb;
         }
 
-        /* Remarks Box */
-        .remarks-box {
-            border: 1px solid var(--border-color);
-            background-color: #fff;
-            padding: 10px; /* Reduced padding */
+        .checklist-table tr:hover td {
+            background: #f3f4f6;
+        }
+
+        /* Status Icons in Checklist */
+        .status-pass {
+            color: #10b981;
+            font-weight: 800;
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            padding: 3px 10px;
             border-radius: 6px;
-            min-height: 50px; /* Reduced height */
-            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .status-fail {
+            color: #ef4444;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            padding: 3px 10px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .status-na {
+            color: #6b7280;
+            font-weight: 700;
+        }
+
+        /* Remarks Box with Modern Styling */
+        .remarks-box {
+            border: 2px solid #e5e7eb;
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 50px;
+            margin-top: 8px;
             font-style: italic;
             color: #4b5563;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
-        /* Footer */
+        /* Footer with Gradient */
         .footer {
-            margin-top: 30px; /* Reduced from 50px */
+            margin-top: 30px;
             page-break-inside: avoid;
         }
 
         .signature-section {
             width: 100%;
-            margin-top: 20px; /* Reduced from 40px */
+            margin-top: 20px;
         }
 
         .signature-box {
             width: 250px;
             float: right;
             text-align: center;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
         }
 
         .signature-line {
-            border-top: 1px solid #000;
-            margin-bottom: 5px;
+            border-top: 2px solid #374151;
+            margin-bottom: 8px;
+            margin-top: 40px;
         }
 
         .signature-text {
-            font-weight: 600;
-            font-size: 9pt;
+            font-weight: 700;
+            font-size: 10pt;
+            color: #374151;
         }
 
         .disclaimer {
-            margin-top: 40px; /* Reduced from 80px */
-            font-size: 7pt; /* Reduced from 8pt */
+            margin-top: 40px;
+            font-size: 7pt;
             color: #94a3b8;
             text-align: center;
-            border-top: 1px solid var(--border-color);
-            padding-top: 5px;
+            border-top: 2px solid #e5e7eb;
+            padding-top: 8px;
         }
     </style>
 </head>
 <body>
+    <!-- Header with Gradient -->
     <div class="header">
         <table class="header-table">
             <tr>
@@ -235,7 +304,7 @@
         </table>
     </div>
 
-    <!-- Machine/Vehicle Information -->
+    <!-- Inspection Details Section -->
     <div class="section-title">Inspection Details</div>
     <table class="details-grid">
         <tr>
@@ -249,15 +318,15 @@
             <td class="value-cell">{{ challan.vehicle_number or 'N/A' }}</td>
             <td class="label-cell">Overall Result</td>
             <td class="value-cell">
-                <span class="badge {% if report.status == 'Pass' %}badge-pass{% else %}badge-fail{% endif %}">
+                <span class="badge {% if report.status == 'Pass' %}badge-pass{% elif report.status == 'Fail' %}badge-fail{% else %}badge-pending{% endif %}">
                     {{ report.status|upper }}
                 </span>
             </td>
         </tr>
     </table>
 
-    <!-- Inspection Checklist -->
-    <div class="section-title">Checklist Points</div>
+    <!-- Checklist Section -->
+    <div class="section-title">Inspection Checklist</div>
     <table class="checklist-table">
         <thead>
             <tr>
@@ -271,11 +340,11 @@
                 <td>{{ key }}</td>
                 <td>
                     {% if value == 'Pass' %}
-                        <span style="color: green; font-weight: bold;">&#10003; Pass</span>
+                        <span class="status-pass">✓ Pass</span>
                     {% elif value == 'Fail' %}
-                        <span style="color: red; font-weight: bold;">&#10007; Fail</span>
+                        <span class="status-fail">✗ Fail</span>
                     {% else %}
-                        <span style="color: #666;">- {{ value }}</span>
+                        <span class="status-na">- {{ value }}</span>
                     {% endif %}
                 </td>
             </tr>
@@ -283,7 +352,7 @@
         </tbody>
     </table>
 
-    <!-- Observations/Remarks -->
+    <!-- Remarks Section -->
     <div class="section-title">Inspector Remarks & Observations</div>
     <div class="remarks-box">
         {{ report.remarks or "No additional remarks recorded for this inspection." }}
@@ -296,10 +365,9 @@
                 <td></td> <!-- Spacer -->
                 <td style="width: 250px;">
                     <div class="signature-box">
-                        <br><br> <!-- Reduced signature space -->
                         <div class="signature-line"></div>
                         <div class="signature-text">Authorized Signature</div>
-                        <div style="font-size: 8pt; color: #666;">(For {{ company.name }})</div>
+                        <div style="font-size: 8pt; color: #6b7280; margin-top: 4px;">(For {{ company.name }})</div>
                     </div>
                 </td>
             </tr>
@@ -313,3 +381,4 @@
 
 </body>
 </html>
+
