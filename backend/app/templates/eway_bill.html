@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Way Bill - {{ invoice.invoice_number }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #000;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #000;
+        }
+
+        .header {
+            background-color: #f0f0f0;
+            padding: 10px;
+            text-align: center;
+            border-bottom: 2px solid #000;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 10px;
+            color: #555;
+        }
+
+        .section {
+            border-bottom: 1px solid #000;
+            padding: 10px;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            background-color: #e0e0e0;
+            padding: 5px 10px;
+            font-weight: bold;
+            font-size: 12px;
+            margin: -10px -10px 10px -10px;
+            border-bottom: 1px solid #000;
+        }
+
+        .row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .col {
+            flex: 1;
+            padding-right: 15px;
+        }
+
+        .col:last-child {
+            padding-right: 0;
+        }
+
+        .field {
+            margin-bottom: 6px;
+        }
+
+        .field-label {
+            font-weight: bold;
+            font-size: 9px;
+            color: #555;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .field-value {
+            font-size: 11px;
+            color: #000;
+            padding: 3px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table th {
+            background-color: #e0e0e0;
+            padding: 6px;
+            text-align: left;
+            font-size: 10px;
+            border: 1px solid #000;
+            font-weight: bold;
+        }
+
+        table td {
+            padding: 5px 6px;
+            border: 1px solid #000;
+            font-size: 10px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .highlight {
+            background-color: #fffacd;
+            padding: 8px;
+            border: 1px dashed #ff9800;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 9px;
+            color: #666;
+            border-top: 1px solid #000;
+        }
+
+        .validity-box {
+            background-color: #e8f5e9;
+            border: 2px solid #4caf50;
+            padding: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .validity-box strong {
+            font-size: 12px;
+            color: #2e7d32;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+            .container {
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>E-WAY BILL</h1>
+            <p>Electronic Way Bill for Goods Transportation</p>
+            <p style="font-size: 9px; margin-top: 5px;">
+                (To be generated on GST Portal: <strong>https://ewaybillgst.gov.in</strong>)
+            </p>
+        </div>
+
+        <!-- Part A: Transaction Details -->
+        <div class="section">
+            <div class="section-title">PART A - Transaction Details</div>
+            
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Document Number</div>
+                        <div class="field-value">{{ invoice.invoice_number }}</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Document Date</div>
+                        <div class="field-value">{{ invoice.invoice_date.strftime('%d-%m-%Y') }}</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Document Type</div>
+                        <div class="field-value">Tax Invoice</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Transaction Type</div>
+                        <div class="field-value">Outward - Supply</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Sub Type</div>
+                        <div class="field-value">Supply</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Total Invoice Value</div>
+                        <div class="field-value"><strong>₹ {{ format_currency(invoice.grand_total) }}</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consignor Details (From) -->
+        <div class="section">
+            <div class="section-title">Consignor Details (From)</div>
+            
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Name</div>
+                        <div class="field-value">{{ company.name }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">GSTIN</div>
+                        <div class="field-value">{{ company.gst_number or 'N/A' }}</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Address</div>
+                        <div class="field-value">{{ company.address or 'N/A' }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">State</div>
+                        <div class="field-value">{{ company_state or 'N/A' }} ({{ company.state_code or 'N/A' }})</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consignee Details (To) -->
+        <div class="section">
+            <div class="section-title">Consignee Details (To)</div>
+            
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Name</div>
+                        <div class="field-value">{{ party.name }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">GSTIN</div>
+                        <div class="field-value">{{ party.gst_number or 'N/A' }}</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Address</div>
+                        <div class="field-value">{{ party.address or 'N/A' }}</div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">State</div>
+                        <div class="field-value">{{ party_state or 'N/A' }} ({{ party.state_code or 'N/A' }})</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item Details -->
+        <div class="section">
+            <div class="section-title">Item Details</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 35%;">Product Name</th>
+                        <th style="width: 15%;">HSN Code</th>
+                        <th style="width: 10%;" class="text-right">Quantity</th>
+                        <th style="width: 15%;" class="text-right">Taxable Value</th>
+                        <th style="width: 10%;" class="text-right">GST Rate</th>
+                        <th style="width: 10%;" class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="text-center">{{ loop.index }}</td>
+                        <td>{{ item.item.name }}</td>
+                        <td class="text-center">{{ item.item.hsn_code or 'N/A' }}</td>
+                        <td class="text-right">{{ item.quantity }}</td>
+                        <td class="text-right">₹ {{ format_currency(item.amount) }}</td>
+                        <td class="text-right">18%</td>
+                        <td class="text-right">₹ {{ format_currency(item.amount|float * 1.18) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background-color: #f5f5f5;">
+                        <td colspan="6" class="text-right"><strong>Total Invoice Value:</strong></td>
+                        <td class="text-right"><strong>₹ {{ format_currency(invoice.grand_total) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Part B: Transport Details -->
+        <div class="section">
+            <div class="section-title">PART B - Transport Details</div>
+            
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Transport Mode</div>
+                        <div class="field-value">{{ transport_mode }}</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Vehicle Number</div>
+                        <div class="field-value"><strong>{{ vehicle_number }}</strong></div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Vehicle Type</div>
+                        <div class="field-value">{{ vehicle_type }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Approximate Distance (KM)</div>
+                        <div class="field-value">{{ transport_distance }} km</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Transporter ID (GSTIN)</div>
+                        <div class="field-value">{{ transporter_id or 'N/A' }}</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Transporter Doc No</div>
+                        <div class="field-value">{{ transporter_doc_no or 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if transporter_doc_date %}
+            <div class="row">
+                <div class="col">
+                    <div class="field">
+                        <div class="field-label">Transporter Doc Date</div>
+                        <div class="field-value">{{ transporter_doc_date.strftime('%d-%m-%Y') }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Validity Information -->
+            <div class="validity-box">
+                <strong>E-Way Bill Validity: {{ validity_days }} day(s)</strong><br>
+                <span style="font-size: 10px;">{{ validity_description }}</span>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="section">
+            <div class="highlight">
+                <strong>📋 Instructions for GST Portal Submission:</strong><br>
+                1. Visit <strong>https://ewaybillgst.gov.in</strong> and login with your credentials<br>
+                2. Go to <strong>Generate New</strong> → <strong>E-Way Bill</strong><br>
+                3. Enter the above details in the respective fields<br>
+                4. Generate the E-Way Bill and note down the <strong>EWB Number</strong><br>
+                5. Keep the EWB Number with the consignment during transport
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>This is a computer-generated document for E-Way Bill preparation.</p>
+            <p>Generated on: {{ generated_at }}</p>
+            <p style="margin-top: 5px; font-size: 8px;">
+                <strong>Note:</strong> This document is NOT a valid E-Way Bill. 
+                You must generate the actual E-Way Bill on the GST portal using the above information.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

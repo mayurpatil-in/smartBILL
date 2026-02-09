@@ -35,6 +35,17 @@ class Invoice(Base):
     is_locked = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
 
+    # E-Way Bill Fields
+    eway_bill_number = Column(String(12), nullable=True)  # EWB number after generation
+    eway_bill_date = Column(Date, nullable=True)
+    transport_mode = Column(String(20), nullable=True)  # Road/Rail/Air/Ship
+    vehicle_number = Column(String(20), nullable=True)
+    transporter_id = Column(String(15), nullable=True)  # Transporter GSTIN
+    transport_distance = Column(Integer, nullable=True)  # in KM
+    vehicle_type = Column(String(10), nullable=True)  # Regular/ODC
+    transporter_doc_no = Column(String(50), nullable=True)
+    transporter_doc_date = Column(Date, nullable=True)
+
     company = relationship(Company)
     financial_year = relationship(FinancialYear)
     party = relationship(Party)

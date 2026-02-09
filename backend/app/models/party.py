@@ -27,6 +27,7 @@ class Party(Base):
     gst_number = Column(String(20), nullable=True)
     address = Column(String, nullable=True)
     phone = Column(String(20), nullable=True)
+    state_code = Column(String(2), nullable=True)  # GST state code (e.g., "27" for Maharashtra)
     opening_balance = Column(Numeric(12, 2), default=0)
     is_active = Column(Boolean, default=True)
 

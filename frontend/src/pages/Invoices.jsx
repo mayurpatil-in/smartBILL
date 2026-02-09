@@ -17,6 +17,7 @@ import {
   IndianRupee,
   ChevronLeft,
   ChevronRight,
+  Truck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../api/axios";
@@ -25,6 +26,7 @@ import { getParties } from "../api/parties";
 import PdfPreviewModal from "../components/PdfPreviewModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PermissionGuard from "../components/PermissionGuard";
+import EWayBillModal from "../components/EWayBillModal";
 
 export default function Invoices() {
   const navigate = useNavigate();
@@ -48,6 +50,9 @@ export default function Invoices() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewTitle, setPreviewTitle] = useState("");
+
+  const [ewayBillModalOpen, setEwayBillModalOpen] = useState(false);
+  const [selectedInvoiceForEway, setSelectedInvoiceForEway] = useState(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -103,6 +108,30 @@ export default function Invoices() {
   const handleDelete = (id) => {
     setSelectedDeleteId(id);
     setDeleteConfirmOpen(true);
+  };
+
+  const handleEWayBill = async (invoiceId) => {
+    try {
+      // Check eligibility first
+      const response = await api.get(
+        `/invoice/${invoiceId}/eway-bill/check-eligibility`,
+      );
+
+      if (!response.data.eligible) {
+        toast.error(response.data.message);
+        return;
+      }
+
+      // Find the invoice data
+      const invoice = invoices.find((inv) => inv.id === invoiceId);
+
+      // Open the modal
+      setSelectedInvoiceForEway(invoice);
+      setEwayBillModalOpen(true);
+    } catch (error) {
+      console.error("Failed to check e-way bill eligibility", error);
+      toast.error("Failed to check e-way bill eligibility");
+    }
   };
 
   const confirmDelete = async () => {
@@ -446,6 +475,16 @@ export default function Invoices() {
                         >
                           <Printer size={16} />
                         </button>
+                        {/* E-Way Bill Button - Only show for invoices >= 50000 */}
+                        {Number(inv.grand_total) >= 50000 && (
+                          <button
+                            onClick={() => handleEWayBill(inv.id)}
+                            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                            title="Generate E-Way Bill"
+                          >
+                            <Truck size={16} />
+                          </button>
+                        )}
                         <PermissionGuard permission="invoices.delete">
                           <button
                             onClick={() => handleDelete(inv.id)}
@@ -580,6 +619,17 @@ export default function Invoices() {
         type="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirmOpen(false)}
+      />
+
+      {/* E-Way Bill Modal */}
+      <EWayBillModal
+        isOpen={ewayBillModalOpen}
+        onClose={() => {
+          setEwayBillModalOpen(false);
+          setSelectedInvoiceForEway(null);
+        }}
+        invoiceId={selectedInvoiceForEway?.id}
+        invoiceData={selectedInvoiceForEway}
       />
     </div>
   );

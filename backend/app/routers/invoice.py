@@ -757,3 +757,222 @@ async def public_download_invoice(
         media_type="application/pdf",
         headers={"Content-Disposition": f"inline; filename={invoice.invoice_number}.pdf"}
     )
+
+
+# ===============================
+# E-Way Bill Endpoints
+# ===============================
+
+from app.schemas.eway_bill import EWayBillCreate, EWayBillResponse, EWayBillPreviewRequest
+from app.utils.eway_bill_utils import (
+    validate_eway_bill_eligibility,
+    calculate_eway_bill_validity,
+    format_hsn_code,
+    get_state_name
+)
+
+
+@router.post("/{invoice_id}/eway-bill", response_model=InvoiceResponse)
+def save_eway_bill_details(
+    invoice_id: int,
+    data: EWayBillCreate,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    """Save e-way bill transport details to invoice"""
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    
+    # Validate eligibility
+    if not validate_eway_bill_eligibility(invoice.grand_total):
+        raise HTTPException(
+            400, 
+            f"E-way bill not required for invoices below ₹50,000. Current amount: ₹{invoice.grand_total}"
+        )
+    
+    # Update invoice with e-way bill details
+    invoice.transport_mode = data.transport_mode
+    invoice.vehicle_number = data.vehicle_number
+    invoice.transport_distance = data.transport_distance
+    invoice.transporter_id = data.transporter_id
+    invoice.vehicle_type = data.vehicle_type or "Regular"
+    invoice.transporter_doc_no = data.transporter_doc_no
+    invoice.transporter_doc_date = data.transporter_doc_date
+    
+    db.commit()
+    db.refresh(invoice)
+    
+    return invoice
+
+
+@router.get("/{invoice_id}/eway-bill/check-eligibility")
+def check_eway_bill_eligibility(
+    invoice_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    """Check if invoice is eligible for e-way bill"""
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    
+    is_eligible = validate_eway_bill_eligibility(invoice.grand_total)
+    
+    return {
+        "eligible": is_eligible,
+        "invoice_amount": float(invoice.grand_total),
+        "threshold": 50000,
+        "message": "E-way bill required" if is_eligible else "E-way bill not required (amount below ₹50,000)"
+    }
+
+
+@router.post("/{invoice_id}/eway-bill/preview")
+async def generate_eway_bill_preview(
+    invoice_id: int,
+    data: EWayBillPreviewRequest,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    """Generate e-way bill preview data (without saving)"""
+    invoice = db.query(Invoice).options(
+        joinedload(Invoice.party),
+        joinedload(Invoice.items).joinedload(InvoiceItem.item)
+    ).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    
+    # Validate eligibility
+    if not validate_eway_bill_eligibility(invoice.grand_total):
+        raise HTTPException(
+            400,
+            f"E-way bill not required for invoices below ₹50,000"
+        )
+    
+    company = db.query(Company).filter(Company.id == company_id).first()
+    
+    # Calculate validity
+    validity_days, validity_desc = calculate_eway_bill_validity(data.transport_distance)
+    
+    # Prepare e-way bill data
+    eway_data = {
+        "invoice": invoice,
+        "company": company,
+        "party": invoice.party,
+        "items": invoice.items,
+        "transport_mode": data.transport_mode,
+        "vehicle_number": data.vehicle_number,
+        "transport_distance": data.transport_distance,
+        "transporter_id": data.transporter_id,
+        "vehicle_type": data.vehicle_type or "Regular",
+        "transporter_doc_no": data.transporter_doc_no,
+        "transporter_doc_date": data.transporter_doc_date,
+        "validity_days": validity_days,
+        "validity_description": validity_desc,
+        "company_state": get_state_name(company.state_code) if company.state_code else "",
+        "party_state": get_state_name(invoice.party.state_code) if invoice.party.state_code else "",
+    }
+    
+    # Render HTML template
+    template = env.get_template("eway_bill.html")
+    html = template.render(**eway_data, format_currency=format_inr)
+    
+    # Generate PDF
+    pdf_content = await generate_pdf(html)
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=EWayBill_{invoice.invoice_number}.pdf"}
+    )
+
+
+@router.get("/{invoice_id}/eway-bill/print")
+async def print_eway_bill(
+    invoice_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    """Print e-way bill using saved transport details"""
+    try:
+        invoice = db.query(Invoice).options(
+            joinedload(Invoice.party),
+            joinedload(Invoice.items).joinedload(InvoiceItem.item)
+        ).filter(
+            Invoice.id == invoice_id,
+            Invoice.company_id == company_id
+        ).first()
+        
+        if not invoice:
+            raise HTTPException(404, "Invoice not found")
+        
+        # Check if transport details are saved
+        if not invoice.transport_mode or not invoice.vehicle_number or not invoice.transport_distance:
+            raise HTTPException(
+                400,
+                "E-way bill transport details not found. Please save transport details first."
+            )
+        
+        # Validate eligibility
+        if not validate_eway_bill_eligibility(invoice.grand_total):
+            raise HTTPException(400, "E-way bill not required for invoices below ₹50,000")
+        
+        company = db.query(Company).filter(Company.id == company_id).first()
+        
+        # Calculate validity
+        validity_days, validity_desc = calculate_eway_bill_validity(invoice.transport_distance)
+        
+        from datetime import datetime
+        
+        # Prepare e-way bill data
+        eway_data = {
+            "invoice": invoice,
+            "company": company,
+            "party": invoice.party,
+            "items": invoice.items,
+            "transport_mode": invoice.transport_mode,
+            "vehicle_number": invoice.vehicle_number,
+            "transport_distance": invoice.transport_distance,
+            "transporter_id": invoice.transporter_id,
+            "vehicle_type": invoice.vehicle_type or "Regular",
+            "transporter_doc_no": invoice.transporter_doc_no,
+            "transporter_doc_date": invoice.transporter_doc_date,
+            "validity_days": validity_days,
+            "validity_description": validity_desc,
+            "company_state": get_state_name(company.state_code) if company.state_code else "",
+            "party_state": get_state_name(invoice.party.state_code) if invoice.party.state_code else "",
+            "generated_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        }
+        
+        # Render HTML template
+        template = env.get_template("eway_bill.html")
+        html = template.render(**eway_data, format_currency=format_inr)
+        
+        # Generate PDF
+        pdf_content = await generate_pdf(html)
+        
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename=EWayBill_{invoice.invoice_number}.pdf"}
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        print(f"ERROR generating E-Way Bill PDF: {e}")
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to generate E-Way Bill PDF: {str(e)}")
+

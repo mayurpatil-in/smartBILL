@@ -31,6 +31,7 @@ class Company(Base):
     phone = Column(String(20), nullable=True)
     email = Column(String(255), nullable=True)
     logo = Column(String(500), nullable=True)
+    state_code = Column(String(2), nullable=True)  # GST state code for e-way bill
 
     # =========================
     # 🔐 SUBSCRIPTION CONTROL (SUPER ADMIN)
