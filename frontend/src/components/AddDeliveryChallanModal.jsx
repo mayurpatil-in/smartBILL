@@ -12,6 +12,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -56,6 +57,7 @@ export default function AddDeliveryChallanModal({
     cr_qty: "",
     mr_qty: "",
     rate: "",
+    party_rate: "",
     total_qty: 0,
   });
 
@@ -112,6 +114,7 @@ export default function AddDeliveryChallanModal({
             i.party_challan_item?.party_challan?.challan_number || "N/A",
           process_name: i.process?.name || "-",
           rate: i.rate || 0,
+          party_rate: i.party_rate || 0,
         })),
       });
       // If editing, we don't fetch next number, we show current
@@ -230,6 +233,7 @@ export default function AddDeliveryChallanModal({
         challan_qty: effectivePending,
         pending_qty: effectivePending,
         rate: selectedItem.rate || 0,
+        party_rate: selectedItem.party_rate || 0,
       });
     }
   };
@@ -245,8 +249,19 @@ export default function AddDeliveryChallanModal({
     setCurrentItem(newItem);
   };
 
-  // Add item to table
+  /* Add item to table */
   const handleAddItem = () => {
+    // Check if item type matches existing items
+    if (form.items.length > 0) {
+      const firstItem = form.items[0];
+      if (Number(firstItem.item_id) !== Number(currentItem.item_id)) {
+        toast.error(
+          "You can only add items of the same type. Please remove existing items to add a different product.",
+        );
+        return;
+      }
+    }
+
     if (!currentItem.item_id || !currentItem.party_challan_item_id) {
       toast.error("Please select item and challan");
       return;
@@ -388,6 +403,7 @@ export default function AddDeliveryChallanModal({
           cr_qty: Number(i.cr_qty || 0),
           mr_qty: Number(i.mr_qty || 0),
           rate: Number(i.rate || 0),
+          party_rate: Number(i.party_rate || 0),
           quantity: Number(i.total_qty),
         })),
       };
@@ -588,7 +604,7 @@ export default function AddDeliveryChallanModal({
                   </div>
 
                   {/* Select Challan */}
-                  <div className="lg:col-span-3">
+                  <div className="lg:col-span-2">
                     <label
                       htmlFor="party_challan_item_id"
                       className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
@@ -701,8 +717,9 @@ export default function AddDeliveryChallanModal({
                   <div className="lg:col-span-1">
                     <label
                       htmlFor="rate"
-                      className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                      className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
                     >
+                      <IndianRupee className="h-3.5 w-3.5 text-green-600 dark:text-green-400 stroke-[3]" />
                       Rate
                     </label>
                     <input
@@ -712,6 +729,30 @@ export default function AddDeliveryChallanModal({
                       value={currentItem.rate}
                       readOnly
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 focus:ring-0 focus:border-gray-300 outline-none cursor-not-allowed"
+                    />
+                  </div>
+
+                  {/* Party Rate */}
+                  <div className="lg:col-span-1">
+                    <label
+                      htmlFor="party_rate"
+                      className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
+                    >
+                      <IndianRupee className="h-3.5 w-3.5 text-green-600 dark:text-green-400 stroke-[3]" />
+                      Party Rate
+                    </label>
+                    <input
+                      type="number"
+                      name="party_rate"
+                      id="party_rate"
+                      value={currentItem.party_rate}
+                      onChange={(e) =>
+                        setCurrentItem({
+                          ...currentItem,
+                          party_rate: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
                     />
                   </div>
                 </div>
@@ -742,19 +783,19 @@ export default function AddDeliveryChallanModal({
                     <table className="w-full table-fixed">
                       <thead className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 text-white">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[5%]">
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[4%]">
                             #
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[15%]">
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[12%]">
                             Item Name
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[15%]">
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[10%]">
                             Challan No.
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[15%]">
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider w-[10%]">
                             Process
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
                             <div className="flex items-center justify-end gap-1">
                               <CheckCircle
                                 size={14}
@@ -763,13 +804,13 @@ export default function AddDeliveryChallanModal({
                               OK
                             </div>
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
                             <div className="flex items-center justify-end gap-1">
                               <XCircle size={14} className="text-red-300" />
                               CR
                             </div>
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
                             <div className="flex items-center justify-end gap-1">
                               <AlertTriangle
                                 size={14}
@@ -778,16 +819,19 @@ export default function AddDeliveryChallanModal({
                               MR
                             </div>
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
                             Rate
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
+                            Party Rate
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
                             Amount
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider w-[8%]">
                             Total Qty
                           </th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider w-[10%]">
+                          <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider w-[8%]">
                             Delete
                           </th>
                         </tr>
@@ -803,39 +847,44 @@ export default function AddDeliveryChallanModal({
                             key={index}
                             className="hover:bg-purple-50 dark:hover:bg-gray-700/50 transition-colors"
                           >
-                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 w-[5%]">
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 w-[4%]">
                               {index + 1}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium w-[15%]">
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium w-[12%]">
                               {getItemName(item.item_id)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 w-[15%]">
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 w-[10%]">
                               {item.challan_number || "N/A"}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 w-[15%]">
+                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 w-[10%]">
                               {item.process_name || "-"}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400 font-medium w-[10%]">
+                            <td className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400 font-medium w-[8%]">
                               {item.ok_qty}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium w-[10%]">
+                            <td className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium w-[8%]">
                               {item.cr_qty}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-orange-600 dark:text-orange-400 font-medium w-[10%]">
+                            <td className="px-4 py-3 text-sm text-right text-orange-600 dark:text-orange-400 font-medium w-[8%]">
                               {item.mr_qty}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[10%]">
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[8%]">
                               {item.rate}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[10%]">
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[8%]">
+                              {item.party_rate || 0}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300 font-medium w-[8%]">
                               {(
-                                Number(item.total_qty) * Number(item.rate || 0)
+                                Number(item.total_qty) *
+                                (Number(item.rate || 0) +
+                                  Number(item.party_rate || 0))
                               ).toFixed(2)}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right font-bold text-purple-600 dark:text-purple-400 w-[10%]">
+                            <td className="px-4 py-3 text-sm text-right font-bold text-purple-600 dark:text-purple-400 w-[8%]">
                               {item.total_qty}
                             </td>
-                            <td className="px-4 py-3 text-center w-[10%]">
+                            <td className="px-4 py-3 text-center w-[8%]">
                               <button
                                 type="button"
                                 onClick={() => removeItemRow(index)}
@@ -876,13 +925,17 @@ export default function AddDeliveryChallanModal({
                           <td className="px-4 py-3 text-right text-gray-400 text-sm">
                             -
                           </td>
+                          <td className="px-4 py-3 text-right text-gray-400 text-sm">
+                            -
+                          </td>
                           <td className="px-4 py-3 text-right text-gray-900 dark:text-white text-sm">
                             {form.items
                               .reduce(
                                 (sum, i) =>
                                   sum +
                                   Number(i.total_qty || 0) *
-                                    Number(i.rate || 0),
+                                    (Number(i.rate || 0) +
+                                      Number(i.party_rate || 0)),
                                 0,
                               )
                               .toFixed(2)}

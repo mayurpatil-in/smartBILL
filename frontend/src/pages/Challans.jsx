@@ -50,6 +50,13 @@ export default function Challans() {
   const [challansPerPage, setChallansPerPage] = useState(10);
   const [stats, setStats] = useState({ total: 0, sent: 0, delivered: 0 });
   const [selectedChallans, setSelectedChallans] = useState(new Set());
+  // Date Range State
+  const [dateRange, setDateRange] = useState({
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0], // First day of current month
+    end: new Date().toISOString().split("T")[0], // Today
+  });
   const [deleteConfirm, setDeleteConfirm] = useState({
     open: false,
     challan: null,
@@ -66,7 +73,10 @@ export default function Challans() {
     try {
       setLoading(true);
       const [data, statsData, partiesData, itemsData] = await Promise.all([
-        getDeliveryChallans(),
+        getDeliveryChallans({
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+        }),
         getChallanStats(),
         getParties(),
         getItems(),
@@ -84,7 +94,7 @@ export default function Challans() {
 
   useEffect(() => {
     loadChallans();
-  }, []);
+  }, [dateRange]); // Reload when date range changes
 
   const handleDelete = async (challan) => {
     setDeleteConfirm({ open: true, challan });
@@ -357,6 +367,32 @@ export default function Challans() {
                     {filteredChallans.length} found
                   </span>
                 )}
+              </div>
+            </div>
+
+            <div className="w-full sm:w-auto flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, start: e.target.value })
+                  }
+                  className="px-3 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+                  max={dateRange.end}
+                />
+              </div>
+              <span className="text-gray-400 font-medium">to</span>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, end: e.target.value })
+                  }
+                  className="px-3 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+                  min={dateRange.start}
+                />
               </div>
             </div>
 

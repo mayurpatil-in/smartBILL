@@ -1,11 +1,13 @@
 import api from "./axios";
 
-export const getDeliveryChallans = async (partyId = null, status = null) => {
-  const params = {};
-  if (partyId) params.party_id = partyId;
-  if (status) params.status = status;
+export const getDeliveryChallans = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.start_date) queryParams.append("start_date", params.start_date);
+  if (params.end_date) queryParams.append("end_date", params.end_date);
+  if (params.party_id) queryParams.append("party_id", params.party_id);
+  if (params.status) queryParams.append("status", params.status);
 
-  const response = await api.get("/challan/", { params });
+  const response = await api.get(`/challan/?${queryParams.toString()}`);
   return response.data;
 };
 

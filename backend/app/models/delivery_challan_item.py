@@ -15,6 +15,7 @@ class DeliveryChallanItem(Base):
     process_id = Column(Integer, ForeignKey("processes.id"), nullable=True)
     quantity = Column(Numeric(10, 2))
     rate = Column(Numeric(10, 2), default=0)
+    party_rate = Column(Numeric(10, 2), default=0)
     ok_qty = Column(Numeric(10, 2), default=0)
     cr_qty = Column(Numeric(10, 2), default=0)
     mr_qty = Column(Numeric(10, 2), default=0)

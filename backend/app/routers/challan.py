@@ -88,7 +88,8 @@ def create_challan(
             cr_qty=item_data.cr_qty,
             mr_qty=item_data.mr_qty,
             quantity=item_data.quantity,
-            rate=item_data.rate
+            rate=item_data.rate,
+            party_rate=item_data.party_rate
         )
         db.add(challan_item)
 
@@ -158,6 +159,7 @@ def create_challan(
                 "mr_qty": float(item.mr_qty),
                 "quantity": float(item.quantity),
                 "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
+                "party_rate": float(item.party_rate) if item.party_rate else 0.0,
                 "item": {
                     "id": item.party_challan_item.item.id,
                     "name": item.party_challan_item.item.name
@@ -257,7 +259,8 @@ def update_challan(
             cr_qty=item_data.cr_qty,
             mr_qty=item_data.mr_qty,
             quantity=item_data.quantity,
-            rate=item_data.rate
+            rate=item_data.rate,
+            party_rate=item_data.party_rate
         )
         db.add(challan_item)
         
@@ -352,6 +355,8 @@ def update_challan(
 def list_challans(
     party_id: int = None,
     status: str = None,
+    start_date: str = None,
+    end_date: str = None,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -372,6 +377,12 @@ def list_challans(
     
     if status:
         query = query.filter(DeliveryChallan.status == status)
+
+    if start_date:
+        query = query.filter(DeliveryChallan.challan_date >= start_date)
+    
+    if end_date:
+        query = query.filter(DeliveryChallan.challan_date <= end_date)
     
     challans = query.order_by(DeliveryChallan.id.desc()).all()
     
@@ -403,6 +414,7 @@ def list_challans(
                     "mr_qty": float(item.mr_qty),
                     "quantity": float(item.quantity),
                     "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
+                    "party_rate": float(item.party_rate) if item.party_rate else 0.0,
                     "item": {
                         "id": item.party_challan_item.item.id,
                         "name": item.party_challan_item.item.name
@@ -789,16 +801,70 @@ def prepare_challan_print_data(challan) -> Dict[str, Any]:
             ref_list.append(ref_str)
             
         # Proxy object
-        class ProxyItem:
-            def __init__(self, original, ok, cr, mr):
-                self.party_challan_item = original.party_challan_item
-                self.process = original.process
-                self.ok_qty = int(ok)
-                self.cr_qty = int(cr)
-                self.mr_qty = int(mr)
-                self.rate = original.rate if original.rate and original.rate > 0 else (original.party_challan_item.rate if original.party_challan_item and original.party_challan_item.rate and original.party_challan_item.rate > 0 else (original.party_challan_item.item.rate if original.party_challan_item and original.party_challan_item.item and original.party_challan_item.item.rate else 0.0))
+        # Helper function to safely get rate
+        def get_effective_rate(original):
+            if original.rate and original.rate > 0:
+                return float(original.rate)
+            if original.party_challan_item:
+                if original.party_challan_item.rate and original.party_challan_item.rate > 0:
+                    return float(original.party_challan_item.rate)
+                if original.party_challan_item.item and original.party_challan_item.item.rate:
+                    return float(original.party_challan_item.item.rate)
+            return 0.0
+
+        # Helper for Indian Currency Formatting
+        def format_indian_currency(value):
+            try:
+                value = float(value)
+                # Format to 2 decimal places first
+                s = "{:.2f}".format(value)
+                parts = s.split('.')
+                integer_part = parts[0]
+                decimal_part = parts[1]
+                
+                # If less than 1000, no special formatting needed
+                if len(integer_part) <= 3:
+                    return s
+                
+                # Logic for Indian Numbering System
+                # Last 3 digits
+                last_three = integer_part[-3:]
+                remaining = integer_part[:-3]
+                
+                # Group remaining digits in pairs of 2 from right to left
+                formatted_remaining = ""
+                while len(remaining) > 2:
+                    formatted_remaining = "," + remaining[-2:] + formatted_remaining
+                    remaining = remaining[:-2]
+                
+                formatted_remaining = remaining + formatted_remaining
+                
+                return formatted_remaining + "," + last_three + "." + decimal_part
+            except:
+                return str(value)
+
+        # Calculate Rate and Amount
+        eff_rate = get_effective_rate(data["item_obj"])
+        eff_p_rate = float(getattr(data["item_obj"], "party_rate", 0) or 0)
+        total_rate = eff_rate + eff_p_rate
         
-        proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
+        # Calculate Amount (Total Qty * Total Rate)
+        # Note: Total Qty here refers to Dispatch Qty for line item calculation
+        line_qty = int(data["ok"]) + int(data["cr"]) + int(data["mr"]) # Should match dispatch
+        total_amount = line_qty * total_rate
+        
+        # Create a dict instead of ProxyItem class to allow easy access in template
+        proxy_item_obj = {
+            "party_challan_item": data["item_obj"].party_challan_item,
+            "process": data["item_obj"].process,
+            "ok_qty": int(data["ok"]),
+            "cr_qty": int(data["cr"]),
+            "mr_qty": int(data["mr"]),
+            "party_rate": eff_p_rate,
+            "rate": eff_rate,
+            "total_rate": total_rate, # Pre-calculated for template
+            "amount_formatted": format_indian_currency(total_amount) # Pre-formatted
+        }
 
         items_data.append({
             "item_obj": proxy_item_obj,
@@ -925,12 +991,18 @@ async def print_challan(
         qr_code=data["qr_code"]
     )
     
-    # Generate PDF
-    pdf_content = await generate_pdf(html)
-    
-    # Return PDF
-    return Response(
-        content=pdf_content,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
-    )
+    try:
+        # Generate PDF
+        pdf_content = await generate_pdf(html)
+        
+        # Return PDF
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
+        )
+    except Exception as e:
+        import traceback
+        print(f"PDF Generation Error: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
