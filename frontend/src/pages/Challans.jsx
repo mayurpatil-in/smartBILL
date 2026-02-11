@@ -34,6 +34,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import PDIReportModal from "../components/PDIReportModal";
 
 const PdfPreviewModal = lazy(() => import("../components/PdfPreviewModal"));
+import { formatDate } from "../utils/dateUtils";
 
 export default function Challans() {
   const [challans, setChallans] = useState([]);
@@ -743,7 +744,7 @@ function ChallanRow({
             <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
           </div>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {new Date(challan.challan_date).toLocaleDateString()}
+            {formatDate(challan.challan_date)}
           </span>
         </div>
       </td>
@@ -778,20 +779,47 @@ function ChallanRow({
               className="text-indigo-600 dark:text-indigo-400"
             />
           </div>
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            {challan.items?.length || 0} items
-            <span className="text-gray-400 text-xs ml-1">
-              (
-              {challan.items?.reduce(
-                (sum, item) =>
-                  sum +
-                  Number(item.ok_qty || 0) +
-                  Number(item.cr_qty || 0) +
-                  Number(item.mr_qty || 0),
-                0,
-              )}{" "}
-              units)
-            </span>
+          <span
+            className="text-sm font-semibold text-gray-700 dark:text-gray-300 line-clamp-2"
+            title={Object.values(
+              challan.items?.reduce((acc, i) => {
+                const name = i.item?.name || "Unknown";
+                acc[name] = (acc[name] || 0) + (Number(i.quantity) || 0);
+                return acc;
+              }, {}) || {},
+            )
+              .map((qty, index, arr) => {
+                const name = Object.keys(
+                  challan.items?.reduce((acc, i) => {
+                    const n = i.item?.name || "Unknown";
+                    acc[n] = (acc[n] || 0) + (Number(i.quantity) || 0);
+                    return acc;
+                  }, {}) || {},
+                )[index];
+                return `${name} (${qty} units)`;
+              })
+              .join(", ")}
+          >
+            {(() => {
+              if (!challan.items?.length) return "No Items";
+              const aggregated = challan.items.reduce((acc, i) => {
+                const name = i.item?.name || "Unknown";
+                acc[name] = (acc[name] || 0) + (Number(i.quantity) || 0);
+                return acc;
+              }, {});
+
+              return Object.entries(aggregated).map(
+                ([name, qty], index, arr) => (
+                  <span key={name}>
+                    {name}{" "}
+                    <span className="text-gray-400 font-normal">
+                      ({qty} units)
+                    </span>
+                    {index < arr.length - 1 && ", "}
+                  </span>
+                ),
+              );
+            })()}
           </span>
         </div>
       </td>

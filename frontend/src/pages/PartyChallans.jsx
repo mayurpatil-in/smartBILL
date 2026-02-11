@@ -25,6 +25,7 @@ import { getItems } from "../api/items";
 import AddPartyChallanModal from "../components/AddPartyChallanModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "../utils/dateUtils";
 
 export default function PartyChallans() {
   const [challans, setChallans] = useState([]);
@@ -520,7 +521,7 @@ function PartyChallanRow({
             <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
           </div>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {new Date(challan.challan_date).toLocaleDateString()}
+            {formatDate(challan.challan_date)}
           </span>
         </div>
       </td>
@@ -542,8 +543,49 @@ function PartyChallanRow({
           <div className="p-1.5 bg-amber-50 dark:bg-amber-900/30 rounded-md">
             <Package size={14} className="text-amber-600 dark:text-amber-400" />
           </div>
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            {challan.items?.length || 0} items
+          <span
+            className="text-sm font-semibold text-gray-700 dark:text-gray-300 line-clamp-2"
+            title={Object.values(
+              challan.items?.reduce((acc, i) => {
+                const name = i.item?.name || "Unknown";
+                acc[name] =
+                  (acc[name] || 0) + (Number(i.quantity_ordered) || 0);
+                return acc;
+              }, {}) || {},
+            )
+              .map((qty, index, arr) => {
+                const name = Object.keys(
+                  challan.items?.reduce((acc, i) => {
+                    const n = i.item?.name || "Unknown";
+                    acc[n] = (acc[n] || 0) + (Number(i.quantity_ordered) || 0);
+                    return acc;
+                  }, {}) || {},
+                )[index];
+                return `${name} (${qty} units)`;
+              })
+              .join(", ")}
+          >
+            {(() => {
+              if (!challan.items?.length) return "No Items";
+              const aggregated = challan.items.reduce((acc, i) => {
+                const name = i.item?.name || "Unknown";
+                acc[name] =
+                  (acc[name] || 0) + (Number(i.quantity_ordered) || 0);
+                return acc;
+              }, {});
+
+              return Object.entries(aggregated).map(
+                ([name, qty], index, arr) => (
+                  <span key={name}>
+                    {name}{" "}
+                    <span className="text-gray-400 font-normal">
+                      ({qty} units)
+                    </span>
+                    {index < arr.length - 1 && ", "}
+                  </span>
+                ),
+              );
+            })()}
           </span>
         </div>
       </td>

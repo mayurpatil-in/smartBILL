@@ -30,6 +30,7 @@ import {
 } from "../api/payments";
 import { getParties } from "../api/parties";
 import { getPendingInvoices } from "../api/invoices";
+import { formatDate } from "../utils/dateUtils";
 
 export default function PaymentList() {
   const [payments, setPayments] = useState([]);
@@ -489,9 +490,7 @@ export default function PaymentList() {
                           />
                         </div>
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {new Date(payment.payment_date).toLocaleDateString(
-                            "en-IN",
-                          )}
+                          {formatDate(payment.payment_date)}
                         </span>
                       </div>
                     </td>

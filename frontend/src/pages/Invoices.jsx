@@ -27,6 +27,7 @@ import PdfPreviewModal from "../components/PdfPreviewModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PermissionGuard from "../components/PermissionGuard";
 import EWayBillModal from "../components/EWayBillModal";
+import { formatDate } from "../utils/dateUtils";
 
 export default function Invoices() {
   const navigate = useNavigate();
@@ -383,7 +384,7 @@ export default function Invoices() {
                           />
                         </div>
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {new Date(inv.invoice_date).toLocaleDateString()}
+                          {formatDate(inv.invoice_date)}
                         </span>
                       </div>
                     </td>

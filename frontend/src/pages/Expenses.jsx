@@ -25,6 +25,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { formatDate } from "../utils/dateUtils";
 import { useReactToPrint } from "react-to-print";
 import {
   getExpenses,
@@ -377,7 +378,7 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
                       />
                     </div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {new Date(ex.date).toLocaleDateString()}
+                      {formatDate(ex.date)}
                     </span>
                   </div>
                 </td>
@@ -622,7 +623,7 @@ function RecurringList({ expenses, loading, onEdit, onDelete, onPost }) {
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Next Due:</span>
               <span className="font-medium text-orange-600">
-                {new Date(ex.next_due_date || new Date()).toLocaleDateString()}
+                {formatDate(ex.next_due_date || new Date())}
               </span>
             </div>
             <div className="flex justify-between text-sm">

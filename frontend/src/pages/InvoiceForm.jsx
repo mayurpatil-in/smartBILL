@@ -298,14 +298,17 @@ export default function InvoiceForm() {
       return;
     }
 
-    // Check duplicate
+    // Check duplicate (Only if same Challan Item AND same GRN)
     if (
       formData.items.some(
         (i) =>
-          i.delivery_challan_item_id === currentItem.delivery_challan_item_id,
+          i.delivery_challan_item_id === currentItem.delivery_challan_item_id &&
+          i.grn_no === currentItem.grn_no,
       )
     ) {
-      toast.error("This Challan Item is already added");
+      toast.error(
+        "This Challan Item with the same GRN No. is already added. Please use a different GRN No. or edit the existing item.",
+      );
       return;
     }
 
@@ -419,9 +422,12 @@ export default function InvoiceForm() {
 
   // Filter out items that are already added to the invoice
   // Filter out items that are already added to the invoice
-  const filteredPendingItems = pendingItems.filter(
-    (pending) =>
-      !formData.items.some((added) => {
+  // Filter out items that are already added to the invoice BUT allow partial usage
+  // We need to decrease the pending quantity by the amount already added to the invoice
+  const filteredPendingItems = pendingItems
+    .map((pending) => {
+      // Find all instances of this item in the current invoice grid
+      const addedItems = formData.items.filter((added) => {
         const pendingId = Number(pending.delivery_challan_item_id);
         const addedId = Number(added.delivery_challan_item_id);
 
@@ -433,10 +439,41 @@ export default function InvoiceForm() {
         ) {
           return true;
         }
-
         return false;
-      }),
-  );
+      });
+
+      if (addedItems.length === 0) return pending;
+
+      // Calculate total used quantities
+      const usedOk = addedItems.reduce(
+        (sum, item) => sum + (Number(item.ok_qty) || 0),
+        0,
+      );
+      const usedCr = addedItems.reduce(
+        (sum, item) => sum + (Number(item.cr_qty) || 0),
+        0,
+      );
+      const usedMr = addedItems.reduce(
+        (sum, item) => sum + (Number(item.mr_qty) || 0),
+        0,
+      );
+
+      // Return a new object with remaining quantities
+      const remainingOk = Math.max(0, (Number(pending.ok_qty) || 0) - usedOk);
+      const remainingCr = Math.max(0, (Number(pending.cr_qty) || 0) - usedCr);
+      const remainingMr = Math.max(0, (Number(pending.mr_qty) || 0) - usedMr);
+
+      const totalRemaining = remainingOk + remainingCr + remainingMr;
+
+      return {
+        ...pending,
+        ok_qty: remainingOk,
+        cr_qty: remainingCr,
+        mr_qty: remainingMr,
+        quantity: totalRemaining,
+      };
+    })
+    .filter((item) => item.quantity > 0);
 
   // Helper to get unique items from pending list
   const uniqueItems = [
