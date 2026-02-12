@@ -345,6 +345,69 @@ def get_job_work_stock_summary(
     return result
 
 
+@router.get("/job-work/stock-summary/pdf")
+async def get_job_work_stock_summary_pdf(
+    start_date: str,
+    end_date: str,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Generates PDF for Job Work Stock Summary
+    """
+    # 1. Fetch Data (Reusing logic or direct DB calls)
+    # Since we can't easily call the API function due to dependency injection,
+    # we'll call a helper or just reuse the logic. 
+    # For now, let's call the logic directly to avoid refactoring the API function signature.
+    
+    # ... logic from get_job_work_stock_summary ...
+    stock_data = get_job_work_stock_summary(start_date, end_date, company_id, fy, db)
+    
+    # 2. Get Company Details
+    company = db.query(Company).filter(Company.id == company_id).first()
+    
+    # 3. Calculate Totals
+    total_opening = sum(item['opening'] for item in stock_data)
+    total_inward = sum(item['inward'] for item in stock_data)
+    total_outward = sum(item['outward'] for item in stock_data)
+    total_closing = sum(item['closing'] for item in stock_data)
+    
+    # 4. Prepare Context
+    context = {
+        "request": {},
+        "stock_data": stock_data,
+        "company": company,
+        "start_date": datetime.strptime(start_date, "%Y-%m-%d").strftime("%d/%m/%Y"),
+        "end_date": datetime.strptime(end_date, "%Y-%m-%d").strftime("%d/%m/%Y"),
+        "generation_date": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
+        "total_opening": total_opening,
+        "total_inward": total_inward,
+        "total_outward": total_outward,
+        "total_closing": total_closing
+    }
+
+    # 5. Render Template
+    template = templates.get_template("job_work_stock_summary.html")
+    html_content = template.render(context)
+
+    # 6. Generate PDF
+    pdf_data = await generate_pdf(html_content, options={
+        "landscape": False, # Portrait as requested
+        "format": "A4",
+        "margin": {"top": "5mm", "bottom": "5mm", "left": "5mm", "right": "5mm"},
+        "print_background": True
+    })
+
+    return Response(
+        content=pdf_data,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=Job_Work_Stock_Summary.pdf"
+        }
+    )
+
+
 @router.get("/ledger/pdf")
 async def get_party_ledger_pdf(
     party_id: int = None,

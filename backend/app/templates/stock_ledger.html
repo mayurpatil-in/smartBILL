@@ -22,31 +22,44 @@
         
         .header {
             text-align: center;
-            border-bottom: 2px solid #555;
-            padding-bottom: 10px;
+            border: 2px solid #333;
+            padding: 15px 10px;
             margin-bottom: 15px;
+            background-color: #f9f9f9;
         }
         
-        .header h1 {
+        .company-name {
             margin: 0;
-            font-size: 16pt;
+            font-size: 22pt;
             font-weight: bold;
-            color: #000;
+            color: #1a3a6b;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         
-        .header h2 {
-            margin: 4px 0;
-            font-size: 12pt;
-            font-weight: 600;
-            color: #444;
-        }
-        
-        .header p {
-            margin: 3px 0;
+        .company-address {
+            margin: 5px 0 3px 0;
             font-size: 9pt;
-            color: #666;
+            color: #555;
+        }
+        
+        .company-gstin {
+            margin: 3px 0 15px 0;
+            font-size: 9pt;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .report-title {
+            display: inline-block;
+            border: 2px solid #333;
+            padding: 8px 30px;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1a3a6b;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 5px;
         }
         
         .info-section {
@@ -176,6 +189,34 @@
             border-right: none;
         }
 
+        .signature-section {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        
+        .signature-box {
+            text-align: center;
+            min-width: 150px;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            padding-top: 5px;
+            font-size: 9pt;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .signature-label {
+            font-size: 8pt;
+            color: #666;
+            margin-top: 3px;
+        }
+
         .footer {
             margin-top: 20px;
             display: flex;
@@ -190,9 +231,10 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>Stock Report</h1>
-        <h2>{{ company.name }}</h2>
-        <p>{{ company.address }}</p>
+        <div class="company-name">{{ company.name }}</div>
+        <div class="company-address">{{ company.address }}</div>
+        <div class="company-gstin">GSTIN: {{ company.gst_number or 'N/A' }}</div>
+        <div class="report-title">STOCK LEDGER REPORT</div>
     </div>
     
     <!-- Info Section -->
@@ -283,6 +325,18 @@
         </div>
         <div class="footer-summary-item">
             <strong>Closing Balance:</strong> {{ closing_balance|round|int }} units
+        </div>
+    </div>
+    
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line">Prepared By</div>
+            <div class="signature-label">Date: {{ generation_date }}</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">Authorized Signature</div>
+            <div class="signature-label">{{ company.name }}</div>
         </div>
     </div>
     

@@ -12,6 +12,10 @@ import {
   Printer,
   ChevronLeft,
   ChevronRight,
+  Package,
+  Boxes,
+  ReceiptIndianRupee,
+  IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
@@ -26,6 +30,7 @@ import {
   getGSTReportPDF,
   getTrueStockLedgerPDF,
   getJobWorkStockSummary,
+  getJobWorkStockSummaryPDF,
 } from "../api/reports";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
@@ -176,6 +181,35 @@ export default function Reports() {
       toast.error("Failed to load stock summary");
     } finally {
       setJobWorkStockLoading(false);
+    }
+  };
+
+  const handlePrintJobWorkStock = async () => {
+    try {
+      setPdfLoading(true);
+      const loadingToast = toast.loading("Generating Stock Summary PDF...");
+
+      const blob = await getJobWorkStockSummaryPDF({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
+
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" }),
+      );
+
+      setPreviewDoc({
+        url: url,
+        title: `Job_Work_Stock_Summary`,
+      });
+
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to generate PDF");
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -602,73 +636,54 @@ export default function Reports() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
-        <div className="flex gap-6 min-w-max px-2">
-          <button
-            onClick={() => setActiveTab("jobwork")}
-            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-              activeTab === "jobwork"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            Job Work Register
-            {activeTab === "jobwork" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("ledger")}
-            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-              activeTab === "ledger"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            Job Work Stock
-            {activeTab === "ledger" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("statement")}
-            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-              activeTab === "statement"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            Financial Statement
-            {activeTab === "statement" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("stock")}
-            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-              activeTab === "stock"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            Stock Ledger
-            {activeTab === "stock" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("gst")}
-            className={`pb-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-              activeTab === "gst"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            GST Report
-            {activeTab === "gst" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />
-            )}
-          </button>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {[
+            { id: "jobwork", label: "Job Work Register", icon: ClipboardList },
+            { id: "ledger", label: "Job Work Stock", icon: Package },
+            { id: "stock", label: "Stock Ledger", icon: Boxes },
+            {
+              id: "statement",
+              label: "Financial Statement",
+              icon: ReceiptIndianRupee,
+            },
+            { id: "gst", label: "GST Report", icon: IndianRupee },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`group relative flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  isActive
+                    ? "bg-gradient-to-r from-blue-600 to-cyan-700 text-white shadow-lg shadow-blue-600/30"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-lg transition-all duration-300 ${
+                    isActive
+                      ? "bg-white/20 backdrop-blur-md"
+                      : "bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-200 dark:group-hover:bg-gray-600"
+                  }`}
+                >
+                  <Icon
+                    size={18}
+                    className={
+                      isActive
+                        ? "text-white"
+                        : "text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                    }
+                  />
+                </div>
+                <span className="whitespace-nowrap">{tab.label}</span>
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-full"></div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -747,10 +762,10 @@ export default function Reports() {
 
           {/* Filters */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
               {/* Left Side: Search and Dropdowns */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <div className="relative w-full sm:w-64">
+              <div className="flex flex-col md:flex-row flex-wrap gap-4 w-full xl:w-auto items-center">
+                <div className="relative w-full md:w-64">
                   <Search
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                     size={18}
@@ -775,7 +790,7 @@ export default function Reports() {
                       setSelectedJobWorkItem("");
                     }
                   }}
-                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium w-full sm:w-48"
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium w-full md:w-48"
                   name="job_work_party_filter"
                   id="job_work_party_filter"
                 >
@@ -790,7 +805,7 @@ export default function Reports() {
                 <select
                   value={selectedJobWorkItem}
                   onChange={(e) => setSelectedJobWorkItem(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium w-full sm:w-48"
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium w-full md:w-48"
                   name="job_work_item_filter"
                   id="job_work_item_filter"
                 >
@@ -808,16 +823,16 @@ export default function Reports() {
                       setSelectedJobWorkParty("");
                       setSelectedJobWorkItem("");
                     }}
-                    className="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all whitespace-nowrap"
+                    className="w-full md:w-auto px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all whitespace-nowrap"
                   >
-                    Clear
+                    Clear Filter
                   </button>
                 )}
               </div>
 
               {/* Right Side: Status and Export */}
-              <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-                <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-xl border-2 border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto justify-end">
+                <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-xl border-2 border-gray-200 dark:border-gray-700 w-full sm:w-auto">
                   {["all", "pending", "completed"].map((status) => (
                     <button
                       key={status}
@@ -834,7 +849,7 @@ export default function Reports() {
                 </div>
                 <button
                   onClick={exportToExcel}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                  className="w-full sm:w-auto group flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
                 >
                   <Download
                     size={18}
@@ -1040,8 +1055,8 @@ export default function Reports() {
         /* Financial Statement */
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col lg:flex-row gap-4 items-end">
-              <div className="w-full lg:w-auto">
+            <div className="flex flex-col md:flex-row flex-wrap gap-4 items-end">
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="statement_party_id"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1053,7 +1068,7 @@ export default function Reports() {
                   id="statement_party_id"
                   value={selectedStatementPartyId}
                   onChange={(e) => setSelectedStatementPartyId(e.target.value)}
-                  className="w-full lg:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
                   <option value="">-- Select Party --</option>
                   {parties.map((p) => (
@@ -1063,7 +1078,7 @@ export default function Reports() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="statement_start_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1078,11 +1093,11 @@ export default function Reports() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, start_date: e.target.value })
                   }
-                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 />
               </div>
 
-              <div>
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="statement_end_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1097,19 +1112,16 @@ export default function Reports() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, end_date: e.target.value })
                   }
-                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 />
               </div>
               {selectedStatementPartyId && (
                 <button
                   onClick={handlePrintStatement}
                   disabled={pdfLoading}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                  className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105"
                 >
-                  <Printer
-                    size={18}
-                    className="group-hover:rotate-12 transition-transform duration-300"
-                  />
+                  <Printer size={20} />
                   {pdfLoading ? "Generating..." : "Print Statement"}
                 </button>
               )}
@@ -1274,22 +1286,22 @@ export default function Reports() {
                   />
                 </div>
                 <button
-                  onClick={handlePrintJobWorkPDF}
-                  disabled={pdfLoading}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105 mt-auto"
+                  onClick={handlePrintJobWorkStock}
+                  disabled={pdfLoading || finalStockData.length === 0}
+                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105 mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Printer
                     size={18}
                     className="group-hover:rotate-12 transition-transform duration-300"
                   />
-                  {pdfLoading ? "Generating..." : "Print PDF"}
+                  {pdfLoading ? "Generating..." : "Print Summary"}
                 </button>
               </div>
             </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800 flex justify-between items-center">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg text-white shadow-lg">
                   <ClipboardList size={20} />
@@ -1393,8 +1405,8 @@ export default function Reports() {
       {activeTab === "stock" && (
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col lg:flex-row flex-wrap gap-4 items-end">
-              <div>
+            <div className="flex flex-col md:flex-row flex-wrap gap-4 items-end">
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="stock_ledger_party"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1406,7 +1418,7 @@ export default function Reports() {
                   id="stock_ledger_party"
                   value={selectedStockParty}
                   onChange={(e) => setSelectedStockParty(e.target.value)}
-                  className="w-full sm:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
                   <option value="">-- All Parties --</option>
                   {parties.map((p) => (
@@ -1417,7 +1429,7 @@ export default function Reports() {
                 </select>
               </div>
 
-              <div>
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="stock_ledger_item"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1429,7 +1441,7 @@ export default function Reports() {
                   id="stock_ledger_item"
                   value={selectedItem}
                   onChange={(e) => setSelectedItem(e.target.value)}
-                  className="w-full sm:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                  className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
                   <option value="">-- Select Item --</option>
                   {items
@@ -1447,7 +1459,7 @@ export default function Reports() {
                 </select>
               </div>
 
-              <div>
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="stock_start_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1462,11 +1474,11 @@ export default function Reports() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, start_date: e.target.value })
                   }
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 />
               </div>
 
-              <div>
+              <div className="w-full md:w-auto">
                 <label
                   htmlFor="stock_end_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1481,7 +1493,7 @@ export default function Reports() {
                   onChange={(e) =>
                     setDateRange({ ...dateRange, end_date: e.target.value })
                   }
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 />
               </div>
 
@@ -1489,12 +1501,9 @@ export default function Reports() {
                 <button
                   onClick={handlePrintStockLedger}
                   disabled={pdfLoading}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                  className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105"
                 >
-                  <Printer
-                    size={18}
-                    className="group-hover:rotate-12 transition-transform duration-300"
-                  />
+                  <Printer size={20} />
                   {pdfLoading ? "Generating..." : "Print Ledger"}
                 </button>
               )}
@@ -1691,9 +1700,9 @@ export default function Reports() {
       {activeTab === "gst" && (
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col lg:flex-row flex-wrap gap-4 items-end justify-between">
-              <div className="flex flex-wrap gap-4 items-end">
-                <div>
+            <div className="flex flex-col xl:flex-row flex-wrap gap-4 items-end justify-between">
+              <div className="flex flex-col md:flex-row flex-wrap gap-4 items-end w-full xl:w-auto">
+                <div className="w-full md:w-auto">
                   <label
                     htmlFor="gst_party"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1705,7 +1714,7 @@ export default function Reports() {
                     id="gst_party"
                     value={selectedGSTParty}
                     onChange={(e) => setSelectedGSTParty(e.target.value)}
-                    className="w-full sm:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   >
                     <option value="">-- All Parties --</option>
                     {parties.map((p) => (
@@ -1715,7 +1724,7 @@ export default function Reports() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="w-full md:w-auto">
                   <label
                     htmlFor="gst_start_date"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1730,10 +1739,10 @@ export default function Reports() {
                     onChange={(e) =>
                       setDateRange({ ...dateRange, start_date: e.target.value })
                     }
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   />
                 </div>
-                <div>
+                <div className="w-full md:w-auto">
                   <label
                     htmlFor="gst_end_date"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
@@ -1748,15 +1757,15 @@ export default function Reports() {
                     onChange={(e) =>
                       setDateRange({ ...dateRange, end_date: e.target.value })
                     }
-                    className="px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
                 <button
                   onClick={exportGSTReport}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                  className="w-full sm:w-auto group flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
                 >
                   <Download
                     size={18}
@@ -1767,7 +1776,7 @@ export default function Reports() {
                 <button
                   onClick={handlePrintGSTReport}
                   disabled={pdfLoading}
-                  className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
+                  className="w-full sm:w-auto group flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 whitespace-nowrap hover:scale-105"
                 >
                   <Printer
                     size={18}

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Job Work Stock Summary</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Roboto', sans-serif;
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+        
+        body {
+            font-family: 'Roboto', 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .report-container {
+            /* border: 2px solid #333; */ /* Removing continuous border to avoid break issues */
+            position: relative;
+            /* min-height: 98vh; */ /* Removed to allow natural height */
+        }
+
+        /* Header Styles */
+        .header {
+            text-align: center;
+            padding: 10px 15px;
+            border: 2px solid #333; /* Border for header only */
+            border-bottom: none; /* Connect to table */
+            background-color: #f8f9fa;
+        }
+
+        .company-name {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #1a365d;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .report-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 10px 0;
+            text-transform: uppercase;
+            padding: 5px 20px;
+            border: 2px solid #2d3748;
+            display: inline-block;
+            border-radius: 4px;
+        }
+
+        .report-meta {
+            margin-top: 10px;
+            font-size: 10pt;
+            color: #4a5568;
+        }
+
+        /* Table Styles */
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+            /* margin-top: 15px; */ /* Removed gap to connect with header */
+            table-layout: fixed;
+            border: 2px solid #333; /* Outer table border */
+            border-top: none; /* Connect to header which has bottom border */
+        }
+
+        .stock-table th {
+            background-color: #656769;
+            color: white;
+            font-weight: bold;
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #2d3748; /* Header cell borders */
+            font-size: 8.5pt;
+            text-transform: uppercase;
+        }
+
+        .stock-table tr {
+            page-break-inside: avoid;
+        }
+
+        .stock-table td {
+            padding: 6px 8px;
+            border: 1px solid #cbd5e0;
+            vertical-align: middle;
+            word-wrap: break-word; /* Prevents overflow */
+            overflow-wrap: break-word;
+        }
+
+        .stock-table tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        
+        .numeric {
+            font-family: 'Roboto', sans-serif; 
+            font-variant-numeric: tabular-nums;
+        }
+        
+        /* Summary Section */
+        .summary-box {
+            margin: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            width: fit-content;
+            margin-left: auto;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 20px;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 8pt;
+            color: #718096;
+            page-break-inside: avoid;
+        }
+
+        .signature-section {
+            display: flex;
+            justify-content: flex-end; /* Align to right */
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 250px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 40px;
+            padding-top: 5px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .generation-info {
+            text-align: center;
+            border-top: 1px solid #cbd5e0;
+            padding-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-name">{{ company.name }}</div>
+            <div class="report-address">{{ company.address }}</div>
+            {% if company.gst_number %}
+            <div class="report-gst">GSTIN: <strong>{{ company.gst_number }}</strong></div>
+            {% endif %}
+            
+            <div class="report-title">Job Work Stock Summary</div>
+            
+            <div class="report-meta">
+                <strong>From:</strong> {{ start_date }} &nbsp;|&nbsp; 
+                <strong>To:</strong> {{ end_date }} 
+                {% if party_name %}
+                &nbsp;|&nbsp; <strong>Party:</strong> {{ party_name }}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Main Data Table -->
+        <table class="stock-table">
+            <thead>
+                <tr>
+                    <th style="width: 35%">Party Name</th>
+                    <th style="width: 25%">Item Name</th>
+                    <th class="text-right" style="width: 10%">Opening</th>
+                    <th class="text-right" style="width: 10%">Inward</th>
+                    <th class="text-right" style="width: 10%">Outward</th>
+                    <th class="text-right" style="width: 10%">Closing</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in stock_data %}
+                <tr>
+                    <td class="font-bold">{{ row.party_name }}</td>
+                    <td>{{ row.item_name }}</td>
+                    <td class="text-right numeric {{ 'font-bold' if row.opening != 0 }}">{{ row.opening|round|int }}</td>
+                    <td class="text-right numeric" style="color: #2b6cb0;">{{ row.inward|round|int }}</td>
+                    <td class="text-right numeric" style="color: #2f855a;">{{ row.outward|round|int }}</td>
+                    <td class="text-right numeric font-bold" style="background-color: #edf2f7;">{{ row.closing|round|int }}</td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Totals Row -->
+                <tr style="background-color: #2d3748; color: white; font-weight: bold;">
+                    <td colspan="2" class="text-right">TOTAL</td>
+                    <td class="text-right">{{ total_opening|round|int }}</td>
+                    <td class="text-right">{{ total_inward|round|int }}</td>
+                    <td class="text-right">{{ total_outward|round|int }}</td>
+                    <td class="text-right">{{ total_closing|round|int }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Footer Note -->
+        <div class="footer">
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div style="margin-bottom: 40px; font-weight: bold;">For {{ company.name }}</div>
+                    <div class="signature-line">Authorized Signatory</div>
+                </div>
+            </div>
+            
+            <div class="generation-info">
+                Generated on: {{ generation_date }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
