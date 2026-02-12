@@ -25,6 +25,7 @@ import {
   getGSTReport,
   getGSTReportPDF,
   getTrueStockLedgerPDF,
+  getJobWorkStockSummary,
 } from "../api/reports";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
@@ -58,6 +59,7 @@ export default function Reports() {
   const [selectedItem, setSelectedItem] = useState("");
   const [selectedStockParty, setSelectedStockParty] = useState("");
   const [stockLedgerData, setStockLedgerData] = useState([]);
+  const [stockLedgerSummary, setStockLedgerSummary] = useState(null);
   const [stockLedgerLoading, setStockLedgerLoading] = useState(false);
 
   // GST Report State
@@ -65,18 +67,29 @@ export default function Reports() {
   const [gstLoading, setGstLoading] = useState(false);
   const [selectedGSTParty, setSelectedGSTParty] = useState("");
 
+  // Job Work Stock Summary State
+  const [jobWorkStockLoading, setJobWorkStockLoading] = useState(false);
+  const [jobWorkStockData, setJobWorkStockData] = useState([]);
+
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
-    const currentMonth = today.getMonth(); // 0-11 (Jan=0, Apr=3)
-    const currentYear = today.getFullYear();
+    const year = today.getFullYear();
+    const month = today.getMonth();
 
-    // If Jan(0), Feb(1), Mar(2) -> FY End is Mar 31 of Current Year
-    // Else -> FY End is Mar 31 of Next Year
-    const endYear = currentMonth < 3 ? currentYear : currentYear + 1;
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // Format as YYYY-MM-DD using local time to avoid timezone issues
+    const formatDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
 
     return {
-      start_date: today.toISOString().split("T")[0], // Start: Today
-      end_date: new Date(endYear, 2, 31).toISOString().split("T")[0], // End: March 31 (Month is 0-indexed, so 2=March)
+      start_date: formatDate(firstDay),
+      end_date: formatDate(lastDay),
     };
   });
 
@@ -93,10 +106,33 @@ export default function Reports() {
     if (activeTab === "stock" && selectedItem) {
       fetchStockLedger();
     }
+    if (activeTab === "ledger") {
+      fetchJobWorkStockSummary();
+    }
     if (activeTab === "gst") {
       fetchGSTReport();
     }
-  }, [activeTab, selectedStatementPartyId, selectedItem, dateRange]);
+  }, [
+    activeTab,
+    selectedStatementPartyId,
+    selectedItem,
+    selectedStockParty,
+    dateRange,
+  ]);
+
+  // ... (keeping loadParties, loadItems, etc.)
+
+  // REMOVE ledgerData useMemo block entirely as we now fetch it from API
+
+  // Update exportToExcel to use filteredData (which is for Job Work Register) or maybe add new export for Stock?
+  // Current exportToExcel is for Job Work List. Keep as is.
+
+  const finalStockData = useMemo(() => {
+    if (!selectedJobWorkParty) return jobWorkStockData;
+    return jobWorkStockData.filter(
+      (i) => i.party_name === selectedJobWorkParty,
+    );
+  }, [jobWorkStockData, selectedJobWorkParty]);
 
   const loadParties = async () => {
     try {
@@ -128,6 +164,21 @@ export default function Reports() {
     }
   };
 
+  const fetchJobWorkStockSummary = async () => {
+    try {
+      setJobWorkStockLoading(true);
+      const res = await getJobWorkStockSummary({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
+      setJobWorkStockData(res);
+    } catch (err) {
+      toast.error("Failed to load stock summary");
+    } finally {
+      setJobWorkStockLoading(false);
+    }
+  };
+
   const fetchStatement = async () => {
     if (!selectedStatementPartyId) return;
     try {
@@ -151,10 +202,19 @@ export default function Reports() {
       setStockLedgerLoading(true);
       const res = await getStockLedger({
         item_id: selectedItem,
+        party_id: selectedStockParty || undefined,
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
       });
-      setStockLedgerData(res);
+      // Handle new response format with summary and transactions
+      if (res.summary && res.transactions) {
+        setStockLedgerSummary(res.summary);
+        setStockLedgerData(res.transactions);
+      } else {
+        // Fallback for old format (just array)
+        setStockLedgerData(res);
+        setStockLedgerSummary(null);
+      }
     } catch (err) {
       toast.error("Failed to load stock ledger");
     } finally {
@@ -1264,7 +1324,18 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                  {ledgerData.length === 0 ? (
+                  {jobWorkStockLoading ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-gray-500 font-medium">
+                            Loading Stock Summary...
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : finalStockData.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
@@ -1272,47 +1343,41 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No data available
+                            No stock records found for this period
                           </p>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    ledgerData.map((row, idx) => (
+                    finalStockData.map((row, i) => (
                       <tr
-                        key={idx}
+                        key={i}
                         className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
                       >
-                        <td className="px-6 py-5 text-sm font-semibold text-gray-900 dark:text-white">
-                          {row.party}
+                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300 font-medium">
+                          {row.party_name}
                         </td>
-                        <td className="px-6 py-5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {row.item}
+                        <td className="px-6 py-5 text-gray-600 dark:text-gray-400">
+                          {row.item_name}
                         </td>
-                        <td className="px-6 py-5 text-right">
-                          <span className="font-semibold text-gray-600 dark:text-gray-400 font-mono bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
-                            {row.opening.toFixed(2)}
-                          </span>
+                        <td className="px-6 py-5 text-right font-mono text-gray-600 dark:text-gray-400">
+                          {row.opening.toFixed(2)}
                         </td>
-                        <td className="px-6 py-5 text-right">
-                          <span className="font-semibold text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg">
-                            {row.in.toFixed(2)}
-                          </span>
+                        <td className="px-6 py-5 text-right font-mono text-blue-600 dark:text-blue-400">
+                          {row.inward.toFixed(2)}
                         </td>
-                        <td className="px-6 py-5 text-right">
-                          <span className="font-semibold text-green-600 dark:text-green-400 font-mono bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded-lg">
-                            {row.out.toFixed(2)}
-                          </span>
+                        <td className="px-6 py-5 text-right font-mono text-green-600 dark:text-green-400">
+                          {row.outward.toFixed(2)}
                         </td>
                         <td className="px-6 py-5 text-right">
                           <span
                             className={`font-bold font-mono px-3 py-1.5 rounded-lg ${
-                              row.balance > 0
+                              row.closing > 0
                                 ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30"
                                 : "text-gray-400 bg-gray-100 dark:bg-gray-700"
                             }`}
                           >
-                            {row.balance.toFixed(2)}
+                            {row.closing.toFixed(2)}
                           </span>
                         </td>
                       </tr>
@@ -1435,6 +1500,83 @@ export default function Reports() {
               )}
             </div>
           </div>
+
+          {/* Summary Stat Cards */}
+          {stockLedgerSummary && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Opening Balance Card */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                    Opening Balance
+                  </h3>
+                  <div className="w-10 h-10 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">📦</span>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                  {stockLedgerSummary.opening_balance.toFixed(0)}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  units
+                </p>
+              </div>
+
+              {/* Inward Quantity Card */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-2xl border-2 border-green-200 dark:border-green-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide">
+                    Inward Qty
+                  </h3>
+                  <div className="w-10 h-10 bg-green-500 dark:bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">📥</span>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-green-900 dark:text-green-100">
+                  {stockLedgerSummary.total_inward.toFixed(0)}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  units received
+                </p>
+              </div>
+
+              {/* Outward Quantity Card */}
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-6 rounded-2xl border-2 border-orange-200 dark:border-orange-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">
+                    Outward Qty
+                  </h3>
+                  <div className="w-10 h-10 bg-orange-500 dark:bg-orange-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">📤</span>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                  {stockLedgerSummary.total_outward.toFixed(0)}
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  units dispatched
+                </p>
+              </div>
+
+              {/* Closing Balance Card */}
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
+                    Closing Balance
+                  </h3>
+                  <div className="w-10 h-10 bg-purple-500 dark:bg-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">✅</span>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                  {stockLedgerSummary.closing_balance.toFixed(0)}
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  units in stock
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">

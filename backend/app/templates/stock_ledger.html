@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Ledger</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 5mm;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Verdana', sans-serif;
+            font-size: 8pt;
+            margin: 0;
+            padding: 5mm;
+            border: 2px solid #333; /* Darker, slightly thinner border */
+            box-sizing: border-box;
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 16pt;
+            font-weight: bold;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .header h2 {
+            margin: 4px 0;
+            font-size: 12pt;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .header p {
+            margin: 3px 0;
+            font-size: 9pt;
+            color: #666;
+        }
+        
+        .info-section {
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            padding: 8px;
+            background-color: #fcfcfc;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #444;
+            min-width: 100px; /* Reduced width for tighter layout */
+        }
+        
+        .info-value {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        /* Summary Table */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #999;
+            background-color: #fff;
+        }
+        
+        .summary-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left; /* Keep left alignment for text */
+            font-size: 10pt;
+        }
+        
+        .summary-table strong {
+             color: #222;
+        }
+
+
+        /* Main Table */
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #999;
+            font-size: 7.5pt; /* Slightly smaller for fitting data */
+        }
+        
+        .main-table thead th {
+            background-color: #e6e6e6;
+            color: #222;
+            border: 1px solid #999;
+            padding: 6px 4px;
+            text-align: center;
+            font-weight: bold;
+            vertical-align: middle; /* Center vertically */
+            white-space: nowrap; /* Prevent headers wrapping too much */
+        }
+        
+        .main-table td {
+            border: 1px solid #ddd;
+            padding: 5px 4px;
+            text-align: center;
+            color: #333;
+        }
+        
+        /* Right alignment for numeric columns */
+        .main-table td:nth-child(3), /* I/W Qty */
+        .main-table td:nth-child(4), /* Tot I/W Qty */
+        .main-table td:nth-child(7), /* Ok Qty */
+        .main-table td:nth-child(8), /* Cr Qty */
+        .main-table td:nth-child(9), /* Mr Qty */
+        .main-table td:nth-child(10), /* Dis Qty */
+        .main-table td:nth-child(11), /* Total Qty */
+        .main-table td:nth-child(12)  /* Balance */
+        {
+            text-align: right;
+            padding-right: 8px; /* Add some padding for better alignment */
+        }
+
+        .main-table tbody tr:nth-child(even) {
+            background-color: #f7f7f7;
+        }
+        
+        .totals-row td {
+            background-color: #eeeeee;
+            font-weight: bold;
+            border-top: 2px solid #aaa; /* Stronger top border for totals */
+            text-align: right; /* Default right align for totals */
+            padding-right: 8px; /* Consistent padding for numbers */
+        }
+        /* Override specific cells if needed */
+        .totals-row td:nth-child(2) { /* "Total:" cell */
+            text-align: center;
+        }
+
+        
+        .footer-summary {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid #999;
+            padding: 10px;
+            background-color: #f0f4f8; /* Light distinct background */
+            font-size: 10pt;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .footer-summary-item {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #ccc;
+        }
+        .footer-summary-item:last-child {
+            border-right: none;
+        }
+
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Stock Report</h1>
+        <h2>{{ company.name }}</h2>
+        <p>{{ company.address }}</p>
+    </div>
+    
+    <!-- Info Section -->
+    <div class="info-section">
+        <div class="info-row">
+            <div><span class="info-label">Party Name :</span> <span class="info-value">{{ party.name }}</span></div>
+            <div><span class="info-label">From :</span> <span class="info-value">{{ start_date }} to {{ end_date }}</span></div>
+        </div>
+        <div class="info-row">
+            <div><span class="info-label">Item Name :</span> <span class="info-value">{{ item.name }}</span></div>
+        </div>
+    </div>
+    
+    <!-- Summary Table -->
+    <table class="summary-table">
+        <tbody>
+            <tr>
+                <td width="33%"><strong>Opening Balance:</strong> {{ opening_balance|round|int }}</td>
+                <td width="33%"><strong>Input Qty To Date:</strong> {{ input_qty_to_date|round|int }}</td>
+                <td width="34%"><strong>Total Balance:</strong> {{ total_balance|round|int }}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- Main Table -->
+    <table class="main-table">
+        <thead>
+            <tr>
+                <!-- LEFT SIDE (INWARD) - TOTAL 33% -->
+                <th width="7%">Ch No.</th>
+                <th width="9%">Date</th>
+                <th width="8%">I/W Qty</th>
+                <th width="9%">Tot I/W Qty</th>
+                
+                <!-- MIDDLE SIDE (OUTWARD BREAKDOWN) - TOTAL 33% -->
+                <th width="9%">Date</th>
+                <th width="7%">Del Ch No.</th>
+                <th width="6%">Ok Qty</th>
+                <th width="6%">Cr Qty</th>
+                <th width="5%">Mr Qty</th>
+                
+                <!-- RIGHT SIDE (OUTWARD TOTALS/BALANCE) - TOTAL 34% -->
+                <th width="8%">Dis Qty.</th>
+                <th width="12%">Total Qty.</th>
+                <th width="14%">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <!-- Inward Columns (LEFT) -->
+                <td>{% if row.left %}{{ row.left.challan_no }}{% endif %}</td>
+                <td style="white-space: nowrap;">{% if row.left %}{{ row.left.date.strftime('%d/%m/%Y') if row.left.date else '' }}{% endif %}</td>
+                <td>{% if row.left %}{{ row.left.qty|round|int }}{% endif %}</td>
+                <td>{% if row.left %}{{ row.left.total_qty|round|int }}{% endif %}</td>
+                
+                <!-- Outward Columns (RIGHT) -->
+                <td style="white-space: nowrap;">{% if row.right %}{{ row.right.date.strftime('%d/%m/%Y') if row.right.date else '' }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.challan_no }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.ok_qty|round|int }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.cr_qty|round|int }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.mr_qty|round|int }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.dispatch_qty|round|int }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.total_qty|round|int }}{% endif %}</td>
+                <td>{% if row.right %}{{ row.right.balance|round|int }}{% endif %}</td>
+            </tr>
+            {% endfor %}
+            
+            <!-- Totals Row -->
+            <tr class="totals-row">
+                <td colspan="4"></td>
+                <td colspan="2">Total:</td>
+                <td>{{ total_ok_qty|round|int }}</td>
+                <td>{{ total_cr_qty|round|int }}</td>
+                <td>{{ total_mr_qty|round|int }}</td>
+                <td colspan="3"></td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- Footer Section (Outside Table) -->
+    <div class="footer-summary">
+        <div class="footer-summary-item">
+            <strong>Total Inward Qty.:</strong> {{ total_inward_display|round|int }} units
+        </div>
+        <div class="footer-summary-item">
+            <strong>Total Dispatch Qty.:</strong> {{ total_dispatch_qty|round|int }} units
+        </div>
+        <div class="footer-summary-item">
+            <strong>Closing Balance:</strong> {{ closing_balance|round|int }} units
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <div>Generated on: {{ generation_date }}</div>
+        <div>Page 1 of 1</div>
+    </div>
+</body>
+</html>

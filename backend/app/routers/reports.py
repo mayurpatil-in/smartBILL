@@ -232,6 +232,119 @@ def get_job_work_report(
     return report_data
 
 
+@router.get("/job-work/stock-summary")
+def get_job_work_stock_summary(
+    start_date: str,
+    end_date: str,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns a stock summary (Opening, Inward, Outward, Closing) for all Party/Item combinations
+    within the given date range. Correctly handles historical date-wise opening balance.
+    """
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    # 1. Fetch ALL Party Challan Items (Inward)
+    # We need potentially all history to calculate opening balance correctly
+    inwards = db.query(PartyChallanItem).join(PartyChallan).filter(
+        PartyChallan.company_id == company_id,
+        PartyChallan.status != "cancelled"
+    ).all()
+
+    # 2. Fetch ALL Delivery Challan Items (Outward)
+    outwards = db.query(DeliveryChallanItem).join(DeliveryChallan).options(
+        joinedload(DeliveryChallanItem.challan), 
+        joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan).joinedload(PartyChallan.party),
+        joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item)
+    ).filter(
+        DeliveryChallan.company_id == company_id,
+        DeliveryChallan.status != "cancelled"
+    ).all()
+
+    stock_map = {}
+
+    # Helper key function
+    def get_key(party_id, item_id):
+        return (party_id, item_id)
+
+    # Process Inwards
+    for row in inwards:
+        # Safety check for missing relationships
+        if not row.party_challan or not row.item:
+            continue
+
+        key = get_key(row.party_challan.party_id, row.item_id)
+        if key not in stock_map:
+            stock_map[key] = {
+                "party_name": row.party_challan.party.name if row.party_challan.party else "Unknown",
+                "item_name": row.item.name if row.item else "Unknown",
+                "opening": 0.0,
+                "inward": 0.0,
+                "outward": 0.0,
+                "closing": 0.0
+            }
+        
+        qty = float(row.quantity_ordered or 0)
+        t_date = row.party_challan.challan_date
+
+        if t_date < start:
+            stock_map[key]["opening"] += qty
+        elif start <= t_date <= end:
+            stock_map[key]["inward"] += qty
+        # Future inwards (after end_date) are ignored for this report
+
+    # Process Outwards
+    for row in outwards:
+        # We need to link back to PartyChallanItem to know Party/Item
+        if not row.party_challan_item:
+            continue
+            
+        pc_item = row.party_challan_item
+        # Verify nested relationships
+        if not pc_item.party_challan or not pc_item.item:
+            continue
+
+        key = get_key(pc_item.party_challan.party_id, pc_item.item_id)
+        
+        # If outward exists but inward doesn't (weird data anomaly?), ensure key exists
+        if key not in stock_map:
+             # Fetch party/item names if missing
+            stock_map[key] = {
+                "party_name": pc_item.party_challan.party.name if pc_item.party_challan.party else "Unknown",
+                "item_name": pc_item.item.name if pc_item.item else "Unknown",
+                "opening": 0.0,
+                "inward": 0.0,
+                "outward": 0.0,
+                "closing": 0.0
+            }
+
+        qty = float(row.quantity or 0)
+        # Use 'challan' relationship name as per model definition
+        if not row.challan:
+            continue
+            
+        t_date = row.challan.challan_date
+
+        if t_date < start:
+            stock_map[key]["opening"] -= qty # It reduces the opening stock available at start_date
+        elif start <= t_date <= end:
+            stock_map[key]["outward"] += qty
+        # Future outwards ignored
+
+    # Calculate Closing and Filter empty
+    result = []
+    for k, v in stock_map.items():
+        v["closing"] = v["opening"] + v["inward"] - v["outward"]
+        # Only include if there is some activity or non-zero balance
+        if abs(v["opening"]) > 0 or v["inward"] > 0 or v["outward"] > 0 or abs(v["closing"]) > 0:
+            result.append(v)
+
+    return result
+
+
 @router.get("/ledger/pdf")
 async def get_party_ledger_pdf(
     party_id: int = None,
@@ -717,65 +830,149 @@ def get_stock_ledger(
 ):
     """
     Returns a stock ledger (running balance) for a specific item.
+    Now matches the PDF report logic for consistency.
     """
     # 1. Date Parsing
     start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else datetime.combine(fy.start_date, datetime.min.time())
     end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else datetime.combine(fy.end_date, datetime.max.time())
-    # Ensure end includes the whole day
     if end_date:
         end = end.replace(hour=23, minute=59, second=59)
 
-    # 2. Opening Balance
-    # Sum(IN) - Sum(OUT) before start date
-    
-    prev_in = db.query(func.sum(StockTransaction.quantity)).filter(
-        StockTransaction.item_id == item_id,
-        StockTransaction.company_id == company_id,
-        StockTransaction.transaction_type == "IN",
-        StockTransaction.created_at < start
-    ).scalar() or 0
-    
-    prev_out = db.query(func.sum(StockTransaction.quantity)).filter(
-        StockTransaction.item_id == item_id,
-        StockTransaction.company_id == company_id,
-        StockTransaction.transaction_type == "OUT",
-        StockTransaction.created_at < start
-    ).scalar() or 0
-    
-    opening_balance = float(prev_in) - float(prev_out)
-
+    # 2. Calculate Opening Balance (Party-Specific if party_id provided)
     if party_id:
-        opening_balance = 0.0
+        # Party-specific opening balance (matches PDF report logic)
+        # Inward: Use quantity_ordered from PartyChallanItem
+        prev_in = db.query(func.sum(PartyChallanItem.quantity_ordered)).join(PartyChallan).filter(
+            PartyChallan.company_id == company_id,
+            PartyChallan.party_id == party_id,
+            PartyChallanItem.item_id == item_id,
+            PartyChallan.challan_date < start,
+            PartyChallan.status != "cancelled"
+        ).scalar() or 0
+        
+        # Outward: Use StockTransaction joined with parent docs
+        prev_out_dc = db.query(func.sum(StockTransaction.quantity)).join(
+            DeliveryChallan,
+            (StockTransaction.reference_id == DeliveryChallan.id) & (StockTransaction.reference_type == "DELIVERY_CHALLAN")
+        ).filter(
+            StockTransaction.company_id == company_id,
+            StockTransaction.item_id == item_id,
+            StockTransaction.transaction_type == "OUT",
+            DeliveryChallan.party_id == party_id,
+            DeliveryChallan.challan_date < start,
+            DeliveryChallan.status != 'cancelled'
+        ).scalar() or 0
+        
+        prev_out_inv = db.query(func.sum(StockTransaction.quantity)).join(
+            Invoice,
+            (StockTransaction.reference_id == Invoice.id) & (StockTransaction.reference_type == "INVOICE")
+        ).filter(
+            StockTransaction.company_id == company_id,
+            StockTransaction.item_id == item_id,
+            StockTransaction.transaction_type == "OUT",
+            Invoice.party_id == party_id,
+            Invoice.invoice_date < start,
+            Invoice.status != 'cancelled'
+        ).scalar() or 0
+        
+        opening_balance = float(prev_in) - (float(prev_out_dc) + float(prev_out_inv))
+    else:
+        # All-party opening balance
+        prev_in = db.query(func.sum(StockTransaction.quantity)).filter(
+            StockTransaction.item_id == item_id,
+            StockTransaction.company_id == company_id,
+            StockTransaction.transaction_type == "IN",
+            StockTransaction.created_at < start
+        ).scalar() or 0
+        
+        prev_out = db.query(func.sum(StockTransaction.quantity)).filter(
+            StockTransaction.item_id == item_id,
+            StockTransaction.company_id == company_id,
+            StockTransaction.transaction_type == "OUT",
+            StockTransaction.created_at < start
+        ).scalar() or 0
+        
+        opening_balance = float(prev_in) - float(prev_out)
+
+    # 3. Fetch Inward Transactions (Party Challans)
+    inward_query = db.query(PartyChallanItem).join(PartyChallan).filter(
+        PartyChallan.company_id == company_id,
+        PartyChallanItem.item_id == item_id,
+        PartyChallan.challan_date >= start,
+        PartyChallan.challan_date <= end,
+        PartyChallan.status != "cancelled"
+    )
+    if party_id:
+        inward_query = inward_query.filter(PartyChallan.party_id == party_id)
     
-    # 3. Transactions
-    transactions = db.query(StockTransaction).filter(
-        StockTransaction.item_id == item_id,
+    inwards = inward_query.order_by(PartyChallan.challan_date.asc()).all()
+    
+    # 4. Fetch Outward Transactions (Delivery Challans & Invoices via StockTransaction)
+    st_out_query = db.query(StockTransaction).filter(
         StockTransaction.company_id == company_id,
+        StockTransaction.item_id == item_id,
+        StockTransaction.transaction_type == "OUT",
         StockTransaction.created_at >= start,
         StockTransaction.created_at <= end
-    ).order_by(StockTransaction.created_at.asc()).all()
+    )
+    st_out = st_out_query.all()
     
-    # Fetch Party Details for transactions
-    challan_ids = [tx.reference_id for tx in transactions if tx.reference_type == "DELIVERY_CHALLAN"]
-    invoice_ids = [tx.reference_id for tx in transactions if tx.reference_type == "INVOICE"]
-    party_challan_ids = [tx.reference_id for tx in transactions if tx.reference_type == "PARTY_CHALLAN"]
+    # Filter outwards by party and resolve details
+    outwards = []
+    for st in st_out:
+        if st.reference_type == "DELIVERY_CHALLAN":
+            dc = db.query(DeliveryChallan).filter(DeliveryChallan.id == st.reference_id).first()
+            if dc and dc.status != 'cancelled':
+                if not party_id or dc.party_id == party_id:
+                    outwards.append({
+                        "date": dc.challan_date,
+                        "type": "OUT",
+                        "ref": dc.challan_number,
+                        "description": "Return Challan",
+                        "party_name": dc.party.name if dc.party else "Unknown",
+                        "qty": float(st.quantity)
+                    })
+        elif st.reference_type == "INVOICE":
+            inv = db.query(Invoice).filter(Invoice.id == st.reference_id).first()
+            if inv and inv.status != 'cancelled':
+                if not party_id or inv.party_id == party_id:
+                    outwards.append({
+                        "date": inv.invoice_date,
+                        "type": "OUT",
+                        "ref": inv.invoice_number,
+                        "description": "Invoice",
+                        "party_name": inv.party.name if inv.party else "Unknown",
+                        "qty": float(st.quantity)
+                    })
     
-    challan_map = {}
-    if challan_ids:
-        challans = db.query(DeliveryChallan).options(joinedload(DeliveryChallan.party)).filter(DeliveryChallan.id.in_(challan_ids)).all()
-        challan_map = {c.id: c for c in challans}
-        
-    invoice_map = {}
-    if invoice_ids:
-        invoices = db.query(Invoice).options(joinedload(Invoice.party)).filter(Invoice.id.in_(invoice_ids)).all()
-        invoice_map = {i.id: i for i in invoices}
-
-    party_challan_map = {}
-    if party_challan_ids:
-        pcs = db.query(PartyChallan).options(joinedload(PartyChallan.party)).filter(PartyChallan.id.in_(party_challan_ids)).all()
-        party_challan_map = {p.id: p for p in pcs}
-
-    # 4. Format Data
+    # 5. Merge and Sort All Transactions
+    all_transactions = []
+    
+    for inw in inwards:
+        all_transactions.append({
+            "date": inw.party_challan.challan_date,
+            "type": "IN",
+            "ref": inw.party_challan.challan_number,
+            "description": "Party Challan",
+            "party_name": inw.party_challan.party.name if inw.party_challan.party else "Unknown",
+            "in_qty": float(inw.quantity_ordered or 0),
+            "out_qty": 0.0
+        })
+    
+    for outw in outwards:
+        all_transactions.append({
+            "date": outw["date"],
+            "type": outw["type"],
+            "ref": outw["ref"],
+            "description": outw["description"],
+            "party_name": outw["party_name"],
+            "in_qty": 0.0,
+            "out_qty": outw["qty"]
+        })
+    
+    all_transactions.sort(key=lambda x: x["date"])
+    
+    # 6. Calculate Running Balance
     final_data = []
     running_balance = opening_balance
     
@@ -791,70 +988,38 @@ def get_stock_ledger(
         "balance": running_balance
     })
     
-    for tx in transactions:
-        in_qty = float(tx.quantity) if tx.transaction_type == "IN" else 0.0
-        out_qty = float(tx.quantity) if tx.transaction_type == "OUT" else 0.0
-        
-        party_match = True
-        desc = tx.reference_type or "Adjustment"
-        party_name = "-"
-        party_obj = None
-        ref_no = str(tx.reference_id or "-")
-        
-        if tx.reference_type == "INVOICE":
-             inv = invoice_map.get(tx.reference_id)
-             if inv:
-                 desc = f"Invoice"
-                 ref_no = inv.invoice_number
-                 party_obj = inv.party
-                 party_name = inv.party.name if inv.party else "Unknown"
-             else:
-                 desc = f"Invoice #{tx.reference_id}"
-                 
-        elif tx.reference_type == "DELIVERY_CHALLAN":
-             chal = challan_map.get(tx.reference_id)
-             if chal:
-                 desc = f"Return Challan"
-                 ref_no = chal.challan_number
-                 party_obj = chal.party
-                 party_name = chal.party.name if chal.party else "Unknown"
-             else:
-                 desc = f"Return Challan #{tx.reference_id}"
-
-        elif tx.reference_type == "PARTY_CHALLAN":
-             pc = party_challan_map.get(tx.reference_id)
-             if pc:
-                 desc = f"Party Challan"
-                 ref_no = pc.challan_number
-                 party_obj = pc.party
-                 party_name = pc.party.name if pc.party else "Unknown"
-             else:
-                 desc = f"Party Challan #{tx.reference_id}"
-
-        # FILTER PARTY
-        if party_id:
-            if not party_obj or party_obj.id != party_id:
-                party_match = False
-
-        if party_match:
-            running_balance += (in_qty - out_qty)
-
-            final_data.append({
-                "date": tx.created_at.date(), # or created_at
-                "type": tx.transaction_type,
-                "ref": ref_no,
-                "description": desc,
-                "party_name": party_name,
-                "in_qty": in_qty,
-                "out_qty": out_qty,
-                "balance": running_balance
-            })
-        
-    return final_data
+    
+    for tx in all_transactions:
+        running_balance += (tx["in_qty"] - tx["out_qty"])
+        final_data.append({
+            "date": tx["date"],
+            "type": tx["type"],
+            "ref": tx["ref"],
+            "description": tx["description"],
+            "party_name": tx["party_name"],
+            "in_qty": tx["in_qty"],
+            "out_qty": tx["out_qty"],
+            "balance": running_balance
+        })
+    
+    # Calculate summary statistics
+    total_inward = sum([tx["in_qty"] for tx in all_transactions])
+    total_outward = sum([tx["out_qty"] for tx in all_transactions])
+    closing_balance = running_balance
+    
+    return {
+        "summary": {
+            "opening_balance": opening_balance,
+            "total_inward": total_inward,
+            "total_outward": total_outward,
+            "closing_balance": closing_balance
+        },
+        "transactions": final_data
+    }
 
 
-@router.get("/stock-ledger/pdf")
-async def get_stock_ledger_pdf(
+@router.get("/stock-ledger/pdf/old")
+async def get_stock_ledger_print_old(
     item_id: int,
     party_id: Optional[int] = None,
     start_date: Optional[str] = None,
@@ -1954,4 +2119,348 @@ def get_collection_metrics(
         'target_dso': target_dso,
         'target_cei': target_cei
     }
+
+
+@router.get("/stock-ledger/pdf")
+async def get_stock_ledger_pdf(
+    item_id: int,
+    party_id: int,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    from fastapi.responses import JSONResponse
+    try:
+        from itertools import zip_longest
+        from app.services.pdf_service import generate_pdf
+        from app.models.party_challan import PartyChallan
+        from app.models.party_challan_item import PartyChallanItem
+        from app.models.delivery_challan import DeliveryChallan
+        from app.models.delivery_challan_item import DeliveryChallanItem
+        from app.models.stock_transaction import StockTransaction
+
+        # 1. Parse Dates
+        start = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else fy.start_date
+        # Correctly parse end date and set time to end of day if created_at is used, but for date comparison date() is fine
+        end = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else fy.end_date
+
+        # 2. Fetch Entities
+        item = db.query(Item).filter(Item.id == item_id).first()
+        party = db.query(Party).filter(Party.id == party_id).first()
+        company = db.query(Company).filter(Company.id == company_id).first()
+
+        if not item or not party:
+             raise HTTPException(status_code=404, detail="Item or Party not found")
+
+        # 3. Calculate Opening Balance
+
+        # Formula: (Sum In before Start) - (Sum Out before Start)
+        
+        # Inward before start (Assuming PartyChallanItem table was reliable)
+        prev_in = db.query(func.sum(PartyChallanItem.quantity_ordered)).join(PartyChallan).filter(
+            PartyChallan.company_id == company_id,
+            PartyChallan.party_id == party_id,
+            PartyChallanItem.item_id == item_id,
+            PartyChallan.challan_date < start,
+            PartyChallan.status != "cancelled"
+        ).scalar() or 0
+
+        # Outward before start (Using StockTransaction + Parent Doc to avoid corrupted Item table)
+        
+        # DC Outwards
+        # We join StockTransaction to DeliveryChallan manually on reference_id
+        prev_out_dc = db.query(func.sum(StockTransaction.quantity)).join(
+            DeliveryChallan,
+            (StockTransaction.reference_id == DeliveryChallan.id) & (StockTransaction.reference_type == "DELIVERY_CHALLAN")
+        ).filter(
+            StockTransaction.company_id == company_id,
+            StockTransaction.item_id == item_id,
+            StockTransaction.transaction_type == "OUT",
+            DeliveryChallan.party_id == party_id,
+            DeliveryChallan.challan_date < start,
+            DeliveryChallan.status != 'cancelled'
+        ).scalar() or 0
+        
+        # Invoice Outwards
+        prev_out_inv = db.query(func.sum(StockTransaction.quantity)).join(
+            Invoice,
+            (StockTransaction.reference_id == Invoice.id) & (StockTransaction.reference_type == "INVOICE")
+        ).filter(
+            StockTransaction.company_id == company_id,
+            StockTransaction.item_id == item_id,
+            StockTransaction.transaction_type == "OUT",
+            Invoice.party_id == party_id,
+            Invoice.invoice_date < start,
+            Invoice.status != 'cancelled'
+        ).scalar() or 0
+        
+        opening_balance = float(prev_in) - (float(prev_out_dc) + float(prev_out_inv))
+
+        # 4. Fetch Current Transactions (In Range)
+        
+        # Inwards
+        inwards = db.query(PartyChallanItem).join(PartyChallan).filter(
+            PartyChallan.company_id == company_id,
+            PartyChallan.party_id == party_id,
+            PartyChallanItem.item_id == item_id,
+            PartyChallan.challan_date >= start,
+            PartyChallan.challan_date <= end,
+            PartyChallan.status != "cancelled"
+        ).order_by(PartyChallan.challan_date.asc()).all()
+
+        # Outwards - Logic Refactored to use StockTransaction as Source of Truth
+        # (Since DeliveryChallanItem.item_id appears to be unreliable/NULL in some cases)
+        
+        # 1. Fetch ALL Outward StockTransactions for this Item in Range
+        st_out = db.query(StockTransaction).filter(
+            StockTransaction.company_id == company_id,
+            StockTransaction.item_id == item_id,
+            StockTransaction.transaction_type == "OUT",
+            StockTransaction.created_at >= start,
+            StockTransaction.created_at <= end
+        ).all()
+        
+        # 2. Filter by Party and Resolve Details
+        all_outwards = []
+        
+        # Bulk fetch parent docs for efficiency (optional, but good practice)
+        # For now, simple loop is safer/easier to implement quickly correctly
+        
+        for st in st_out:
+            row_data = None
+            
+            if st.reference_type == "DELIVERY_CHALLAN":
+                # Check Party via Parent DC
+                dc = db.query(DeliveryChallan).filter(DeliveryChallan.id == st.reference_id).first()
+                if dc and dc.party_id == party_id and dc.status != 'cancelled':
+                    # Attempt to get breakdown from items (even if corrupted ID)
+                    dci = None
+                    if dc.items:
+                        # Try to find the item
+                        for i in dc.items:
+                             # Check if item ID matches or if it's the only item
+                             if str(i.item_id) == str(item_id) or len(dc.items) == 1:
+                                 dci = i
+                                 break
+                        # DEBUG: What if item_id is NULL? Print it.
+                        if not dci and len(dc.items) > 0:
+                            print(f"[DEBUG REPORT] DC #{dc.id} has items but no match for Item {item_id}. Inspecting:")
+                            for i in dc.items:
+                                print(f"  -> Item ID: {i.item_id}, Qty: {i.quantity}, Ok: {i.ok_qty}, Cr: {i.cr_qty}, Mr: {i.mr_qty}, PartyItemRef: {i.party_challan_item_id}")
+                            # Fallback: Just take the first one if only one? Or sum them?
+                            # If multiple, risky. But if only one, safe.
+                            if len(dc.items) == 1:
+                                dci = dc.items[0]
+
+                    # Use breakdown if available
+                    qty = float(dci.quantity or 0) if dci else float(st.quantity)
+                    ok = float(dci.ok_qty or 0) if dci else qty
+                    cr = float(dci.cr_qty or 0) if dci else 0
+                    mr = float(dci.mr_qty or 0) if dci else 0
+                    
+                    # Sanity check: If Ok+Cr+Mr != Qty, trust Qty more?
+                    # Or trust Ok+Cr+Mr sum?
+                    # If user entered 0 for Ok/Cr/Mr, then Sum is 0?
+                    # Let's trust Ok/Cr/Mr if Sum > 0
+                    if (ok + cr + mr) > 0:
+                        # Use breakdown
+                        pass
+                    else:
+                        # Default to All OK
+                        ok = qty
+                        cr = 0
+                        mr = 0
+
+                    # Found valid Outward
+                    row_data = {
+                        "date": dc.challan_date,
+                        "doc_no": dc.challan_number,
+                        "type": "DC",
+                        "qty": qty, 
+                        "ok": ok,
+                        "cr": cr,
+                        "mr": mr
+                    }
+                    
+            elif st.reference_type == "INVOICE":
+                # Check Party via Parent Invoice
+                inv = db.query(Invoice).filter(Invoice.id == st.reference_id).first()
+                # Ensure this invoice is not counting a challan we already counted?
+                # StockTransaction for Invoice is only created if it's a Direct Invoice.
+                # If Invoice references a Challan, the StockTransaction is on the Challan (usually).
+                # But if StockTransaction says INVOICE, it implies direct.
+                if inv and inv.party_id == party_id and inv.status != 'cancelled':
+                     # Try to find breakdown from InvoiceItem if possible, else default
+                     # (Skipping complex item lookup to avoid same NULL error)
+                     row_data = {
+                        "date": inv.invoice_date,
+                        "doc_no": inv.invoice_number,
+                        "type": "INV",
+                        "qty": float(st.quantity),
+                        "ok": float(st.quantity),
+                        "cr": 0,
+                        "mr": 0
+                    }
+            
+            if row_data:
+                all_outwards.append(row_data)
+
+        # Sort by Date
+        all_outwards.sort(key=lambda x: x['date'])
+
+        # 5. Process Data for Side-by-Side Display
+        # We zip them. Use zip_longest
+        
+        
+        inward_rows = []
+        
+        # Calculate Total Inward for Summary
+        total_inward_qty_period = sum([float(row.quantity_ordered or 0) for row in inwards])
+        
+        # "Input Qty To Date" in user report likely means cumulative up to end of period OR just period total?
+        # Usually "Input Qty To Date" = Opening + Inward.
+        # User's Image: Opening (1). Input Qty To Date: 13956.
+        # Table left cum sum ends at 13956. So yes, Input Qty To Date = Cumulative Inward.
+        
+        # Revisit Loop for Inwards to track cumulative
+        cum_inward = opening_balance
+        for row in inwards:
+            qty = float(row.quantity_ordered or 0)
+            cum_inward += qty
+            inward_rows.append({
+                "date": row.party_challan.challan_date,
+                "challan_no": row.party_challan.challan_number,
+                "qty": qty,
+                "total_qty": cum_inward
+            })
+            
+        # If no inwards, but we have opening, we might need a row? 
+        # Or just use opening for calculation.
+        
+        total_inward_display = cum_inward # This matches "Input Qty to Date" logic from image
+            
+        outward_rows = []
+        
+        # Outward logic
+        # Balance logic in user image:
+        # Row 1: Bal 13733. (If Total In 13956 - Out 222 = 13734? close)
+        # Actually, let's use standard: Balance = (Opening + Total Inward So Far) - Cumulative Outward So Far?
+        # No, Side-by-Side means Inward and Outward are independent lists visually.
+        # The Balance column is on the RIGHT side.
+        # The Balance typically represents "Stock on Hand" after that specific Outward transaction.
+        # So: Balance = (Total Inward Available At That Moment) - (Cumulative Outward).
+        # "Total Inward Available" -> in visual, it's strictly Total Inward for the whole period?
+        # Or strict chronological?
+        # Strict chronological is hard with zipping.
+        # User image: Row 1 Outward Date 09/01. Row 1 Inward Date 17/01.
+        # Visual shows they are NOT chronologically synced across columns.
+        # So Balance must be calculated based on "Total Available" (Opening + All Inwards) - Cumulative Outwards.
+        # This implies a "First In First Out" or just "Pool" assumption.
+        # "Total Balance" 13955 (in summary)
+        # Row 1 Balance 13733 = 13955 - 222 (Outward)? Yes exactly.
+        # So Balance = (Total Available for Period) - Cumulative Outward.
+        # This is "Reverse Balance" or "Remaining Stock from Pool".
+        
+        total_available_pool = total_inward_display # Opening + Period Inwards
+        
+        cum_outward = 0
+        for row in all_outwards:
+             disp = row['qty']
+             cum_outward += disp
+             
+             # Balance = Available Pool - Cumulative Outward
+             bal = total_available_pool - cum_outward
+             
+             outward_rows.append({
+                 "date": row['date'],
+                 "challan_no": row['doc_no'],
+                 "ok_qty": row['ok'],
+                 "cr_qty": row['cr'],
+                 "mr_qty": row['mr'],
+                 "dispatch_qty": disp,
+                 "total_qty": cum_outward,
+                 "balance": bal
+             })
+
+        # Combine
+        combined_rows = []
+        
+        # We need to handle Zip Longest ourselves or use library
+        max_len = max(len(inward_rows), len(outward_rows))
+        for i in range(max_len):
+            l = inward_rows[i] if i < len(inward_rows) else None
+            r = outward_rows[i] if i < len(outward_rows) else None
+            combined_rows.append({"left": l, "right": r})
+
+        # Totals for Footer
+        total_dispatch_qty = cum_outward
+        closing_balance = total_available_pool - total_dispatch_qty
+        
+        # Column Totals
+        total_ok_qty = sum([float(row['ok_qty']) for row in outward_rows])
+        total_cr_qty = sum([float(row['cr_qty']) for row in outward_rows])
+        total_mr_qty = sum([float(row['mr_qty']) for row in outward_rows])
+
+        # 6. Render HTML
+        template = templates.get_template("stock_ledger.html")
+        # Format dates for display
+        # Format dates for display
+        start_display = start.strftime("%d/%m/%Y")
+        end_display = end.strftime("%d/%m/%Y")
+
+        html_content = template.render(
+            company=company,
+            party=party,
+            item=item,
+            start_date=start_display,
+            end_date=end_display,
+            generation_date=datetime.now().strftime("%d-%m-%Y"),
+            
+            opening_balance=opening_balance,
+            input_qty_to_date=total_inward_display, 
+            total_balance=total_available_pool,
+            
+            rows=combined_rows,
+            
+            total_ok_qty=total_ok_qty,
+            total_cr_qty=total_cr_qty,
+            total_mr_qty=total_mr_qty,
+            
+            total_inward_display=total_inward_display,
+            
+            total_dispatch_qty=total_dispatch_qty,
+            closing_balance=closing_balance
+        )
+
+        # 7. Generate PDF
+        pdf_data = await generate_pdf(html_content, options={
+            "format": "A4",
+            "margin": {"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"},
+            "print_background": True
+        })
+
+        return Response(
+            content=pdf_data,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": "attachment; filename=Stock_Ledger.pdf",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            },
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "traceback": traceback.format_exc()},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
 
