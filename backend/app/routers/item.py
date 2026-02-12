@@ -143,6 +143,7 @@ async def print_item_barcode(
     item_id: int,
     count: int = 1,
     format: str = "thermal",
+    date: str = None,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -177,6 +178,17 @@ async def print_item_barcode(
         img.save(buffered, format="PNG")
         qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
+        # Format date if provided
+        formatted_date = None
+        if date:
+            try:
+                # Expecting YYYY-MM-DD from frontend date input
+                from datetime import datetime
+                dt = datetime.strptime(date, "%Y-%m-%d")
+                formatted_date = dt.strftime("%d/%m/%Y")
+            except ValueError:
+                formatted_date = date # Fallback or keep as is
+
         # Render Template
         template = env.get_template("item_barcode.html")
         html_content = template.render(
@@ -184,6 +196,7 @@ async def print_item_barcode(
             qr_code=qr_code_b64,
             count=count,
             format=format,
+            date=formatted_date,
             company_name=item.company.name if item.company else "SmartBill",
             rate=f"{item.rate:.2f}" if item.rate else "0.00"
         )

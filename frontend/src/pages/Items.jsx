@@ -17,6 +17,7 @@ import {
   IndianRupee,
   Boxes,
   Printer,
+  Calendar,
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -50,6 +51,7 @@ export default function Items() {
     item: null,
     count: 1,
     format: "thermal",
+    date: "",
   });
 
   const loadItems = async () => {
@@ -106,6 +108,7 @@ export default function Items() {
       item: item,
       count: 1,
       format: "thermal",
+      date: "",
     });
   };
 
@@ -117,6 +120,7 @@ export default function Items() {
         printModal.item.id,
         printModal.count,
         printModal.format,
+        printModal.date,
       );
       const url = window.URL.createObjectURL(blob);
 
@@ -135,7 +139,7 @@ export default function Items() {
       };
 
       toast.success(`Printing ${printModal.count} barcode(s)...`);
-      setPrintModal({ open: false, item: null, count: 1 });
+      setPrintModal({ open: false, item: null, count: 1, date: "" });
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to print barcode");
     }
@@ -464,7 +468,7 @@ export default function Items() {
       {/* Print Barcode Modal */}
       {printModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 transform transition-all scale-100 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
             {/* Header with Gradient */}
             <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-6">
               <div className="flex items-center justify-between">
@@ -488,6 +492,7 @@ export default function Items() {
                       item: null,
                       count: 1,
                       format: "thermal",
+                      date: "",
                     })
                   }
                   className="p-2 hover:bg-white/20 rounded-full transition-all duration-200"
@@ -581,6 +586,34 @@ export default function Items() {
                         />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Date Selection */}
+                  <div>
+                    <label
+                      htmlFor="print_date"
+                      className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2"
+                    >
+                      <span className="p-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                        <Calendar
+                          size={14}
+                          className="text-yellow-600 dark:text-yellow-400"
+                        />
+                      </span>
+                      Print Date (Optional)
+                    </label>
+                    <input
+                      type="date"
+                      id="print_date"
+                      value={printModal.date}
+                      onChange={(e) =>
+                        setPrintModal((p) => ({ ...p, date: e.target.value }))
+                      }
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition-all"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      If selected, date will be printed instead of MRP.
+                    </p>
                   </div>
 
                   {/* Format Selection */}
@@ -705,10 +738,19 @@ export default function Items() {
                         </div>
                         <div className="flex-1 text-right">
                           <p className="text-[6px] text-gray-500 dark:text-gray-400">
-                            MRP
+                            {printModal.date ? "DATE" : "MRP"}
                           </p>
                           <p className="text-xs font-bold text-gray-900 dark:text-white">
-                            ₹{Number(printModal.item?.rate || 0).toFixed(2)}
+                            {printModal.date
+                              ? new Date(printModal.date).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  },
+                                )
+                              : `₹${Number(printModal.item?.rate || 0).toFixed(2)}`}
                           </p>
                           <p className="text-[6px] font-mono text-gray-600 dark:text-gray-400 mt-1">
                             {printModal.item?.barcode || "BARCODE"}
@@ -741,6 +783,7 @@ export default function Items() {
                     item: null,
                     count: 1,
                     format: "thermal",
+                    date: "",
                   })
                 }
                 className="px-6 py-2.5 rounded-xl text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 font-semibold transition-all border-2 border-gray-300 dark:border-gray-600"

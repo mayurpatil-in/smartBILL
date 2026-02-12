@@ -19,12 +19,18 @@ export const deleteItem = async (id) => {
   await axios.delete(`/item/${id}`);
 };
 
-export const printItemBarcode = async (id, count = 1, format = "thermal") => {
-  const response = await axios.get(
-    `/item/${id}/print-barcode?count=${count}&format=${format}`,
-    {
-      responseType: "blob",
-    },
-  );
+export const printItemBarcode = async (
+  id,
+  count = 1,
+  format = "thermal",
+  date = null,
+) => {
+  let url = `/item/${id}/print-barcode?count=${count}&format=${format}`;
+  if (date) {
+    url += `&date=${encodeURIComponent(date)}`;
+  }
+  const response = await axios.get(url, {
+    responseType: "blob",
+  });
   return response.data;
 };
