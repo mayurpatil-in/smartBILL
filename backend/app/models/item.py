@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
@@ -35,6 +35,7 @@ class Item(Base):
     )
 
     name = Column(String(255), nullable=False)
+    part_no = Column(String(100), nullable=True)
     hsn_code = Column(String(20), nullable=True)
     po_number = Column(String(50), nullable=True)
     casting_weight = Column(Numeric(10, 3), default=0)
@@ -42,6 +43,11 @@ class Item(Base):
     rate = Column(Numeric(10, 2), nullable=False)
     barcode = Column(String(50), unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
+    
+    # PDI-specific configuration (stored as JSON)
+    pdi_parameters = Column(JSON, nullable=True)  # Report parameters like Heat No., Part No., etc.
+    pdi_dimensions = Column(JSON, nullable=True)  # Dimensions with specifications and tolerances
+    pdi_equipment = Column(JSON, nullable=True)   # List of inspection equipment
 
     company = relationship(Company)
     financial_year = relationship(FinancialYear)

@@ -17,6 +17,12 @@ class PDIReport(Base):
     # Store checklist as JSON: {"Physical Condition": "Pass", "Accessories": "Fail", ...}
     checklist = Column(JSON, nullable=True)
     
+    # Store actual parameter values: {"Heat No.": "12345", "Part No.": "ABC-001", ...}
+    parameters_data = Column(JSON, nullable=True)
+    
+    # Store actual dimension measurements: {"Fc.angle": "95", "Thickness": "10.2", ...}
+    dimensions_data = Column(JSON, nullable=True)
+    
     remarks = Column(Text, nullable=True)
     status = Column(String(20), default="Pending") # Pass, Fail, Pending
     

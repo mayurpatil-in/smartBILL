@@ -6,6 +6,8 @@ class PDIReportBase(BaseModel):
     inspection_date: Optional[date] = None
     inspector_name: Optional[str] = None
     checklist: Optional[Dict[str, str]] = None
+    parameters_data: Optional[Dict[str, str]] = None  # Actual parameter values
+    dimensions_data: Optional[Dict[str, str]] = None  # Actual dimension measurements
     remarks: Optional[str] = None
     status: Optional[str] = "Pending"
 

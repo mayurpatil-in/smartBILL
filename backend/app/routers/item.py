@@ -66,6 +66,27 @@ def list_items(
     return query.all()
 
 
+@router.get("/{item_id}", response_model=ItemResponse)
+def get_item(
+    item_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    item = db.query(Item).options(
+        joinedload(Item.process)
+    ).filter(
+        Item.id == item_id,
+        Item.company_id == company_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found"
+        )
+    return item
+
+
 @router.put("/{item_id}", response_model=ItemResponse)
 def update_item(
     item_id: int,

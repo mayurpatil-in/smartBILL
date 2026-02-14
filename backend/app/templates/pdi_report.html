@@ -5,380 +5,242 @@
     <title>PDI Report</title>
     <style>
         @page {
-            size: A4;
-            margin: 10mm;
-        }
-        
-        :root {
-            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            --text-color: #1f2937;
-            --border-color: #e5e7eb;
+            size: A4 landscape;
+            margin: 5mm;
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            font-size: 10pt;
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            line-height: 1.3;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9pt;
+            line-height: 1.2;
+            color: #000;
         }
 
-        /* Header Section with Gradient */
-        .header {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-        }
-
-        .header-table {
+        table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid #000;
         }
 
-        .company-info {
-            width: 60%;
-            vertical-align: top;
+        th, td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .bold { font-weight: bold; }
+        .uppercase { text-transform: uppercase; }
+
+        .header-title {
+            font-size: 18pt;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            padding: 5px;
         }
 
         .company-name {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 17pt;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .company-details {
-            font-size: 9pt;
-            color: #e0e7ff;
-            line-height: 1.5;
+        .party-name {
+            font-size: 17pt;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .report-header {
-            width: 40%;
-            text-align: right;
+        .footer-label {
+            font-size: 8pt;
             vertical-align: top;
-        }
-
-        .report-title {
-            font-size: 18px;
-            font-weight: 800;
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 8px 16px;
-            display: inline-block;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .meta-info {
-            font-size: 9pt;
-            color: #e0e7ff;
-            line-height: 1.6;
-        }
-
-        .meta-info strong {
-            color: #ffffff;
-        }
-
-        /* Section Titles with Gradient */
-        .section-title {
-            font-size: 13px;
-            font-weight: 800;
-            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-            color: #ffffff;
-            padding: 8px 16px;
-            margin-bottom: 12px;
-            margin-top: 18px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
-        }
-
-        /* Details Grid with Modern Styling */
-        .details-grid {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .details-grid td {
-            padding: 10px 12px;
-            border: 1px solid #e5e7eb;
-            vertical-align: middle;
-        }
-
-        .label-cell {
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            font-weight: 700;
-            color: #374151;
-            width: 20%;
-        }
-
-        .value-cell {
-            width: 30%;
-            background: #ffffff;
-            font-weight: 600;
-        }
-
-        /* Enhanced Status Badges with Gradients */
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 9pt;
-            font-weight: 800;
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-pass {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-        }
-
-        .badge-fail {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-        }
-
-        .badge-pending {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-        }
-
-        /* Checklist Table with Gradient Header */
-        .checklist-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10pt;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .checklist-table th {
-            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-            color: #ffffff;
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .checklist-table td {
-            padding: 8px 12px;
-            border-bottom: 1px solid #e5e7eb;
-            background: #ffffff;
-        }
-
-        .checklist-table tr:nth-child(even) td {
-            background: #f9fafb;
-        }
-
-        .checklist-table tr:hover td {
-            background: #f3f4f6;
-        }
-
-        /* Status Icons in Checklist */
-        .status-pass {
-            color: #10b981;
-            font-weight: 800;
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            padding: 3px 10px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-
-        .status-fail {
-            color: #ef4444;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            padding: 3px 10px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-
-        .status-na {
-            color: #6b7280;
-            font-weight: 700;
-        }
-
-        /* Remarks Box with Modern Styling */
-        .remarks-box {
-            border: 2px solid #e5e7eb;
-            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-            padding: 12px;
-            border-radius: 8px;
-            min-height: 50px;
-            margin-top: 8px;
-            font-style: italic;
-            color: #4b5563;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Footer with Gradient */
-        .footer {
-            margin-top: 30px;
-            page-break-inside: avoid;
-        }
-
-        .signature-section {
-            width: 100%;
-            margin-top: 20px;
-        }
-
-        .signature-box {
-            width: 250px;
-            float: right;
-            text-align: center;
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid #e5e7eb;
-        }
-
-        .signature-line {
-            border-top: 2px solid #374151;
-            margin-bottom: 8px;
-            margin-top: 40px;
-        }
-
-        .signature-text {
-            font-weight: 700;
-            font-size: 10pt;
-            color: #374151;
-        }
-
-        .disclaimer {
-            margin-top: 40px;
-            font-size: 7pt;
-            color: #94a3b8;
-            text-align: center;
-            border-top: 2px solid #e5e7eb;
-            padding-top: 8px;
+            height: 40px;
         }
     </style>
 </head>
 <body>
-    <!-- Header with Gradient -->
-    <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="company-info">
-                    <div class="company-name">{{ company.name }}</div>
-                    <div class="company-details">
-                        {{ company.address }}<br>
-                        GST: {{ company.gst_number or 'N/A' }} | Phone: {{ company.phone or 'N/A' }}<br>
-                        Email: {{ company.email or 'N/A' }}
-                    </div>
-                </td>
-                <td class="report-header">
-                    <div class="report-title">PDI REPORT</div>
-                    <div class="meta-info">
-                        <strong>Date:</strong> {{ report.inspection_date }}<br>
-                        <strong>Report ID:</strong> PDI-{{ report.id }}<br>
-                        <strong>Ref Challan:</strong> {{ challan.challan_number }}
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
 
-    <!-- Inspection Details Section -->
-    <div class="section-title">Inspection Details</div>
-    <table class="details-grid">
-        <tr>
-            <td class="label-cell">Customer Name</td>
-            <td class="value-cell">{{ party.name }}</td>
-            <td class="label-cell">Inspector</td>
-            <td class="value-cell">{{ report.inspector_name }}</td>
-        </tr>
-        <tr>
-            <td class="label-cell">Vehicle/Machine No.</td>
-            <td class="value-cell">{{ challan.vehicle_number or 'N/A' }}</td>
-            <td class="label-cell">Overall Result</td>
-            <td class="value-cell">
-                <span class="badge {% if report.status == 'Pass' %}badge-pass{% elif report.status == 'Fail' %}badge-fail{% else %}badge-pending{% endif %}">
-                    {{ report.status|upper }}
-                </span>
-            </td>
-        </tr>
-    </table>
-
-    <!-- Checklist Section -->
-    <div class="section-title">Inspection Checklist</div>
-    <table class="checklist-table">
+    <!-- Header Section -->
+    <table style="border-bottom: none;">
         <thead>
             <tr>
-                <th style="width: 70%">Inspection Item</th>
-                <th style="width: 30%">Status</th>
+                <td colspan="4" class="header-title uppercase">
+                    SUPPLIER'S PDIR CUM INCOMING INSPECTION REPORT
+                </td>
             </tr>
         </thead>
         <tbody>
-            {% for key, value in report.checklist.items() %}
             <tr>
-                <td>{{ key }}</td>
-                <td>
-                    {% if value == 'Pass' %}
-                        <span class="status-pass">✓ Pass</span>
-                    {% elif value == 'Fail' %}
-                        <span class="status-fail">✗ Fail</span>
-                    {% else %}
-                        <span class="status-na">- {{ value }}</span>
-                    {% endif %}
+                <!-- Left: Supplier info (Samarth) -->
+                <td style="width: 40%; vertical-align: top; padding: 10px;" class="text-center">
+                    <div class="party-name uppercase">{{ party.name }}</div>
+                    <div style="font-size: 9pt;">{{ party.address or '' }}</div>
+                </td>
+                
+                <!-- Middle: Company info (Bespask) -->
+                <td style="width: 40%; vertical-align: top; padding: 10px;" class="text-center">
+                    <div class="company-name uppercase">{{ company.name }}</div>
+                    <div style="font-size: 9pt;">{{ company.address or '' }}</div>
+                </td>
+
+                <!-- Right: Doc Ref Info -->
+                <td colspan="2" style="width: 20%; padding: 0; vertical-align: top;">
+                    <table style="width: 100%; border: none; margin: 0;">
+                        <tr>
+                            <td class="text-left font-size-8" style="border-top: none; border-left: none; border-right: none;"><strong>Doc. Ref No.:</strong> {{ report.parameters_data.get('Doc Ref No') or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left" style="border-left: none; border-right: none;"><strong>Rev. No.:</strong> {{ report.parameters_data.get('Rev No') or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left" style="border-left: none; border-right: none; border-bottom: none;"><strong>Rev. Date:</strong> {% if report.parameters_data.get('Rev Date') %}{% set d = report.parameters_data.get('Rev Date').split('-') %}{{ d[2] }}-{{ d[1] }}-{{ d[0] }}{% else %}-{% endif %}</td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
-            {% endfor %}
+            
+            <!-- Row 3: Part Details and Report Details -->
+            <tr>
+                  <!-- Part Info -->
+                  <td style="width: 40%; vertical-align: top; padding: 0; border-right: 1px solid #000;">
+                      <table style="width: 100%; border: none; margin: 0;">
+                          <tr>
+                              <td class="text-left bold" style="border: none; border-bottom: 1px solid #000; width: 30%;">Part No.:</td>
+                              <td class="text-left" style="border: none; border-bottom: 1px solid #000;">{{ report.parameters_data.get('Part No') or '-' }}</td>
+                          </tr>
+                          <tr>
+                              <td class="text-left bold" style="border: none; width: 30%;">Part Desc:</td>
+                              <td class="text-left" style="border: none;">{{ item.name }}</td>
+                          </tr>
+                      </table>
+                  </td>
+                  
+                  <!-- Report Info -->
+                  <td colspan="2" style="width: 60%; vertical-align: top; padding: 0;">
+                     <table style="width: 100%; border: none; margin: 0;">
+                         <tr>
+                            <td class="text-left bold" style="border: none; border-right: 1px solid #000; width: 22.2%;">Report No: {{ report.id }}</td>
+                            <td class="text-left bold" style="border: none; border-right: 1px solid #000; width: 22.2%;">D.C. No: {{ challan.challan_number }}</td>
+                            <td class="text-left bold" style="border: none; border-right: 1px solid #000; width: 22.2%;">D.C. Date: {{ challan.challan_date.strftime('%d-%m-%Y') if challan.challan_date else '-' }}</td>
+                            <td class="text-left bold" style="border: none; width: 33.3%;">D.C. Qty: {% if items %}{{ items[0].quantity }} Nos{% else %}-{% endif %}</td>
+                        </tr>
+                         <tr>
+                             <td colspan="4" class="text-left" style="border: none; border-top: 1px solid #000;">
+                                 <strong>Drg. Rev. No.:</strong> {{ report.parameters_data.get('Drg Rev No') or '-' }}
+                             </td>
+                         </tr>
+                     </table>
+                 </td>
+                 
+                 <!-- Empty cells to match colspan -->
+
+            </tr>
         </tbody>
     </table>
 
-    <!-- Remarks Section -->
-    <div class="section-title">Inspector Remarks & Observations</div>
-    <div class="remarks-box">
-        {{ report.remarks or "No additional remarks recorded for this inspection." }}
-    </div>
-
-    <!-- Footer / Signatures -->
-    <div class="footer">
-        <table class="signature-section">
-            <tr>
-                <td></td> <!-- Spacer -->
-                <td style="width: 250px;">
-                    <div class="signature-box">
-                        <div class="signature-line"></div>
-                        <div class="signature-text">Authorized Signature</div>
-                        <div style="font-size: 8pt; color: #6b7280; margin-top: 4px;">(For {{ company.name }})</div>
-                    </div>
-                </td>
+    <!-- Main Observation Table -->
+    <table style="margin-top: -1px;">
+        <thead>
+            <tr style="background-color: #f0f0f0;">
+                <th rowspan="2" style="width: 25px;">Sr.<br>No.</th>
+                <th rowspan="2" style="width: 13%;">Parameter</th>
+                <th rowspan="2" style="width: 11%;">Specified<br>Dim.</th>
+                <th rowspan="2" style="width: 12%;">Inspection<br>Equipments</th>
+                <th colspan="10">Actual Observations</th>
+                <th rowspan="2" style="width: 10%;">Remarks</th>
             </tr>
-        </table>
+            <tr style="background-color: #f0f0f0;">
+                <!-- 5 Sets of Sup/QC columns -->
+                {% for i in range(1, 6) %}
+                <th style="width: 5%;">Sup-{{ i }}</th>
+                <th style="width: 5%;">{{ company.initials or 'QC' }}-{{ i }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% set row_count = namespace(value=1) %}
+            
+            <!-- Dimensions -->
+            {% for dim in pdi_dimensions %}
+            {% set dim_loop = loop %}
+            <tr>
+                <td>{{ dim_loop.index }}</td>
+                <td class="text-left">{{ dim.name or dim.parameter or '-' }}</td>
+                <td>{{ dim.specification }} {% if dim.unit %}{{ dim.unit }}{% endif %}</td>
+                <td>{{ dim.equipment or report.parameters_data.get('Equipment', '-') }}</td>
+                
+                <!-- Sup-1 (Original/Backward Compatible) -->
+                <td class="bold">{{ report.dimensions_data.get(dim.name ~ '__' ~ dim_loop.index0, report.dimensions_data.get(dim.name, '')) }}</td>
+                
+                <!-- QC-1 -->
+                <td class="bold">{{ report.dimensions_data.get(dim.name ~ '__' ~ dim_loop.index0 ~ '_qc_1', report.dimensions_data.get(dim.name ~ '_qc_1', '')) }}</td>
+                
+                <!-- Sup-2 & QC-2 to Sup-5 & QC-5 -->
+                {% for i in range(2, 6) %}
+                <td class="bold">{{ report.dimensions_data.get(dim.name ~ '__' ~ dim_loop.index0 ~ '_sup_' ~ i, report.dimensions_data.get(dim.name ~ '_sup_' ~ i, '')) }}</td>
+                <td class="bold">{{ report.dimensions_data.get(dim.name ~ '__' ~ dim_loop.index0 ~ '_qc_' ~ i, report.dimensions_data.get(dim.name ~ '_qc_' ~ i, '')) }}</td>
+                {% endfor %}
+                
+                <td></td> <!-- Remarks -->
+            </tr>
+            {% endfor %}
 
-        <div class="disclaimer">
-            This document certifies that a Pre-Delivery Inspection has been conducted. 
-            Generated by SmartBill on {{ report.updated_at.strftime('%Y-%m-%d %H:%M:%S') if report.updated_at else report.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
-        </div>
-    </div>
+
+            
+            <!-- Overall Result -->
+            <tr style="background-color: #f9f9f9;">
+                <td colspan="4" class="text-right bold">OVERALL DECISION:</td>
+                <td colspan="1" class="bold uppercase">{{ report.status }}</td>
+                <td colspan="10"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Footer Section -->
+    <table style="margin-top: -1px; border-top: none;">
+        <!-- Headers -->
+        <tr style="background-color: #f0f0f0;">
+            <th colspan="2" style="width: 30%; text-align: left; padding-left: 10px;">For <span class="uppercase">{{ company.name }}</span></th>
+            <th colspan="2" style="width: 30%; text-align: left; padding-left: 10px;">For <span class="uppercase">{{ party.name }}</span></th>
+            <th style="width: 6%;">GRN</th>
+            <th style="width: 8%;">GRN Date</th>
+            <th style="width: 8%;">GRN Qty</th>
+            <th style="width: 6%;">OK Qty</th>
+            <th style="width: 6%;">MR Qty</th>
+            <th style="width: 6%;">CR Qty</th>
+        </tr>
+        
+        <!-- Content Row -->
+        <tr>
+            <!-- Supplier Signatures -->
+            <td style="width: 15%; vertical-align: bottom; height: 50px;">
+                <div style="border-top: 1px solid #000; margin-top: 30px; width: 90%;">Prepared By</div>
+            </td>
+            <td style="width: 15%; vertical-align: bottom;">
+                <div style="border-top: 1px solid #000; margin-top: 30px; width: 90%;">Approved By</div>
+            </td>
+
+            <!-- Company Signatures -->
+            <td style="width: 15%; vertical-align: bottom;">
+                <div style="border-top: 1px solid #000; margin-top: 30px; width: 90%;">Prepared By</div>
+            </td>
+            <td style="width: 15%; vertical-align: bottom;">
+                <div style="border-top: 1px solid #000; margin-top: 30px; width: 90%;">Approved By</div>
+            </td>
+
+            <!-- GRN Data (Empty) -->
+            <td></td> <td></td> <td></td> <td></td> <td></td> <td></td>
+        </tr>
+        
+        <!-- Date Row -->
+        <tr>
+             <td colspan="2" class="text-left" style="border: none; padding-left: 5px;">Date: {{ report.inspection_date.strftime('%d-%m-%Y') if report.inspection_date else '-' }}</td>
+             <td colspan="8" style="border: none;"></td>
+        </tr>
+    </table>
 
 </body>
 </html>
-

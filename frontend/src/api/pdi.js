@@ -24,3 +24,10 @@ export const printPDIReport = async (id) => {
   });
   return response.data;
 };
+
+export const getPDIReportHtml = async (id) => {
+  const response = await api.get(`/pdi/${id}/html`, {
+    responseType: "text",
+  });
+  return response.data;
+};
