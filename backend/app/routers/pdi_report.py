@@ -90,11 +90,34 @@ def view_pdi_report_html(report_id: int, db: Session = Depends(get_db), current_
             pdi_dimensions = item.pdi_dimensions if item.pdi_dimensions else []
             pdi_equipment = item.pdi_equipment if item.pdi_equipment else []
         
+        # Generate QR Code for Public Summary
+        import qrcode
+        import io
+        import base64
+        from app.core.config import get_backend_url
+        from app.core.security import create_url_signature
+        
+        base_url = get_backend_url()
+        signature = create_url_signature(str(challan.id))
+        summary_url = f"{base_url}/public/challan/{challan.id}/summary?token={signature}"
+        
+        qr = qrcode.QRCode(version=1, box_size=5, border=2)
+        qr.add_data(summary_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        
         # Verify template exists before rendering
         if not os.path.exists(os.path.join(templates_dir, "pdi_report.html")):
              print(f"[PDI ERROR] Template not found at {os.path.join(templates_dir, 'pdi_report.html')}")
              return HTMLResponse(content=f"<html><body><h1>Template Not Found</h1><p>{os.path.join(templates_dir, 'pdi_report.html')}</p></body></html>", status_code=500)
              
+        # Calculate total quantity from all challan items
+        total_qty = sum(float(item.quantity) for item in challan.items)
+        
         template = template_env.get_template("pdi_report.html")
         html_content = template.render(
             report=report,
@@ -105,7 +128,9 @@ def view_pdi_report_html(report_id: int, db: Session = Depends(get_db), current_
             item=item,
             pdi_parameters=pdi_parameters,
             pdi_dimensions=pdi_dimensions,
-            pdi_equipment=pdi_equipment
+            pdi_equipment=pdi_equipment,
+            qr_code=qr_code_b64,
+            total_qty=int(total_qty)
         )
         
         return HTMLResponse(content=html_content)
@@ -145,8 +170,33 @@ async def generate_pdi_report_pdf(report_id: int, db: Session = Depends(get_db),
         pdi_parameters = item.pdi_parameters if item.pdi_parameters else []
         pdi_dimensions = item.pdi_dimensions if item.pdi_dimensions else []
         pdi_equipment = item.pdi_equipment if item.pdi_equipment else []
+
+    # Generate QR Code for Public Summary
+    import qrcode
+    import io
+    import base64
+    from app.core.config import get_backend_url
+    from app.core.security import create_url_signature
+    
+    base_url = get_backend_url()
+    signature = create_url_signature(str(challan.id))
+    summary_url = f"{base_url}/public/challan/{challan.id}/summary?token={signature}"
+    
+    qr = qrcode.QRCode(version=1, box_size=5, border=2)
+    qr.add_data(summary_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
     
     print(f"[PDI DEBUG] Rendering template for report {report_id}...")
+    
+    # Calculate total quantity from all challan items
+    total_qty = sum(float(item.quantity) for item in challan.items)
+    
     template = template_env.get_template("pdi_report.html")
     try:
         html_content = template.render(
@@ -158,7 +208,9 @@ async def generate_pdi_report_pdf(report_id: int, db: Session = Depends(get_db),
             item=item,
             pdi_parameters=pdi_parameters,
             pdi_dimensions=pdi_dimensions,
-            pdi_equipment=pdi_equipment
+            pdi_equipment=pdi_equipment,
+            qr_code=qr_code_b64,
+            total_qty=int(total_qty)
         )
         print("[PDI DEBUG] Template rendered successfully.")
     except Exception as e:

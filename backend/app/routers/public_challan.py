@@ -128,7 +128,19 @@ async def public_download_challan(
                 self.ok_qty = int(ok)
                 self.cr_qty = int(cr)
                 self.mr_qty = int(mr)
-                self.rate = original.rate if original.rate and original.rate > 0 else (original.party_challan_item.rate if original.party_challan_item and original.party_challan_item.rate and original.party_challan_item.rate > 0 else (original.party_challan_item.item.rate if original.party_challan_item and original.party_challan_item.item and original.party_challan_item.item.rate else 0.0))
+                
+                # Effective Rate
+                eff_rate = float(original.rate) if original.rate and original.rate > 0 else (
+                    float(original.party_challan_item.rate) if original.party_challan_item and original.party_challan_item.rate and original.party_challan_item.rate > 0 else (
+                        float(original.party_challan_item.item.rate) if original.party_challan_item and original.party_challan_item.item and original.party_challan_item.item.rate else 0.0
+                    )
+                )
+                self.rate = eff_rate
+                self.party_rate = float(original.party_rate or 0)
+                
+                # Calculate Amount
+                total_qty = self.ok_qty + self.cr_qty + self.mr_qty
+                self.amount_formatted = "{:.2f}".format((self.rate + self.party_rate) * total_qty)
         
         proxy_item_obj = ProxyItem(data["item_obj"], data["ok"], data["cr"], data["mr"])
 
@@ -182,3 +194,128 @@ async def public_download_challan(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal Error generating PDF: {str(e)}")
+
+
+@router.get("/{challan_id}/summary", response_class=Response)
+def public_challan_summary(
+    challan_id: int,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to view a delivery challan summary HTML.
+    This is intended to be accessed via QR Code.
+    """
+    # 🔒 Verify Signature
+    if not verify_url_signature(str(challan_id), token):
+        return Response(content="Invalid or expired link", status_code=403)
+
+    # Fetch challan
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.party),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item)
+    ).filter(
+        DeliveryChallan.id == challan_id
+    ).first()
+    
+    if not challan:
+        return Response(content="Delivery Challan not found", status_code=404)
+    
+    # Fetch company
+    company = db.query(Company).filter(Company.id == challan.company_id).first()
+    
+    # Prepare items data
+    items_data = []
+    total_amount = 0.0
+    total_qty = 0.0
+    
+    # Helper function for Indian Currency Formatting
+    def format_indian_currency(value):
+        try:
+            value = float(value)
+            # Format to 2 decimal places first
+            s = "{:.2f}".format(value)
+            parts = s.split('.')
+            integer_part = parts[0]
+            decimal_part = parts[1]
+            
+            # If less than 1000, no special formatting needed
+            if len(integer_part) <= 3:
+                return s
+            
+            # Logic for Indian Numbering System
+            # Last 3 digits
+            last_three = integer_part[-3:]
+            remaining = integer_part[:-3]
+            
+            # Group remaining digits in pairs of 2 from right to left
+            formatted_remaining = ""
+            while len(remaining) > 2:
+                formatted_remaining = "," + remaining[-2:] + formatted_remaining
+                remaining = remaining[:-2]
+            
+            formatted_remaining = remaining + formatted_remaining
+            
+            return formatted_remaining + "," + last_three + "." + decimal_part
+        except:
+            return str(value)
+    
+    for item in challan.items:
+        # Determine Rate (Effective Rate + Party Rate)
+        eff_rate = float(item.rate) if item.rate and item.rate > 0 else (
+            float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (
+                float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0
+            )
+        )
+        party_rate = float(item.party_rate or 0)
+        rate = eff_rate + party_rate
+        
+        qty = float(item.quantity)
+        amount = qty * rate
+        
+        total_qty += qty
+        total_amount += amount
+        
+        # Get Item Name
+        item_name = "Unknown"
+        if item.party_challan_item and item.party_challan_item.item:
+            item_name = item.party_challan_item.item.name
+            
+        items_data.append({
+            "name": item_name,
+            "ok_qty": int(item.ok_qty),
+            "cr_qty": int(item.cr_qty),
+            "mr_qty": int(item.mr_qty),
+            "total_qty": int(qty),
+            "rate": rate,
+            "amount": amount,
+            "amount_formatted": format_indian_currency(amount)
+        })
+
+    # Get unique item names (preserve order)
+    unique_item_names = []
+    seen_names = set()
+    for item in items_data:
+        if item["name"] not in seen_names:
+            unique_item_names.append(item["name"])
+            seen_names.add(item["name"])
+    
+    try:
+        template = env.get_template("challan_summary.html")
+        html = template.render(
+            challan=challan,
+            company=company,
+            party=challan.party,
+            items=items_data,
+            unique_item_names=unique_item_names,
+            total_qty=int(total_qty),
+            total_amount=total_amount,
+            total_amount_formatted=format_indian_currency(total_amount)
+        )
+        
+        return Response(content=html, media_type="text/html")
+    except Exception as e:
+        print(f"CRITICAL ERROR RENDERING CHALLAN SUMMARY: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(content=f"Error rendering summary: {str(e)}", status_code=500)
