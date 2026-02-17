@@ -37,6 +37,8 @@ export default function AddDeliveryChallanModal({
   const [partyChallansByItem, setPartyChallansByItem] = useState([]);
   const [nextChallanNumber, setNextChallanNumber] = useState("");
   const scrollContainerRef = useRef(null);
+  const partySelectRef = useRef(null);
+  const itemSelectRef = useRef(null);
 
   const [form, setForm] = useState({
     party_id: "",
@@ -91,6 +93,12 @@ export default function AddDeliveryChallanModal({
   useEffect(() => {
     if (open) {
       fetchData();
+      // Auto-focus on party select when modal opens
+      setTimeout(() => {
+        if (partySelectRef.current) {
+          partySelectRef.current.focus();
+        }
+      }, 100);
     }
   }, [open]);
 
@@ -343,6 +351,10 @@ export default function AddDeliveryChallanModal({
           behavior: "smooth",
         });
       }
+      // Auto-focus on item select for quick addition of next item
+      if (itemSelectRef.current) {
+        itemSelectRef.current.focus();
+      }
     }, 100);
   };
 
@@ -480,6 +492,7 @@ export default function AddDeliveryChallanModal({
                     Party <span className="text-red-500">*</span>
                   </label>
                   <select
+                    ref={partySelectRef}
                     name="delivery_party_id"
                     id="delivery_party_id"
                     value={form.party_id}
@@ -560,6 +573,7 @@ export default function AddDeliveryChallanModal({
                       Select Item <span className="text-red-500">*</span>
                     </label>
                     <select
+                      ref={itemSelectRef}
                       name="delivery_item_id"
                       id="delivery_item_id"
                       value={currentItem.item_id}

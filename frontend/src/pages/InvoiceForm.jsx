@@ -36,6 +36,8 @@ export default function InvoiceForm() {
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useState([]);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState("");
+  const partySelectRef = useRef(null);
+  const itemSelectRef = useRef(null);
 
   // Barcode Scanner Integration
   useBarcodeScanner({
@@ -166,6 +168,12 @@ export default function InvoiceForm() {
       }
     };
     fetchData();
+    // Auto-focus on party select when page loads
+    setTimeout(() => {
+      if (partySelectRef.current && !isEditMode) {
+        partySelectRef.current.focus();
+      }
+    }, 100);
   }, [id, isEditMode]);
 
   // Fetch Pending Items when Party Changes
@@ -362,6 +370,10 @@ export default function InvoiceForm() {
           behavior: "smooth",
           block: "nearest",
         });
+      }
+      // Auto-focus on item select for quick addition of next item
+      if (itemSelectRef.current) {
+        itemSelectRef.current.focus();
       }
     }, 100);
   };
@@ -606,6 +618,7 @@ export default function InvoiceForm() {
                     Party <span className="text-red-500">*</span>
                   </label>
                   <select
+                    ref={partySelectRef}
                     name="invoice_party_id"
                     id="invoice_party_id"
                     value={formData.party_id}
@@ -677,6 +690,7 @@ export default function InvoiceForm() {
                       Select Item <span className="text-red-500">*</span>
                     </label>
                     <select
+                      ref={itemSelectRef}
                       name="invoice_item_id"
                       id="invoice_item_id"
                       value={currentItem.item_id}
