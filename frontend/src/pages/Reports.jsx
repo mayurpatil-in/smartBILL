@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   FileText,
   Search,
@@ -54,11 +55,18 @@ export default function Reports() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  // URL Params
+  const [searchParams] = useSearchParams();
+
   // Tab State
-  const [activeTab, setActiveTab] = useState("jobwork"); // jobwork, ledger, statement, stock
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || "jobwork",
+  ); // jobwork, ledger, statement, stock
   const [selectedJobWorkParty, setSelectedJobWorkParty] = useState("");
   const [selectedJobWorkItem, setSelectedJobWorkItem] = useState("");
-  const [selectedStatementPartyId, setSelectedStatementPartyId] = useState("");
+  const [selectedStatementPartyId, setSelectedStatementPartyId] = useState(
+    searchParams.get("party_id") || "",
+  );
 
   // Statement State
   const [parties, setParties] = useState([]);
@@ -92,6 +100,14 @@ export default function Reports() {
     const year = today.getFullYear();
     const month = today.getMonth();
 
+    // If navigating from AI Insights with a party_id, show full FY
+    if (searchParams.get("party_id")) {
+      return {
+        start_date: getFinancialYearStartDate(),
+        end_date: getFinancialYearEndDate(),
+      };
+    }
+
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
@@ -114,6 +130,17 @@ export default function Reports() {
     loadParties();
     loadItems();
   }, []);
+
+  // Re-trigger statement fetch once parties are loaded (for deep-link from AI Insights)
+  useEffect(() => {
+    if (
+      activeTab === "statement" &&
+      selectedStatementPartyId &&
+      parties.length > 0
+    ) {
+      fetchStatement();
+    }
+  }, [parties]);
 
   useEffect(() => {
     if (activeTab === "statement" && selectedStatementPartyId) {

@@ -263,6 +263,10 @@ app.include_router(client_portal.router)
 from app.routers.pdi_report import router as pdi_report_router
 app.include_router(pdi_report_router, prefix="/pdi", tags=["PDI Reports"])
 
+# [NEW] AI Insights Router
+from app.routers.ai_insights import router as ai_insights_router
+app.include_router(ai_insights_router)
+
 # ===================== ROOT =====================
 @app.get("/")
 def root():

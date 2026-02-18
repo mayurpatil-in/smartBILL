@@ -10,6 +10,7 @@ import { useAuth } from "./hooks/useAuth";
 // 💤 Lazy Load Pages
 const Login = lazy(() => import("./auth/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const AIInsights = lazy(() => import("./pages/AIInsights")); // [NEW]
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const InvoiceForm = lazy(() => import("./pages/InvoiceForm"));
@@ -88,6 +89,7 @@ function AppRoutes() {
             path="dashboard"
             element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
           />
+          <Route path="ai-insights" element={<AIInsights />} /> {/* [NEW] */}
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/new" element={<InvoiceForm />} />
           <Route path="invoices/:id/edit" element={<InvoiceForm />} />

@@ -15,6 +15,7 @@ import {
   Shield,
   UserCog,
   Database,
+  Sparkles, // [NEW]
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -117,6 +118,12 @@ export default function Sidebar({
             to="/"
             icon={LayoutDashboard}
             label="Dashboard"
+            collapsed={collapsed}
+          />
+          <MenuLink
+            to="/ai-insights"
+            icon={Sparkles}
+            label="AI Insights"
             collapsed={collapsed}
           />
           {!isSuperAdmin && (
