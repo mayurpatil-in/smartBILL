@@ -25,6 +25,11 @@ import { getItems } from "../api/items";
 import { getPartyChallansByItem } from "../api/partyChallans";
 import useBarcodeScanner from "../hooks/useBarcodeScanner";
 
+import {
+  getFinancialYearStartDate,
+  getFinancialYearEndDate,
+} from "../utils/dateUtils";
+
 export default function AddDeliveryChallanModal({
   open,
   onClose,
@@ -522,6 +527,8 @@ export default function AddDeliveryChallanModal({
                     name="delivery_challan_date"
                     id="delivery_challan_date"
                     value={form.challan_date}
+                    min={getFinancialYearStartDate()}
+                    max={getFinancialYearEndDate()}
                     onChange={(e) =>
                       setForm({ ...form, challan_date: e.target.value })
                     }

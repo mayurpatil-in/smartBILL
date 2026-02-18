@@ -142,3 +142,28 @@ export const getCollectionMetrics = async () => {
   const response = await api.get("/reports/analytics/collection-metrics");
   return response.data;
 };
+
+// ============================================
+// GRN REPORT API FUNCTIONS
+// ============================================
+
+export const getGRNReport = async (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== "" && v != null),
+  );
+  const response = await api.get("/reports/grn-report", {
+    params: cleanParams,
+  });
+  return response.data;
+};
+
+export const getGRNReportPDF = async (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== "" && v != null),
+  );
+  const response = await api.get("/reports/grn-report/pdf", {
+    params: cleanParams,
+    responseType: "blob",
+  });
+  return response.data;
+};

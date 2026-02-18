@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRN Report</title>
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 10px;
+            font-size: 12px;
+            border: 2px solid #333;
+            min-height: 98vh;
+            box-sizing: border-box;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .report-title {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin: 5px 0 0;
+            font-weight: normal;
+        }
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .meta-item {
+            flex: 1;
+        }
+        .meta-label {
+            font-weight: bold;
+            color: #7f8c8d;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        tr:nth-child(even) {
+            background-color: #fafbfc;
+        }
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .total-row td {
+            font-weight: bold;
+            background-color: #e9ecef;
+            color: #2c3e50;
+            border-top: 2px solid #dee2e6;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 10px;
+            color: #95a5a6;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-paid {
+            background-color: #d1fae5;
+            color: #047857;
+        }
+        .status-pending {
+            background-color: #fef3c7;
+            color: #b45309;
+        }
+        .status-partial {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="company-name">{{ company.name }}</h1>
+        <h2 class="report-title">GRN Report</h2>
+    </div>
+
+    <div class="meta-info">
+        <div class="meta-item">
+            <span class="meta-label">Date Range</span>
+            <span class="meta-value">{{ start_date }} to {{ end_date }}</span>
+        </div>
+        <div class="meta-item" style="text-align: center;">
+            <span class="meta-label">Party Name</span>
+            <span class="meta-value">{{ party_name if party_name else "All Parties" }}</span>
+        </div>
+        <div class="meta-item" style="text-align: right;">
+            <span class="meta-label">Generated On</span>
+            <span class="meta-value">{{ generation_date }}</span>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 10%;">Date</th>
+                <th style="width: 12%;">Invoice No</th>
+                <th style="width: 15%;">Challan No</th>
+                <th style="width: 15%;">GRN No</th>
+                <th style="width: 8%; text-align: right;">Qty</th>
+                <th style="width: 8%; text-align: right;">Rate</th>
+                <th style="width: 10%; text-align: right;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item_name, group in grouped_items.items() %}
+            <tr style="background-color: #e9ecef;">
+                <td colspan="7" style="font-weight: bold; color: #2c3e50; font-size: 13px;">{{ item_name }}</td>
+            </tr>
+            {% for item in group.item_list %}
+            <tr>
+                <td>{{ item.invoice_date.strftime('%d-%m-%Y') }}</td>
+                <td>{{ item.invoice_number }}</td>
+                <td style="font-family: monospace; color: #4a5568;">{{ item.challan_no if item.challan_no else '-' }}</td>
+                <td style="font-weight: bold; color: #4a5568;">{{ item.grn_no if item.grn_no else '-' }}</td>
+                <td class="amount">{{ item.quantity|int }}</td>
+                <td class="amount">{{ "%.2f"|format(item.rate) }}</td>
+                <td class="amount">{{ item.amount|indian_currency }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="subtotal-row" style="background-color: #f8f9fa; border-top: 1px dashed #dee2e6;">
+                <td colspan="4" style="text-align: right; font-weight: bold; font-size: 11px; color: #7f8c8d;">Subtotal</td>
+                <td class="amount" style="font-weight: bold;">{{ group.total_qty|int }}</td>
+                <td></td>
+                <td class="amount" style="font-weight: bold;"><span>&#8377;</span> {{ group.total_amount|indian_currency }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row" style="border-top: 2px solid #2c3e50;">
+                <td colspan="4" style="text-align: right; font-size: 14px;">Grand Total</td>
+                <td class="amount">{{ grand_total_qty|int }}</td>
+                <td></td>
+                <td class="amount"><span>&#8377;</span> {{ grand_total_amount|indian_currency }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>This is a computer-generated report.</p>
+        <p>Generated by {{ company.name }} | Developed by SmartBill system | Design & Developed by <a href="https://www.mayurpatil.in" style="color: inherit; text-decoration: none;">www.mayurpatil.in</a></p>
+    </div>
+</body>
+</html>

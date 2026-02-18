@@ -20,6 +20,10 @@ import {
   getPDIReportHtml,
 } from "../api/pdi";
 import { getItem } from "../api/items";
+import {
+  getFinancialYearStartDate,
+  getFinancialYearEndDate,
+} from "../utils/dateUtils";
 
 export default function PDIReportModal({ isOpen, onClose, challan }) {
   const [loading, setLoading] = useState(false);
@@ -348,6 +352,8 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
                   name="inspection_date"
                   id="inspection_date"
                   value={formData.inspection_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -408,6 +414,8 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
                   name="rev_date"
                   id="rev_date"
                   value={formData.parameters_data["Rev Date"] || ""}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
                   onChange={(e) =>
                     handleParameterChange("Rev Date", e.target.value)
                   }

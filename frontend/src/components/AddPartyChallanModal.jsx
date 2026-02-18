@@ -23,6 +23,12 @@ import { getProcesses } from "../api/processes";
 import { getStock } from "../api/stock";
 import { getPartyChallansByItem } from "../api/partyChallans";
 
+import {
+  formatDate,
+  getFinancialYearStartDate,
+  getFinancialYearEndDate,
+} from "../utils/dateUtils";
+
 export default function AddPartyChallanModal({
   open,
   onClose,
@@ -436,6 +442,8 @@ export default function AddPartyChallanModal({
                     name="challan_date"
                     id="challan_date"
                     value={form.challan_date}
+                    min={getFinancialYearStartDate()}
+                    max={getFinancialYearEndDate()}
                     onChange={(e) =>
                       setForm({ ...form, challan_date: e.target.value })
                     }

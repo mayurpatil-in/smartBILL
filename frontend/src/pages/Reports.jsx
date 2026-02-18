@@ -31,10 +31,16 @@ import {
   getTrueStockLedgerPDF,
   getJobWorkStockSummary,
   getJobWorkStockSummaryPDF,
+  getGRNReport,
+  getGRNReportPDF,
 } from "../api/reports";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
 import PdfPreviewModal from "../components/PdfPreviewModal";
+import {
+  getFinancialYearStartDate,
+  getFinancialYearEndDate,
+} from "../utils/dateUtils";
 
 export default function Reports() {
   const [data, setData] = useState([]);
@@ -75,6 +81,11 @@ export default function Reports() {
   // Job Work Stock Summary State
   const [jobWorkStockLoading, setJobWorkStockLoading] = useState(false);
   const [jobWorkStockData, setJobWorkStockData] = useState([]);
+
+  // GRN Report State
+  const [grnData, setGrnData] = useState([]);
+  const [grnLoading, setGrnLoading] = useState(false);
+  const [selectedGRNParty, setSelectedGRNParty] = useState("");
 
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
@@ -117,11 +128,16 @@ export default function Reports() {
     if (activeTab === "gst") {
       fetchGSTReport();
     }
+    if (activeTab === "grn") {
+      fetchGRNReport();
+    }
   }, [
     activeTab,
     selectedStatementPartyId,
     selectedItem,
     selectedStockParty,
+    selectedStockParty,
+    selectedGRNParty,
     dateRange,
   ]);
 
@@ -269,6 +285,54 @@ export default function Reports() {
       toast.error("Failed to load GST report");
     } finally {
       setGstLoading(false);
+    }
+  };
+
+  const fetchGRNReport = async () => {
+    try {
+      setGrnLoading(true);
+      const res = await getGRNReport({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+        party_id: selectedGRNParty || undefined,
+      });
+      setGrnData(res);
+    } catch (err) {
+      toast.error("Failed to load GRN report");
+    } finally {
+      setGrnLoading(false);
+    }
+  };
+
+  const handlePrintGRNReport = async () => {
+    try {
+      setPdfLoading(true);
+      const loadingToast = toast.loading("Generating GRN Report PDF...");
+
+      const blob = await getGRNReportPDF({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+        party_id: selectedGRNParty || undefined,
+      });
+
+      const url = window.URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" }),
+      );
+
+      setPreviewDoc({
+        url: url,
+        title: selectedGRNParty
+          ? `GRN_Report_${selectedGRNParty}_${dateRange.start_date}`
+          : `GRN_Report_${dateRange.start_date}`,
+      });
+
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to generate PDF");
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -648,6 +712,7 @@ export default function Reports() {
               icon: ReceiptIndianRupee,
             },
             { id: "gst", label: "GST Report", icon: IndianRupee },
+            { id: "grn", label: "GRN Report", icon: FileText },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1090,6 +1155,8 @@ export default function Reports() {
                   name="statement_start_date"
                   id="statement_start_date"
                   value={dateRange.start_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, start_date: e.target.value })
                   }
@@ -1109,6 +1176,8 @@ export default function Reports() {
                   name="statement_end_date"
                   id="statement_end_date"
                   value={dateRange.end_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, end_date: e.target.value })
                   }
@@ -1261,6 +1330,8 @@ export default function Reports() {
                     name="jobwork_start_date"
                     id="jobwork_start_date"
                     value={dateRange.start_date}
+                    min={getFinancialYearStartDate()}
+                    max={getFinancialYearEndDate()}
                     onChange={(e) =>
                       setDateRange({ ...dateRange, start_date: e.target.value })
                     }
@@ -1279,6 +1350,8 @@ export default function Reports() {
                     name="jobwork_end_date"
                     id="jobwork_end_date"
                     value={dateRange.end_date}
+                    min={getFinancialYearStartDate()}
+                    max={getFinancialYearEndDate()}
                     onChange={(e) =>
                       setDateRange({ ...dateRange, end_date: e.target.value })
                     }
@@ -1471,6 +1544,8 @@ export default function Reports() {
                   name="stock_start_date"
                   id="stock_start_date"
                   value={dateRange.start_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, start_date: e.target.value })
                   }
@@ -1490,6 +1565,8 @@ export default function Reports() {
                   name="stock_end_date"
                   id="stock_end_date"
                   value={dateRange.end_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
                   onChange={(e) =>
                     setDateRange({ ...dateRange, end_date: e.target.value })
                   }
@@ -1736,6 +1813,8 @@ export default function Reports() {
                     name="gst_start_date"
                     id="gst_start_date"
                     value={dateRange.start_date}
+                    min={getFinancialYearStartDate()}
+                    max={getFinancialYearEndDate()}
                     onChange={(e) =>
                       setDateRange({ ...dateRange, start_date: e.target.value })
                     }
@@ -1754,6 +1833,8 @@ export default function Reports() {
                     name="gst_end_date"
                     id="gst_end_date"
                     value={dateRange.end_date}
+                    min={getFinancialYearStartDate()}
+                    max={getFinancialYearEndDate()}
                     onChange={(e) =>
                       setDateRange({ ...dateRange, end_date: e.target.value })
                     }
@@ -1964,6 +2045,194 @@ export default function Reports() {
           </div>
         </div>
       )}
+      {activeTab === "grn" && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col md:flex-row flex-wrap gap-4 items-end">
+              <div className="w-full md:w-auto">
+                <label
+                  htmlFor="grn_party_id"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Select Party
+                </label>
+                <select
+                  name="grn_party_id"
+                  id="grn_party_id"
+                  value={selectedGRNParty}
+                  onChange={(e) => setSelectedGRNParty(e.target.value)}
+                  className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+                >
+                  <option value="">-- All Parties --</option>
+                  {parties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-full md:w-auto">
+                <label
+                  htmlFor="grn_start_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  name="grn_start_date"
+                  id="grn_start_date"
+                  value={dateRange.start_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, start_date: e.target.value })
+                  }
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+                />
+              </div>
+
+              <div className="w-full md:w-auto">
+                <label
+                  htmlFor="grn_end_date"
+                  className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
+                >
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  name="grn_end_date"
+                  id="grn_end_date"
+                  value={dateRange.end_date}
+                  min={getFinancialYearStartDate()}
+                  max={getFinancialYearEndDate()}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, end_date: e.target.value })
+                  }
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
+                />
+              </div>
+
+              <div className="flex-1"></div>
+
+              <button
+                onClick={fetchGRNReport}
+                className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-all duration-300"
+              >
+                <Filter size={20} />
+                Filter
+              </button>
+
+              <button
+                onClick={handlePrintGRNReport}
+                disabled={
+                  pdfLoading || grnData.length === 0 || !selectedGRNParty
+                }
+                className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-purple-600/30 hover:shadow-xl hover:shadow-purple-600/40 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Printer size={20} />
+                {pdfLoading ? "Generating..." : "Print GRN Report"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
+                  <tr>
+                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Invoice No</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Challan No</th>
+                    <th className="px-6 py-4 whitespace-nowrap">GRN No</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Item</th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Qty
+                    </th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Rate
+                    </th>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                  {grnLoading ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-gray-500 font-medium">
+                            Loading GRN Data...
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : grnData.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                            <FileText className="text-gray-400" size={24} />
+                          </div>
+                          <p className="text-gray-500 font-medium">
+                            No GRN records found
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    grnData.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-indigo-50/30 dark:hover:from-purple-900/10 dark:hover:to-indigo-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(147,51,234)]"
+                      >
+                        <td className="px-6 py-5 text-gray-600 dark:text-gray-400 font-medium">
+                          {row.invoice_date}
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-lg">
+                            {row.invoice_number}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-gray-900 dark:text-gray-100 font-semibold">
+                          {row.party_name}
+                        </td>
+                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300 font-mono">
+                          {row.challan_no || "-"}
+                        </td>
+                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300 font-mono">
+                          {row.grn_no || "-"}
+                        </td>
+                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300">
+                          {row.item_name}
+                        </td>
+                        <td className="px-6 py-5 text-right font-medium text-gray-900 dark:text-white">
+                          {Math.round(row.quantity)}
+                        </td>
+                        <td className="px-6 py-5 text-right text-gray-600 dark:text-gray-400">
+                          {row.rate.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <span className="font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
+                            {row.amount.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PDF Preview Modal */}
       <PdfPreviewModal
         isOpen={!!previewDoc}

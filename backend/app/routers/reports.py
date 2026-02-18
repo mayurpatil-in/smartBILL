@@ -48,6 +48,30 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+def format_indian_currency(value):
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return value
+    
+    # Format with 2 decimal places first
+    value_str = "{:.2f}".format(value)
+    amount, fraction = value_str.split('.')
+    
+    # Handle the last 3 digits
+    last_three = amount[-3:]
+    other_numbers = amount[:-3]
+    
+    if other_numbers:
+        last_three = ',' + last_three
+        
+    # Regex to add commas to other numbers
+    import re
+    result = re.sub(r"\B(?=(\d{2})+(?!\d))", ",", other_numbers) + last_three + "." + fraction
+    return result
+
+templates.env.filters["indian_currency"] = format_indian_currency
+
 @router.post("/recalculate-stock")
 def recalculate_stock(
     company_id: int = Depends(get_company_id),
@@ -2525,5 +2549,171 @@ async def get_stock_ledger_pdf(
                 "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
                 "Access-Control-Allow-Headers": "*",
             }
+        )
+
+
+@router.get("/grn-report")
+def get_grn_report(
+    start_date: str,
+    end_date: str,
+    party_id: Optional[int] = None,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns a report of Invoices filtered by GRN details.
+    """
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    
+    query = db.query(InvoiceItem).join(Invoice).join(Party).join(Item).outerjoin(DeliveryChallanItem).outerjoin(DeliveryChallan).filter(
+        Invoice.company_id == company_id,
+        Invoice.invoice_date >= start,
+        Invoice.invoice_date <= end,
+        Invoice.status != "CANCELLED"
+    )
+    
+    if party_id:
+        query = query.filter(Invoice.party_id == party_id)
+        
+    # Sort by Item Name first, then Invoice Date
+    items = query.order_by(Item.name.asc(), Invoice.invoice_date.desc()).all()
+    
+    report_data = []
+    for item in items:
+        challan_no = "-"
+        if item.delivery_challan_item and item.delivery_challan_item.challan:
+             challan_no = item.delivery_challan_item.challan.challan_number
+             
+        report_data.append({
+            "id": item.id,
+            "invoice_id": item.invoice.id,
+            "invoice_number": item.invoice.invoice_number,
+            "invoice_date": item.invoice.invoice_date,
+            "party_name": item.invoice.party.name,
+            "item_name": item.item.name,
+            "grn_no": item.grn_no,
+            "challan_no": challan_no,
+            "quantity": float(item.quantity) if item.quantity else 0,
+            "rate": float(item.rate) if item.rate else 0,
+            "amount": float(item.amount) if item.amount else 0
+        })
+        
+    return report_data
+
+@router.get("/grn-report/pdf")
+async def get_grn_report_pdf(
+    start_date: str,
+    end_date: str,
+    party_id: Optional[int] = None,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db)
+):
+    """
+    Generates PDF for GRN Report
+    """
+    try:
+        # 1. Fetch Data
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        
+        query = db.query(InvoiceItem).join(Invoice).join(Party).join(Item).outerjoin(DeliveryChallanItem).outerjoin(DeliveryChallan).filter(
+            Invoice.company_id == company_id,
+            Invoice.invoice_date >= start,
+            Invoice.invoice_date <= end,
+            Invoice.status != "CANCELLED"
+        )
+        
+        party_name = None
+        if party_id:
+            query = query.filter(Invoice.party_id == party_id)
+            party = db.query(Party).filter(Party.id == party_id).first()
+            if party:
+                party_name = party.name
+            
+        # Sort by Item Name first
+        items = query.order_by(Item.name.asc(), Invoice.invoice_date.desc()).all()
+        
+        # Group items by Item Name
+        grouped_data = {}
+        total_qty = 0
+        total_amount = 0
+        
+        for item in items:
+            qty = float(item.quantity) if item.quantity else 0
+            amt = float(item.amount) if item.amount else 0
+            total_qty += qty
+            total_amount += amt
+            
+            challan_no = "-"
+            if item.delivery_challan_item and item.delivery_challan_item.challan:
+                 challan_no = item.delivery_challan_item.challan.challan_number
+
+            item_data = {
+                "invoice_number": item.invoice.invoice_number,
+                "invoice_date": item.invoice.invoice_date,
+                "party_name": item.invoice.party.name,
+                "grn_no": item.grn_no,
+                "challan_no": challan_no,
+                "quantity": qty,
+                "rate": float(item.rate) if item.rate else 0,
+                "amount": amt
+            }
+            
+            item_name = item.item.name
+            if item_name not in grouped_data:
+                grouped_data[item_name] = {
+                    "item_list": [],
+                    "total_qty": 0,
+                    "total_amount": 0
+                }
+            
+            grouped_data[item_name]["item_list"].append(item_data)
+            grouped_data[item_name]["total_qty"] += qty
+            grouped_data[item_name]["total_amount"] += amt
+            
+        # 2. Get Company Details
+        company = db.query(Company).filter(Company.id == company_id).first()
+        
+        # 3. Prepare Context
+        context = {
+            "company": company,
+            "grouped_items": grouped_data,
+            "start_date": start.strftime("%d-%m-%Y"),
+            "end_date": end.strftime("%d-%m-%Y"),
+            "party_name": party_name,
+            "grand_total_qty": total_qty,
+            "grand_total_amount": total_amount,
+            "generation_date": datetime.now().strftime("%d-%m-%Y %H:%M")
+        }
+
+
+        
+        # 4. Render Template
+        template = templates.get_template("grn_report.html")
+        html_content = template.render(context)
+        
+        # 5. Generate PDF
+        pdf_data = await generate_pdf(html_content, options={
+            "format": "A4",
+            "margin": {"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"},
+            "print_background": True
+        })
+        
+        return Response(
+            content=pdf_data,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=GRN_Report.pdf"
+            }
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "traceback": traceback.format_exc()}
         )
 
