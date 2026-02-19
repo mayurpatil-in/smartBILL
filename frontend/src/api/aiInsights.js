@@ -29,3 +29,33 @@ export const getPredictions = async () => {
     throw error;
   }
 };
+
+export const getStockProjections = async () => {
+  try {
+    const response = await axios.get("/ai-insights/stock-projections");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch stock projections", error);
+    throw error;
+  }
+};
+
+export const getSalesForecast = async () => {
+  try {
+    const response = await axios.get("/ai-insights/sales-forecast");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch sales forecast", error);
+    throw error;
+  }
+};
+
+export const getOutstandingReceivables = async () => {
+  try {
+    const response = await axios.get("/ai-insights/receivables");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch outstanding receivables", error);
+    throw error;
+  }
+};

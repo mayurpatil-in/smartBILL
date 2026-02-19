@@ -236,12 +236,30 @@ def get_anomalies(
                     "description": f"Owes ₹{total_outstanding:,.0f}. Immediate collection follow-up recommended.",
                     "metadata": {"party_id": party.id, "amount": total_outstanding},
                 })
+    
+    # ── 3. Update Dormant Customers with Total Spent ──────────────────────────
+    # Iterate through existing anomalies to add total_spent for DORMANT_CUSTOMER
+    for anomaly in anomalies:
+        if anomaly["type"] == "DORMANT_CUSTOMER":
+            pid = anomaly["metadata"].get("party_id")
+            if pid:
+                total_spent = db.query(func.sum(Invoice.grand_total)).filter(
+                    Invoice.company_id == company_id,
+                    Invoice.party_id == pid,
+                    Invoice.status != "CANCELLED"
+                ).scalar() or 0
+                anomaly["metadata"]["total_spent"] = float(total_spent)
+                
+                # Upgrade severity if high value customer (> 1 Lakh)
+                if total_spent > 100000:
+                    anomaly["severity"] = "high"
+                    anomaly["title"] = f"Risk: High Value Customer Dormant ({anomaly['title'].split(': ')[1]})"
 
     return anomalies
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PREDICTIONS
+# PREDICTIONS & FORECASTS
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/predictions")
 def get_predictions(
@@ -284,12 +302,13 @@ def get_predictions(
         stock_row = db.query(sq.c.current_stock).filter(sq.c.item_id == item_id).scalar()
         current_stock = float(stock_row) if stock_row is not None else 0
 
+        # Ignore if plenty of stock (e.g. > 90 days)
         if current_stock <= 0:
             continue
 
         days_left = current_stock / avg_daily
 
-        if days_left < 7:
+        if days_left < 14: # Increased horizon to 14 days for better warnings
             predictions.append({
                 "type": "STOCKOUT_RISK",
                 "item_name": item.name,
@@ -300,3 +319,201 @@ def get_predictions(
             })
 
     return predictions
+
+
+@router.get("/stock-projections")
+def get_stock_projections(
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns daily projected stock levels for top at-risk items.
+    Used for 'Stock Burn-Down' chart.
+    """
+    today = datetime.now().date()
+    thirty_days_ago = today - timedelta(days=30)
+    
+    # 1. Identify at-risk items (Same logic as notifications, but we need the raw data)
+    sq = _stock_subquery(db, company_id)
+    
+    top_items = (
+        db.query(InvoiceItem.item_id, func.sum(InvoiceItem.quantity).label("total_qty"))
+        .join(Invoice)
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.invoice_date >= thirty_days_ago,
+            Invoice.status != "CANCELLED",
+        )
+        .group_by(InvoiceItem.item_id)
+        .order_by(desc("total_qty"))
+        .limit(30) # Check top 30 moving items
+        .all()
+    )
+    
+    projections = []
+    
+    for item_id, total_qty in top_items:
+        avg_daily = float(total_qty) / 30
+        if avg_daily < 0.1: continue
+        
+        # Get current stock
+        stock_row = db.query(sq.c.current_stock).filter(sq.c.item_id == item_id).scalar()
+        current_stock = float(stock_row) if stock_row is not None else 0
+        
+        if current_stock <= 0: continue
+        
+        days_left = current_stock / avg_daily
+        
+        # We only care about items running out in next 21 days for the chart
+        if days_left < 21:
+            item = db.query(Item).filter(Item.id == item_id).first()
+            if not item: continue
+            
+            # Generate daily points: (Date, Projected Stock)
+            data_points = []
+            # Start from today
+            current_simulated_stock = current_stock
+            
+            # Project for 14 days or until 0
+            for i in range(15):
+                date_point = today + timedelta(days=i)
+                val = max(0, current_simulated_stock - (avg_daily * i))
+                data_points.append({
+                    "date": date_point.isoformat(),
+                    "stock": round(val, 1)
+                })
+                if val <= 0: break
+                
+            projections.append({
+                "item_name": item.name,
+                "current_stock": current_stock,
+                "burn_rate": round(avg_daily, 2),
+                "data": data_points
+            })
+            
+    # Return top 5 most critical
+    projections.sort(key=lambda x: len(x['data'])) # Shortest data = runs out fastest
+    return projections[:5]
+
+
+@router.get("/sales-forecast")
+def get_sales_forecast(
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns last 30 days of actual sales + next 7 days of linear forecast.
+    """
+    today = datetime.now().date()
+    thirty_days_ago = today - timedelta(days=30)
+    
+    # 1. Get Actual Data
+    daily_sales = db.query(
+        Invoice.invoice_date, 
+        func.sum(Invoice.grand_total).label("total")
+    ).filter(
+        Invoice.company_id == company_id,
+        Invoice.invoice_date >= thirty_days_ago,
+        Invoice.invoice_date <= today,
+        Invoice.status != "CANCELLED"
+    ).group_by(Invoice.invoice_date).order_by(Invoice.invoice_date).all()
+    
+    # Fill gaps with 0
+    sales_map = {r.invoice_date: float(r.total) for r in daily_sales}
+    formatted_data = []
+    
+    # Prepare data for regression (x = day index, y = sales)
+    x_vals = []
+    y_vals = []
+    
+    for i in range(31): # 0 to 30
+        d = thirty_days_ago + timedelta(days=i)
+        val = sales_map.get(d, 0)
+        formatted_data.append({
+            "date": d.isoformat(),
+            "actual": val,
+            "forecast": None
+        })
+        x_vals.append(i)
+        y_vals.append(val)
+        
+    # 2. Simple Linear Regression (y = mx + c)
+    n = len(x_vals) # 31
+    if n > 1:
+        sum_x = sum(x_vals)
+        sum_y = sum(y_vals)
+        sum_xy = sum(x*y for x,y in zip(x_vals, y_vals))
+        sum_xx = sum(x*x for x in x_vals)
+        
+        denominator = (n * sum_xx - sum_x * sum_x)
+        if denominator != 0:
+            slope = (n * sum_xy - sum_x * sum_y) / denominator
+            intercept = (sum_y - slope * sum_x) / n
+        else:
+            slope = 0
+            intercept = sum_y / n
+    else:
+        slope = 0
+        intercept = 0
+        
+    # 3. Generate Forecast for next 7 days
+    # Last x was 30. Next are 31..37
+    for i in range(1, 8):
+        future_x = 30 + i
+        future_date = today + timedelta(days=i)
+        predicted_val = max(0, slope * future_x + intercept) # No negative sales
+        
+        formatted_data.append({
+            "date": future_date.isoformat(),
+            "actual": None,
+            "forecast": round(predicted_val, 2)
+        })
+        
+    # Add a "bridge" point at today so the line connects
+    # Set the 'forecast' value of today's entry to the actual value
+    # This makes the chart continuous
+    formatted_data[30]['forecast'] = formatted_data[30]['actual']
+        
+    return formatted_data
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RECEIVABLES BREAKDOWN
+# ─────────────────────────────────────────────────────────────────────────────
+@router.get("/receivables")
+def get_outstanding_receivables(
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns a list of parties with outstanding balance > 0,
+    sorted by balance descending.
+    """
+    # Query party-wise outstanding
+    # Sum(grand_total - paid_amount) for pending/partial invoices
+    results = (
+        db.query(
+            Party.id,
+            Party.name,
+            func.sum(Invoice.grand_total - Invoice.paid_amount).label("total_due"),
+        )
+        .join(Invoice, Party.id == Invoice.party_id)
+        .filter(
+            Invoice.company_id == company_id,
+            Invoice.status != "CANCELLED",
+            Invoice.payment_status.in_(["PENDING", "PARTIAL"]),
+        )
+        .group_by(Party.id, Party.name)
+        .having(func.sum(Invoice.grand_total - Invoice.paid_amount) > 0)
+        .order_by(desc("total_due"))
+        .all()
+    )
+    
+    return [
+        {
+            "party_id": r.id,
+            "party_name": r.name,
+            "amount": float(r.total_due)
+        }
+        for r in results
+    ]
