@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, datetime, timedelta
+from sqlalchemy import func, desc
 
 from app.database.session import get_db
 from app.schemas.super_admin import (
@@ -31,6 +32,7 @@ from app.services.super_admin_service import (
 from app.models.company import Company
 from app.models.user import User
 from app.models.audit_log import AuditLog
+from app.models.invoice import Invoice
 from fastapi import HTTPException
 
 router = APIRouter(
@@ -148,3 +150,58 @@ def get_audit_logs(
     return query.order_by(AuditLog.created_at.desc())\
         .limit(100)\
         .all()
+
+
+@router.get("/analytics")
+def get_platform_analytics(
+    db: Session = Depends(get_db),
+    _=Depends(require_super_admin),
+):
+    # Base Stats
+    total_companies = db.query(Company).count()
+    active_companies = db.query(Company).filter(Company.is_active == True).count()
+    total_users = db.query(User).count()
+    
+    # MRR Estimate (rough average of ₹833/month per active company)
+    total_mrr = active_companies * 833
+    
+    # Top Usage Companies (by Invoice Count)
+    top_companies_query = (
+        db.query(Company.name, func.count(Invoice.id).label("invoice_count"))
+        .join(Invoice, Invoice.company_id == Company.id)
+        .group_by(Company.id)
+        .order_by(desc("invoice_count"))
+        .limit(5)
+        .all()
+    )
+    top_companies = [{"company_name": row.name, "invoice_count": row.invoice_count} for row in top_companies_query]
+
+    # Growth Trends (last 6 months)
+    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    recent_companies = db.query(Company.created_at).filter(Company.created_at >= six_months_ago).all()
+    
+    months_dict = {}
+    # Pre-fill last 6 months
+    for i in range(5, -1, -1):
+        dt = datetime.utcnow() - timedelta(days=30*i)
+        month_label = dt.strftime("%b") # e.g., 'Jan', 'Feb'
+        months_dict[month_label] = 0
+        
+    for comp in recent_companies:
+        if comp[0]:
+            lbl = comp[0].strftime("%b")
+            if lbl in months_dict:
+                months_dict[lbl] += 1
+                
+    growth_trends = [{"month": k, "new_companies": v} for k, v in months_dict.items()]
+
+    return {
+        "summary": {
+            "total_companies": total_companies,
+            "active_companies": active_companies,
+            "total_mrr": total_mrr,
+            "total_users": total_users,
+        },
+        "growth_trends": growth_trends,
+        "usage_metrics": top_companies,
+    }

@@ -9,6 +9,7 @@ import {
   resetCompanyPassword,
   deleteCompany,
   getAuditLogs,
+  getSaaSAnalytics,
 } from "../api/superAdmin";
 import {
   Building2,
@@ -30,7 +31,22 @@ import {
   User,
   Trash2,
   Settings,
+  TrendingUp,
+  Users,
+  DollarSign,
+  BarChart,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts";
 import toast from "react-hot-toast";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ManageCompanyActions from "../components/ManageCompanyActions";
@@ -40,6 +56,7 @@ import ModalWrapper from "../components/ModalWrapper";
 export default function SuperAdminDashboard() {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState(null);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -61,14 +78,18 @@ export default function SuperAdminDashboard() {
   });
   const [selectedCompany, setSelectedCompany] = useState(null);
 
-  // 🔄 Fetch Companies
+  // 🔄 Fetch Companies & Analytics
   const loadCompanies = async () => {
     try {
       setLoading(true);
-      const data = await getCompanies();
-      setCompanies(data);
+      const [compData, analyticsData] = await Promise.all([
+        getCompanies(),
+        getSaaSAnalytics(),
+      ]);
+      setCompanies(compData);
+      setAnalytics(analyticsData);
     } catch {
-      toast.error("Failed to load companies");
+      toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
@@ -219,42 +240,199 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* 📊 STATS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat
-          label="Total Companies"
-          value={companies.length}
-          icon={Building2}
-          color="blue"
-        />
-        <Stat
-          label="Active Tenants"
-          value={companies.filter((c) => c.is_active).length}
-          icon={CheckCircle}
-          color="green"
-        />
-        <Stat
-          label="Expiring Soon (30 Days)"
-          value={
-            companies.filter((c) => {
-              if (!c.is_active) return false;
-              const end = new Date(c.subscription_end);
-              const today = new Date();
-              const warningDate = new Date();
-              warningDate.setDate(today.getDate() + 30);
-              return end > today && end <= warningDate;
-            }).length
-          }
-          icon={Calendar}
-          color="orange"
-        />
-        <Stat
-          label="Inactive"
-          value={companies.filter((c) => !c.is_active).length}
-          icon={XCircle}
-          color="red"
-        />
-      </div>
+      {/* 📊 PLATFORM ANALYTICS */}
+      {analytics && (
+        <div className="space-y-6">
+          {/* TOP STATS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Stat
+              label="Total MRR (Est.)"
+              value={`₹${(analytics.summary.total_mrr || 0).toLocaleString("en-IN")}`}
+              icon={DollarSign}
+              color="green"
+            />
+            <Stat
+              label="Active Tenants"
+              value={`${analytics.summary.active_companies} / ${analytics.summary.total_companies}`}
+              icon={Building2}
+              color="blue"
+            />
+            <Stat
+              label="Total Users"
+              value={analytics.summary.total_users || 0}
+              icon={Users}
+              color="orange"
+            />
+            <Stat
+              label="Avg. Revenue/User"
+              value={
+                analytics.summary.total_users > 0
+                  ? `₹${Math.round(analytics.summary.total_mrr / analytics.summary.total_users).toLocaleString("en-IN")}`
+                  : "₹0"
+              }
+              icon={TrendingUp}
+              color="purple"
+            />
+          </div>
+
+          {/* CHARTS & USAGE ROW */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Growth Chart */}
+            <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                    Tenant Growth (6 Months)
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    New tenants acquired over the last six months
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl">
+                  <BarChart
+                    className="text-purple-600 dark:text-purple-400"
+                    size={24}
+                  />
+                </div>
+              </div>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={analytics.growth_trends}>
+                    <defs>
+                      <linearGradient
+                        id="colorGrowth"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#8b5cf6"
+                          stopOpacity={0.4}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#8b5cf6"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#e5e7eb"
+                      className="dark:stroke-gray-700"
+                    />
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#6b7280", fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#6b7280", fontSize: 12 }}
+                      dx={-10}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "none",
+                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="new_companies"
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorGrowth)"
+                      name="New Tenants"
+                      animationDuration={1500}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Top Usage Leaders */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    Top Platforms
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Most active tenants by volume
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+                  <Activity
+                    className="text-blue-600 dark:text-blue-400"
+                    size={24}
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                {analytics.usage_metrics &&
+                analytics.usage_metrics.length > 0 ? (
+                  analytics.usage_metrics.map((metric, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      <div
+                        className={`w-10 h-10 min-w-10 rounded-full flex items-center justify-center font-black shadow-sm ${
+                          idx === 0
+                            ? "bg-amber-100 text-amber-600"
+                            : idx === 1
+                              ? "bg-gray-100 text-gray-600"
+                              : idx === 2
+                                ? "bg-orange-100 text-orange-600"
+                                : "bg-blue-50 text-blue-600"
+                        }`}
+                      >
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white truncate">
+                          {metric.company_name}
+                        </p>
+                        <p className="text-xs text-gray-500 font-medium">
+                          {metric.invoice_count.toLocaleString()} invoices
+                        </p>
+                      </div>
+                      <div className="w-16 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
+                          style={{
+                            width: `${Math.max(10, (metric.invoice_count / (analytics.usage_metrics[0]?.invoice_count || 1)) * 100)}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                    <Activity
+                      className="text-gray-300 dark:text-gray-600 mb-2"
+                      size={32}
+                    />
+                    <p className="text-sm text-gray-500 font-medium">
+                      No usage data yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 📋 TABLE */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -517,6 +695,13 @@ function Stat({ label, value, icon: Icon, color }) {
       text: "text-red-600 dark:text-red-400",
       shadow: "shadow-red-500/20 dark:shadow-red-500/10",
       hoverShadow: "hover:shadow-red-500/30 dark:hover:shadow-red-500/20",
+    },
+    purple: {
+      bg: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20",
+      iconBg: "bg-gradient-to-br from-purple-500 to-purple-600",
+      text: "text-purple-600 dark:text-purple-400",
+      shadow: "shadow-purple-500/20 dark:shadow-purple-500/10",
+      hoverShadow: "hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20",
     },
   };
 
