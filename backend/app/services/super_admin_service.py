@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, timedelta
+
+from app.models.subscription_plan import SubscriptionPlan
 
 from app.models.company import Company
 from app.models.company import Company
@@ -20,14 +22,24 @@ from fastapi import HTTPException, status
 
 def create_company(db: Session, data, admin_id: int):
     try:
+        sub_start = data.subscription_start or date.today()
+        sub_end = data.subscription_end or (sub_start + timedelta(days=365))
+        
+        plan_id = data.plan_id
+        if plan_id:
+            plan = db.query(SubscriptionPlan).get(plan_id)
+            if plan:
+                sub_end = sub_start + timedelta(days=plan.duration_days)
+
         company = Company(
             name=data.name,
             gst_number=data.gst_number,
             email=data.email,
             phone=data.phone,
-            subscription_start=data.subscription_start,
-            subscription_end=data.subscription_end,
+            subscription_start=sub_start,
+            subscription_end=sub_end,
             is_active=True,
+            plan_id=plan_id,
         )
         db.add(company)
         db.commit()
@@ -103,14 +115,26 @@ def create_company_admin(
 def extend_subscription(
     db: Session,
     company: Company,
-    new_end: date,
+    new_end: date | None,
+    plan_id: int | None,
     admin_id: int,
 ):
-    company.subscription_end = new_end
+    if plan_id:
+        plan = db.query(SubscriptionPlan).get(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        company.plan_id = plan.id
+        
+        # Calculate new end date securely: from today OR existing end (whichever is later)
+        start_date = max(date.today(), company.subscription_end)
+        company.subscription_end = start_date + timedelta(days=plan.duration_days)
+    elif new_end:
+        company.subscription_end = new_end
+        
     db.commit()
     db.refresh(company)
     
-    log_audit_action(db, admin_id, "EXTEND_SUBSCRIPTION", company.id, f"Extended to {new_end}")
+    log_audit_action(db, admin_id, "EXTEND_SUBSCRIPTION", company.id, f"Extended to {company.subscription_end}")
 
     return company
 
@@ -217,3 +241,31 @@ def delete_company_safely(db: Session, company_id: int, admin_id: int):
     log_audit_action(db, admin_id, "DELETE_COMPANY", None, f"Deleted company {company.name} (ID: {company_id}) safely")
     
     return {"message": "Company deleted successfully"}
+
+
+def get_plans(db: Session):
+    return db.query(SubscriptionPlan).order_by(SubscriptionPlan.price).all()
+
+def create_plan(db: Session, data, admin_id: int):
+    # Add simple handling for passing raw data dict vs parsed pydantic model
+    plan_data = data.model_dump() if hasattr(data, "model_dump") else data
+    plan = SubscriptionPlan(**plan_data)
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    log_audit_action(db, admin_id, "CREATE_PLAN", plan.id, f"Created plan {plan.name}")
+    return plan
+
+def update_plan(db: Session, plan_id: int, data, admin_id: int):
+    plan = db.query(SubscriptionPlan).get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    update_data = data.model_dump(exclude_unset=True) if hasattr(data, "model_dump") else data
+    for key, value in update_data.items():
+        setattr(plan, key, value)
+        
+    db.commit()
+    db.refresh(plan)
+    log_audit_action(db, admin_id, "UPDATE_PLAN", plan.id, f"Updated plan {plan.name}")
+    return plan

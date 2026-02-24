@@ -18,9 +18,11 @@ export const createCompanyAdmin = async (companyId, payload) => {
   return res.data;
 };
 
-export const extendSubscription = async (companyId, newDate) => {
+export const extendSubscription = async (companyId, payload) => {
   const res = await api.patch(
-    `/super-admin/companies/${companyId}/extend?new_end=${newDate}`,
+    `/super-admin/companies/${companyId}/extend`,
+    undefined,
+    { params: payload },
   );
   return res.data;
 };
@@ -60,5 +62,21 @@ export const getAuditLogs = async (companyId = null) => {
 
 export const getSaaSAnalytics = async () => {
   const res = await api.get("/super-admin/analytics");
+  return res.data;
+};
+
+// --- Subscription Plans API ---
+export const getPlans = async () => {
+  const res = await api.get("/super-admin/plans");
+  return res.data;
+};
+
+export const createPlan = async (payload) => {
+  const res = await api.post("/super-admin/plans", payload);
+  return res.data;
+};
+
+export const updatePlan = async (planId, payload) => {
+  const res = await api.patch(`/super-admin/plans/${planId}`, payload);
   return res.data;
 };

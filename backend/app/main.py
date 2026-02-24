@@ -27,6 +27,7 @@ from app.core.paths import APP_DATA_DIR, UPLOAD_DIR, LOG_DIR, BACKUP_DIR, DB_PAT
 # Import in dependency order: base models first, then models with foreign keys
 from app.models.role import Role
 from app.models.permission import Permission
+from app.models.subscription_plan import SubscriptionPlan
 from app.models.company import Company
 from app.models.financial_year import FinancialYear
 from app.models.party import Party

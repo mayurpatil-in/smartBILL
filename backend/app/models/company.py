@@ -5,8 +5,9 @@ from sqlalchemy import (
     String,
     Date,
     Boolean,
-    DateTime,
-    Index
+    Index,
+    ForeignKey,
+    DateTime
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -39,6 +40,7 @@ class Company(Base):
     subscription_start = Column(Date, nullable=False)
     subscription_end = Column(Date, nullable=False)
     is_active = Column(Boolean, default=True)
+    plan_id = Column(Integer, ForeignKey("subscription_plans.id"), nullable=True)
 
     # =========================
     # 🕒 AUDIT FIELDS (OPTIONAL)
@@ -63,6 +65,8 @@ class Company(Base):
     # =========================
     # 🔁 RELATIONSHIPS
     # =========================
+    plan = relationship("SubscriptionPlan")
+    
     users = relationship(
         "User",
         back_populates="company",

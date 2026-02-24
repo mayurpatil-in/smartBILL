@@ -12,6 +12,7 @@ if config.config_file_name is not None:
 # 🔥 IMPORT YOUR Base + MODELS
 from app.database.base import Base
 from app.models import (
+    subscription_plan,
     company,
     user,
     financial_year,

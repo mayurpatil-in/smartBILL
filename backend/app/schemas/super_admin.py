@@ -7,8 +7,9 @@ class CompanyCreate(BaseModel):
     gst_number: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
-    subscription_start: date
-    subscription_end: date
+    plan_id: int | None = None
+    subscription_start: date | None = None
+    subscription_end: date | None = None
 
 
 class CompanyUpdate(BaseModel):
@@ -16,6 +17,7 @@ class CompanyUpdate(BaseModel):
     gst_number: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
+    plan_id: int | None = None
 
 
 class ResetPasswordRequest(BaseModel):
@@ -51,5 +53,31 @@ class AuditLogResponse(BaseModel):
     user_name: str
     company_name: str | None = None
 
+    class Config:
+        from_attributes = True
+
+
+class SubscriptionPlanBase(BaseModel):
+    name: str
+    price: float
+    duration_days: int
+    max_users: int
+    features: list[str] | None = []
+    is_active: bool = True
+
+class SubscriptionPlanCreate(SubscriptionPlanBase):
+    pass
+
+class SubscriptionPlanUpdate(BaseModel):
+    name: str | None = None
+    price: float | None = None
+    duration_days: int | None = None
+    max_users: int | None = None
+    features: list[str] | None = None
+    is_active: bool | None = None
+
+class SubscriptionPlanResponse(SubscriptionPlanBase):
+    id: int
+    
     class Config:
         from_attributes = True

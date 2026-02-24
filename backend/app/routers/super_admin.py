@@ -14,6 +14,9 @@ from app.schemas.super_admin import (
     CompanyUpdate,
     ResetPasswordRequest,
     AuditLogResponse,
+    SubscriptionPlanCreate,
+    SubscriptionPlanUpdate,
+    SubscriptionPlanResponse,
 )
 from app.core.admin_guard import require_super_admin
 from app.services.super_admin_service import (
@@ -28,6 +31,9 @@ from app.services.super_admin_service import (
     update_company,
     reset_admin_password,
     delete_company_safely,
+    get_plans,
+    create_plan,
+    update_plan,
 )
 from app.models.company import Company
 from app.models.user import User
@@ -98,14 +104,17 @@ def create_company_admin_api(
 @router.patch("/companies/{company_id}/extend")
 def extend_subscription_api(
     company_id: int,
-    new_end: date,
+    new_end: date | None = None,
+    plan_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_super_admin),
 ):
+    if not new_end and not plan_id:
+        raise HTTPException(status_code=400, detail="Must provide either new_end or plan_id")
     company = db.query(Company).get(company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-    return extend_subscription(db, company, new_end, current_user.id)
+    return extend_subscription(db, company, new_end, plan_id, current_user.id)
 
 
 @router.patch("/companies/{company_id}/toggle-status")
@@ -205,3 +214,31 @@ def get_platform_analytics(
         "growth_trends": growth_trends,
         "usage_metrics": top_companies,
     }
+
+# =========================
+# SUBSCRIPTION PLANS CRUD
+# =========================
+
+@router.get("/plans", response_model=list[SubscriptionPlanResponse])
+def get_plans_api(
+    db: Session = Depends(get_db),
+    _=Depends(require_super_admin),
+):
+    return get_plans(db)
+
+@router.post("/plans", response_model=SubscriptionPlanResponse)
+def create_plan_api(
+    data: SubscriptionPlanCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    return create_plan(db, data, current_user.id)
+
+@router.patch("/plans/{plan_id}", response_model=SubscriptionPlanResponse)
+def update_plan_api(
+    plan_id: int,
+    data: SubscriptionPlanUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    return update_plan(db, plan_id, data, current_user.id)
