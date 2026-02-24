@@ -39,6 +39,7 @@ import {
   StockDepletionChart,
   CustomerRiskScatter,
 } from "../components/InsightCharts";
+import ReceivablesModal from "../components/ReceivablesModal";
 
 export default function AIInsights() {
   const [briefing, setBriefing] = useState(null);
@@ -222,111 +223,6 @@ export default function AIInsights() {
               )}
 
               {/* ── RECEIVABLES MODAL ── */}
-              {receivablesModal && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                  style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                >
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-xl">
-                          <Activity size={20} />
-                        </div>
-                        <div>
-                          <h2 className="font-bold text-lg leading-tight">
-                            Outstanding Receivables
-                          </h2>
-                          <p className="text-white/70 text-xs">
-                            Total:{" "}
-                            {briefing.metrics.total_receivable >= 100000
-                              ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                              : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setReceivablesModal(false)}
-                        className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 overflow-auto p-0">
-                      {receivablesLoading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                          <p className="text-gray-500 font-medium">
-                            Loading receivables...
-                          </p>
-                        </div>
-                      ) : receivablesData.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <CheckCircle
-                            size={48}
-                            className="text-green-500 mb-2"
-                          />
-                          <p className="text-gray-600 dark:text-gray-300 font-medium">
-                            All clear!
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            No outstanding payments found.
-                          </p>
-                        </div>
-                      ) : (
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                            <tr>
-                              <th className="px-6 py-3 text-left">
-                                Party Name
-                              </th>
-                              <th className="px-6 py-3 text-right">
-                                Pending Amount
-                              </th>
-                              <th className="px-6 py-3 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                            {receivablesData.map((item, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                              >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                  {item.party_name}
-                                </td>
-                                <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                  ₹
-                                  {Number(item.amount).toLocaleString("en-IN", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <button
-                                    onClick={() => {
-                                      setReceivablesModal(false);
-                                      openStatement(
-                                        item.party_id,
-                                        item.party_name,
-                                      );
-                                    }}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                                  >
-                                    View Statement <ArrowRight size={14} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -392,101 +288,6 @@ export default function AIInsights() {
         )}
 
         {/* ── RECEIVABLES MODAL ── */}
-        {receivablesModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-            style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-          >
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <Activity size={20} />
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-lg leading-tight">
-                      Outstanding Receivables
-                    </h2>
-                    <p className="text-white/70 text-xs">
-                      Total:{" "}
-                      {briefing.metrics.total_receivable >= 100000
-                        ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                        : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setReceivablesModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="flex-1 overflow-auto p-0">
-                {receivablesLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                    <p className="text-gray-500 font-medium">
-                      Loading receivables...
-                    </p>
-                  </div>
-                ) : receivablesData.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <CheckCircle size={48} className="text-green-500 mb-2" />
-                    <p className="text-gray-600 dark:text-gray-300 font-medium">
-                      All clear!
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      No outstanding payments found.
-                    </p>
-                  </div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                      <tr>
-                        <th className="px-6 py-3 text-left">Party Name</th>
-                        <th className="px-6 py-3 text-right">Pending Amount</th>
-                        <th className="px-6 py-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                      {receivablesData.map((item, i) => (
-                        <tr
-                          key={i}
-                          className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                        >
-                          <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                            {item.party_name}
-                          </td>
-                          <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                            ₹
-                            {Number(item.amount).toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => {
-                                setReceivablesModal(false);
-                                openStatement(item.party_id, item.party_name);
-                              }}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                            >
-                              View Statement <ArrowRight size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── PREDICTIVE CHARTS ROW 1 ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -500,154 +301,6 @@ export default function AIInsights() {
 
         {/* ── PREDICTIVE CHARTS ROW 2 ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-[300px] lg:h-[400px]">
-            <CustomerRiskScatter anomalies={anomalies} />
-          </div>
-
-          {/* PREDICTIONS LIST – Moved here */}
-          <div className="h-[300px] lg:h-[400px]">
-            <SectionCard
-              title="Smart Predictions"
-              icon={Brain}
-              iconClass="text-indigo-500"
-              sub="Based on 30-day sales velocity"
-              badge={
-                predictions.length > 0
-                  ? {
-                      label: `${predictions.length} Alert${predictions.length > 1 ? "s" : ""}`,
-                      color:
-                        "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-                    }
-                  : null
-              }
-            >
-              {predictions.length === 0 ? (
-                <EmptyState
-                  icon={Zap}
-                  iconClass="text-indigo-400"
-                  title="No stockout risks"
-                  sub="All tracked items have sufficient stock."
-                />
-              ) : (
-                <div className="space-y-3 p-4 overflow-y-auto max-h-[230px] lg:max-h-[310px] custom-scrollbar">
-                  {predictions.map((pred, i) => (
-                    <PredictionCard key={i} pred={pred} />
-                  ))}
-                </div>
-              )}
-
-              {/* ── RECEIVABLES MODAL ── */}
-              {receivablesModal && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                  style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                >
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-xl">
-                          <Activity size={20} />
-                        </div>
-                        <div>
-                          <h2 className="font-bold text-lg leading-tight">
-                            Outstanding Receivables
-                          </h2>
-                          <p className="text-white/70 text-xs">
-                            Total:{" "}
-                            {briefing.metrics.total_receivable >= 100000
-                              ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                              : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setReceivablesModal(false)}
-                        className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 overflow-auto p-0">
-                      {receivablesLoading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                          <p className="text-gray-500 font-medium">
-                            Loading receivables...
-                          </p>
-                        </div>
-                      ) : receivablesData.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <CheckCircle
-                            size={48}
-                            className="text-green-500 mb-2"
-                          />
-                          <p className="text-gray-600 dark:text-gray-300 font-medium">
-                            All clear!
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            No outstanding payments found.
-                          </p>
-                        </div>
-                      ) : (
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                            <tr>
-                              <th className="px-6 py-3 text-left">
-                                Party Name
-                              </th>
-                              <th className="px-6 py-3 text-right">
-                                Pending Amount
-                              </th>
-                              <th className="px-6 py-3 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                            {receivablesData.map((item, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                              >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                  {item.party_name}
-                                </td>
-                                <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                  ₹
-                                  {Number(item.amount).toLocaleString("en-IN", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <button
-                                    onClick={() => {
-                                      setReceivablesModal(false);
-                                      openStatement(
-                                        item.party_id,
-                                        item.party_name,
-                                      );
-                                    }}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                                  >
-                                    View Statement <ArrowRight size={14} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </SectionCard>
-          </div>
-        </div>
-
-        {/* ── MAIN GRID (Anomalies) ── */}
-        <div className="grid grid-cols-1 gap-6">
           {/* ANOMALIES – Full width now */}
           <div>
             <SectionCard
@@ -686,114 +339,50 @@ export default function AIInsights() {
                   ))}
                 </div>
               )}
+            </SectionCard>
+          </div>
 
-              {/* ── RECEIVABLES MODAL ── */}
-              {receivablesModal && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                  style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                >
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-xl">
-                          <Activity size={20} />
-                        </div>
-                        <div>
-                          <h2 className="font-bold text-lg leading-tight">
-                            Outstanding Receivables
-                          </h2>
-                          <p className="text-white/70 text-xs">
-                            Total:{" "}
-                            {briefing.metrics.total_receivable >= 100000
-                              ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                              : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setReceivablesModal(false)}
-                        className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 overflow-auto p-0">
-                      {receivablesLoading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                          <p className="text-gray-500 font-medium">
-                            Loading receivables...
-                          </p>
-                        </div>
-                      ) : receivablesData.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <CheckCircle
-                            size={48}
-                            className="text-green-500 mb-2"
-                          />
-                          <p className="text-gray-600 dark:text-gray-300 font-medium">
-                            All clear!
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            No outstanding payments found.
-                          </p>
-                        </div>
-                      ) : (
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                            <tr>
-                              <th className="px-6 py-3 text-left">
-                                Party Name
-                              </th>
-                              <th className="px-6 py-3 text-right">
-                                Pending Amount
-                              </th>
-                              <th className="px-6 py-3 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                            {receivablesData.map((item, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                              >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                  {item.party_name}
-                                </td>
-                                <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                  ₹
-                                  {Number(item.amount).toLocaleString("en-IN", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <button
-                                    onClick={() => {
-                                      setReceivablesModal(false);
-                                      openStatement(
-                                        item.party_id,
-                                        item.party_name,
-                                      );
-                                    }}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                                  >
-                                    View Statement <ArrowRight size={14} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
+          {/* PREDICTIONS LIST – Moved here */}
+          <div className="h-[300px] lg:h-[400px]">
+            <SectionCard
+              title="Smart Predictions"
+              icon={Brain}
+              iconClass="text-indigo-500"
+              sub="Based on 30-day sales velocity"
+              badge={
+                predictions.length > 0
+                  ? {
+                      label: `${predictions.length} Alert${predictions.length > 1 ? "s" : ""}`,
+                      color:
+                        "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+                    }
+                  : null
+              }
+            >
+              {predictions.length === 0 ? (
+                <EmptyState
+                  icon={Zap}
+                  iconClass="text-indigo-400"
+                  title="No stockout risks"
+                  sub="All tracked items have sufficient stock."
+                />
+              ) : (
+                <div className="space-y-3 p-4 overflow-y-auto max-h-[230px] lg:max-h-[310px] custom-scrollbar">
+                  {predictions.map((pred, i) => (
+                    <PredictionCard key={i} pred={pred} />
+                  ))}
                 </div>
               )}
+
+              {/* ── RECEIVABLES MODAL ── */}
             </SectionCard>
+          </div>
+        </div>
+
+        {/* ── MAIN GRID (Anomalies) ── */}
+        <div className="grid grid-cols-1 gap-6">
+          <div className="h-[300px] lg:h-[400px]">
+            <CustomerRiskScatter anomalies={anomalies} />
           </div>
         </div>
 
@@ -919,119 +508,6 @@ export default function AIInsights() {
                           ) : (
                             <span className="text-gray-300">—</span>
                           )}
-
-                          {/* ── RECEIVABLES MODAL ── */}
-                          {receivablesModal && (
-                            <div
-                              className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                              style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                            >
-                              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                                {/* Header */}
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                                  <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/20 rounded-xl">
-                                      <Activity size={20} />
-                                    </div>
-                                    <div>
-                                      <h2 className="font-bold text-lg leading-tight">
-                                        Outstanding Receivables
-                                      </h2>
-                                      <p className="text-white/70 text-xs">
-                                        Total:{" "}
-                                        {briefing.metrics.total_receivable >=
-                                        100000
-                                          ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                                          : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => setReceivablesModal(false)}
-                                    className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                                  >
-                                    <X size={20} />
-                                  </button>
-                                </div>
-
-                                {/* Body */}
-                                <div className="flex-1 overflow-auto p-0">
-                                  {receivablesLoading ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-3">
-                                      <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                                      <p className="text-gray-500 font-medium">
-                                        Loading receivables...
-                                      </p>
-                                    </div>
-                                  ) : receivablesData.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-3">
-                                      <CheckCircle
-                                        size={48}
-                                        className="text-green-500 mb-2"
-                                      />
-                                      <p className="text-gray-600 dark:text-gray-300 font-medium">
-                                        All clear!
-                                      </p>
-                                      <p className="text-sm text-gray-500">
-                                        No outstanding payments found.
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <table className="w-full text-sm">
-                                      <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                                        <tr>
-                                          <th className="px-6 py-3 text-left">
-                                            Party Name
-                                          </th>
-                                          <th className="px-6 py-3 text-right">
-                                            Pending Amount
-                                          </th>
-                                          <th className="px-6 py-3 text-right">
-                                            Action
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                                        {receivablesData.map((item, i) => (
-                                          <tr
-                                            key={i}
-                                            className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                                          >
-                                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                              {item.party_name}
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                              ₹
-                                              {Number(
-                                                item.amount,
-                                              ).toLocaleString("en-IN", {
-                                                minimumFractionDigits: 2,
-                                              })}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                              <button
-                                                onClick={() => {
-                                                  setReceivablesModal(false);
-                                                  openStatement(
-                                                    item.party_id,
-                                                    item.party_name,
-                                                  );
-                                                }}
-                                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                                              >
-                                                View Statement{" "}
-                                                <ArrowRight size={14} />
-                                              </button>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </td>
                         <td className="px-5 py-3 text-right">
                           {row.credit ? (
@@ -1042,119 +518,6 @@ export default function AIInsights() {
                             </span>
                           ) : (
                             <span className="text-gray-300">—</span>
-                          )}
-
-                          {/* ── RECEIVABLES MODAL ── */}
-                          {receivablesModal && (
-                            <div
-                              className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                              style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                            >
-                              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                                {/* Header */}
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                                  <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/20 rounded-xl">
-                                      <Activity size={20} />
-                                    </div>
-                                    <div>
-                                      <h2 className="font-bold text-lg leading-tight">
-                                        Outstanding Receivables
-                                      </h2>
-                                      <p className="text-white/70 text-xs">
-                                        Total:{" "}
-                                        {briefing.metrics.total_receivable >=
-                                        100000
-                                          ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                                          : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => setReceivablesModal(false)}
-                                    className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                                  >
-                                    <X size={20} />
-                                  </button>
-                                </div>
-
-                                {/* Body */}
-                                <div className="flex-1 overflow-auto p-0">
-                                  {receivablesLoading ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-3">
-                                      <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                                      <p className="text-gray-500 font-medium">
-                                        Loading receivables...
-                                      </p>
-                                    </div>
-                                  ) : receivablesData.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-3">
-                                      <CheckCircle
-                                        size={48}
-                                        className="text-green-500 mb-2"
-                                      />
-                                      <p className="text-gray-600 dark:text-gray-300 font-medium">
-                                        All clear!
-                                      </p>
-                                      <p className="text-sm text-gray-500">
-                                        No outstanding payments found.
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <table className="w-full text-sm">
-                                      <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                                        <tr>
-                                          <th className="px-6 py-3 text-left">
-                                            Party Name
-                                          </th>
-                                          <th className="px-6 py-3 text-right">
-                                            Pending Amount
-                                          </th>
-                                          <th className="px-6 py-3 text-right">
-                                            Action
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                                        {receivablesData.map((item, i) => (
-                                          <tr
-                                            key={i}
-                                            className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                                          >
-                                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                              {item.party_name}
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                              ₹
-                                              {Number(
-                                                item.amount,
-                                              ).toLocaleString("en-IN", {
-                                                minimumFractionDigits: 2,
-                                              })}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                              <button
-                                                onClick={() => {
-                                                  setReceivablesModal(false);
-                                                  openStatement(
-                                                    item.party_id,
-                                                    item.party_name,
-                                                  );
-                                                }}
-                                                className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                                              >
-                                                View Statement{" "}
-                                                <ArrowRight size={14} />
-                                              </button>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
                           )}
                         </td>
                         <td className="px-5 py-3 text-right">
@@ -1170,113 +533,6 @@ export default function AIInsights() {
                     ))}
                   </tbody>
                 </table>
-              )}
-
-              {/* ── RECEIVABLES MODAL ── */}
-              {receivablesModal && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                  style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                >
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-xl">
-                          <Activity size={20} />
-                        </div>
-                        <div>
-                          <h2 className="font-bold text-lg leading-tight">
-                            Outstanding Receivables
-                          </h2>
-                          <p className="text-white/70 text-xs">
-                            Total:{" "}
-                            {briefing.metrics.total_receivable >= 100000
-                              ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                              : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setReceivablesModal(false)}
-                        className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 overflow-auto p-0">
-                      {receivablesLoading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                          <p className="text-gray-500 font-medium">
-                            Loading receivables...
-                          </p>
-                        </div>
-                      ) : receivablesData.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                          <CheckCircle
-                            size={48}
-                            className="text-green-500 mb-2"
-                          />
-                          <p className="text-gray-600 dark:text-gray-300 font-medium">
-                            All clear!
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            No outstanding payments found.
-                          </p>
-                        </div>
-                      ) : (
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                            <tr>
-                              <th className="px-6 py-3 text-left">
-                                Party Name
-                              </th>
-                              <th className="px-6 py-3 text-right">
-                                Pending Amount
-                              </th>
-                              <th className="px-6 py-3 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                            {receivablesData.map((item, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                              >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                  {item.party_name}
-                                </td>
-                                <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                  ₹
-                                  {Number(item.amount).toLocaleString("en-IN", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <button
-                                    onClick={() => {
-                                      setReceivablesModal(false);
-                                      openStatement(
-                                        item.party_id,
-                                        item.party_name,
-                                      );
-                                    }}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                                  >
-                                    View Statement <ArrowRight size={14} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                </div>
               )}
             </div>
 
@@ -1296,106 +552,74 @@ export default function AIInsights() {
               </div>
             )}
 
-            {/* ── RECEIVABLES MODAL ── */}
-            {receivablesModal && (
+            {/* ── LOW STOCK MODAL ── */}
+            {lowStockModal && (
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
                 style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
               >
-                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-fade-in-up">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-2xl">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-white/20 rounded-xl">
-                        <Activity size={20} />
+                        <Package size={20} />
                       </div>
                       <div>
                         <h2 className="font-bold text-lg leading-tight">
-                          Outstanding Receivables
+                          Low Stock Items
                         </h2>
                         <p className="text-white/70 text-xs">
-                          Total:{" "}
-                          {briefing.metrics.total_receivable >= 100000
-                            ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                            : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
+                          Items with ≤ 5 units
                         </p>
                       </div>
                     </div>
                     <button
-                      onClick={() => setReceivablesModal(false)}
+                      onClick={() => setLowStockModal(false)}
                       className="p-2 hover:bg-white/20 rounded-xl transition-colors"
                     >
                       <X size={20} />
                     </button>
                   </div>
-
                   {/* Body */}
                   <div className="flex-1 overflow-auto p-0">
-                    {receivablesLoading ? (
-                      <div className="flex flex-col items-center justify-center py-20 gap-3">
-                        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                        <p className="text-gray-500 font-medium">
-                          Loading receivables...
-                        </p>
-                      </div>
-                    ) : receivablesData.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-20 gap-3">
-                        <CheckCircle
-                          size={48}
-                          className="text-green-500 mb-2"
-                        />
-                        <p className="text-gray-600 dark:text-gray-300 font-medium">
-                          All clear!
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          No outstanding payments found.
-                        </p>
-                      </div>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                          <tr>
-                            <th className="px-6 py-3 text-left">Party Name</th>
-                            <th className="px-6 py-3 text-right">
-                              Pending Amount
-                            </th>
-                            <th className="px-6 py-3 text-right">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                          {receivablesData.map((item, i) => (
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
+                        <tr>
+                          <th className="px-6 py-3 text-left">Item Name</th>
+                          <th className="px-6 py-3 text-right">
+                            Current Stock
+                          </th>
+                          <th className="px-6 py-3 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                        {briefing?.metrics?.low_stock_details?.map(
+                          (item, i) => (
                             <tr
                               key={i}
-                              className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
+                              className="hover:bg-orange-50/40 dark:hover:bg-orange-900/10 transition-colors"
                             >
                               <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                {item.party_name}
+                                {item.name}
                               </td>
                               <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                                ₹
-                                {Number(item.amount).toLocaleString("en-IN", {
-                                  minimumFractionDigits: 2,
-                                })}
+                                {item.current_stock}
                               </td>
                               <td className="px-6 py-4 text-right">
-                                <button
-                                  onClick={() => {
-                                    setReceivablesModal(false);
-                                    openStatement(
-                                      item.party_id,
-                                      item.party_name,
-                                    );
-                                  }}
-                                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
+                                <span
+                                  className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-full ${item.current_stock <= 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"}`}
                                 >
-                                  View Statement <ArrowRight size={14} />
-                                </button>
+                                  {item.current_stock <= 0
+                                    ? "Out of Stock"
+                                    : "Low Stock"}
+                                </span>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
+                          ),
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -1404,102 +628,6 @@ export default function AIInsights() {
         </div>
       )}
 
-      {/* ── RECEIVABLES MODAL ── */}
-      {receivablesModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <Activity size={20} />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg leading-tight">
-                    Outstanding Receivables
-                  </h2>
-                  <p className="text-white/70 text-xs">
-                    Total:{" "}
-                    {briefing.metrics.total_receivable >= 100000
-                      ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                      : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setReceivablesModal(false)}
-                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-auto p-0">
-              {receivablesLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-gray-500 font-medium">
-                    Loading receivables...
-                  </p>
-                </div>
-              ) : receivablesData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <CheckCircle size={48} className="text-green-500 mb-2" />
-                  <p className="text-gray-600 dark:text-gray-300 font-medium">
-                    All clear!
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    No outstanding payments found.
-                  </p>
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Party Name</th>
-                      <th className="px-6 py-3 text-right">Pending Amount</th>
-                      <th className="px-6 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                    {receivablesData.map((item, i) => (
-                      <tr
-                        key={i}
-                        className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                      >
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                          {item.party_name}
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                          ₹
-                          {Number(item.amount).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => {
-                              setReceivablesModal(false);
-                              openStatement(item.party_id, item.party_name);
-                            }}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                          >
-                            View Statement <ArrowRight size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       {/* ── LOW STOCK MODAL ── */}
       {lowStockModal && (
         <div
@@ -1567,102 +695,17 @@ export default function AIInsights() {
         </div>
       )}
 
-      {/* ── RECEIVABLES MODAL ── */}
-      {receivablesModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <Activity size={20} />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg leading-tight">
-                    Outstanding Receivables
-                  </h2>
-                  <p className="text-white/70 text-xs">
-                    Total:{" "}
-                    {briefing.metrics.total_receivable >= 100000
-                      ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
-                      : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setReceivablesModal(false)}
-                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-auto p-0">
-              {receivablesLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                  <p className="text-gray-500 font-medium">
-                    Loading receivables...
-                  </p>
-                </div>
-              ) : receivablesData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <CheckCircle size={48} className="text-green-500 mb-2" />
-                  <p className="text-gray-600 dark:text-gray-300 font-medium">
-                    All clear!
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    No outstanding payments found.
-                  </p>
-                </div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Party Name</th>
-                      <th className="px-6 py-3 text-right">Pending Amount</th>
-                      <th className="px-6 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                    {receivablesData.map((item, i) => (
-                      <tr
-                        key={i}
-                        className="hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
-                      >
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                          {item.party_name}
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-800 dark:text-gray-200">
-                          ₹
-                          {Number(item.amount).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => {
-                              setReceivablesModal(false);
-                              openStatement(item.party_id, item.party_name);
-                            }}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center justify-end gap-1 ml-auto"
-                          >
-                            View Statement <ArrowRight size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ReceivablesModal
+        isOpen={receivablesModal}
+        onClose={() => setReceivablesModal(false)}
+        data={receivablesData}
+        loading={receivablesLoading}
+        onViewStatement={(id, name) => {
+          setReceivablesModal(false);
+          openStatement(id, name);
+        }}
+        totalReceivable={briefing?.metrics?.total_receivable || 0}
+      />
     </>
   );
 }
