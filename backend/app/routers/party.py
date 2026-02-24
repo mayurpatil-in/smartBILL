@@ -24,6 +24,7 @@ def create_party(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     party_data = data.dict(exclude={"portal_username", "portal_password"})
     party = Party(
         company_id=company_id,
@@ -52,6 +53,15 @@ def create_party(
             )
             db.add(new_login)
             db.commit()
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="PARTY_CREATE",
+        company_id=company_id,
+        details=f"Created Party {party.name} with opening balance {party.opening_balance}"
+    )
 
     return party
 
@@ -109,6 +119,7 @@ def update_party(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     party = db.query(Party).filter(
         Party.id == party_id,
         Party.company_id == company_id
@@ -148,6 +159,15 @@ def update_party(
         
         db.commit()
 
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="PARTY_UPDATE",
+        company_id=company_id,
+        details=f"Updated Party {party.name}"
+    )
+
     return party
 
 
@@ -158,6 +178,7 @@ def delete_party(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     party = db.query(Party).filter(
         Party.id == party_id,
         Party.company_id == company_id
@@ -169,5 +190,15 @@ def delete_party(
             detail="Party not found"
         )
 
+    party_name = party.name
     db.delete(party)
     db.commit()
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="PARTY_DELETE",
+        company_id=company_id,
+        details=f"Deleted Party {party_name}"
+    )

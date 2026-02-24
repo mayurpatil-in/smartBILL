@@ -1,8 +1,8 @@
 import sys
 import asyncio
 import os
-import logging # [FIX] Import logging here
-from fastapi import FastAPI, Request
+import logging
+from fastapi import FastAPI, Request, Response
 # Force reload - E-Way Bill endpoints added
 from fastapi.staticfiles import StaticFiles
 
@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+from app.core.logger import logger, RequestLoggingMiddleware
 
 
 from app.core.config import settings
@@ -69,34 +71,27 @@ if is_frozen:
     deployment_db_url = DATABASE_URL # Imported from app.core.paths
     settings.DATABASE_URL = deployment_db_url
     deployment_db_url = deployment_db_url # For migrations
-    logging.info(f"FROZEN MODE: Forced Database URL to AppData: {deployment_db_url}")
+    logger.info(f"FROZEN MODE: Forced Database URL to AppData: {deployment_db_url}")
 else:
     # Dev Mode: Trust Settings (from .env or default)
     deployment_db_url = settings.DATABASE_URL
-    logging.info(f"DEV MODE: Using configured Database URL: {deployment_db_url}")
+    logger.info(f"DEV MODE: Using configured Database URL: {deployment_db_url}")
 
-# Setup basic file logging to debug startup issues
-import logging
-logging.basicConfig(
-    filename=os.path.join(LOG_DIR, "backend_startup.log"),
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logging.info(f"Starting SmartBill Backend. Data Dir: {APP_DATA_DIR}")
+logger.info(f"Starting SmartBill Backend. Data Dir: {APP_DATA_DIR}")
 
 def run_migrations():
     """Run Alembic migrations to ensure DB schema is up to date."""
     try:
-        logging.info("Running database migrations...")
+        logger.info("Running database migrations...")
         # Point to alembic.ini in the current directory (dist root)
         alembic_cfg = Config("alembic.ini")
         # Force the config to use our computed AppData DB URL
         alembic_cfg.set_main_option("sqlalchemy.url", deployment_db_url)
         # Run upgrade head
         command.upgrade(alembic_cfg, "head")
-        logging.info("Database migrations completed successfully.")
+        logger.info("Database migrations completed successfully.")
     except Exception as e:
-        logging.error(f"Migration failed: {e}")
+        logger.error(f"Migration failed: {e}")
         # We don't raise here to allow app to start even if migration fails (though risky)
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -111,7 +106,7 @@ from app.database.init_db import init_db
 
 @app.on_event("startup")
 async def startup_event():
-    logging.info("Startup event triggered.")
+    logger.info("Startup event triggered.")
     print("STARTUP: Event triggered.") # Logs to backend_entry.log
     
     try:
@@ -133,9 +128,9 @@ async def startup_event():
         create_default_super_admin()
         print("STARTUP: Super Admin creation step done.")
         
-        logging.info("Startup complete.")
+        logger.info("Startup complete.")
     except Exception as e:
-        logging.error(f"Startup error: {e}")
+        logger.error(f"Startup error: {e}")
         print(f"STARTUP ERROR: {e}")
 
 @app.on_event("shutdown")
@@ -182,6 +177,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(PrivateNetworkAccessMiddleware)
 
 # ===================== STATIC FILES =====================

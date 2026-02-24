@@ -12,6 +12,7 @@ const Login = lazy(() => import("./auth/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AIInsights = lazy(() => import("./pages/AIInsights")); // [NEW]
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
+const SuperAdminAuditLogs = lazy(() => import("./pages/SuperAdminAuditLogs"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const InvoiceForm = lazy(() => import("./pages/InvoiceForm"));
 const Parties = lazy(() => import("./pages/Parties"));
@@ -105,6 +106,16 @@ function AppRoutes() {
           <Route path="roles" element={<RoleManagement />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="backup" element={<Backup />} />
+          <Route
+            path="audit-logs"
+            element={
+              isSuperAdmin ? (
+                <SuperAdminAuditLogs />
+              ) : (
+                <Navigate to="/dashboard" />
+              )
+            }
+          />
         </Route>
 
         {/* Client Portal */}

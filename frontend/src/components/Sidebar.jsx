@@ -16,6 +16,7 @@ import {
   UserCog,
   Database,
   Sparkles, // [NEW]
+  Activity,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -120,14 +121,14 @@ export default function Sidebar({
             label="Dashboard"
             collapsed={collapsed}
           />
-          <MenuLink
-            to="/ai-insights"
-            icon={Sparkles}
-            label="AI Insights"
-            collapsed={collapsed}
-          />
           {!isSuperAdmin && (
             <>
+              <MenuLink
+                to="/ai-insights"
+                icon={Sparkles}
+                label="AI Insights"
+                collapsed={collapsed}
+              />
               {(isCompanyAdmin || hasPermission("parties.view")) && (
                 <MenuLink
                   to="/parties"
@@ -281,6 +282,12 @@ export default function Sidebar({
               to="/roles"
               icon={Shield}
               label="Roles & Permissions"
+              collapsed={collapsed}
+            />
+            <MenuLink
+              to="/audit-logs"
+              icon={Activity}
+              label="Audit Logs"
               collapsed={collapsed}
             />
             <MenuLink

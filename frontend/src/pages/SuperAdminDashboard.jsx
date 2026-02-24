@@ -61,11 +61,6 @@ export default function SuperAdminDashboard() {
   });
   const [selectedCompany, setSelectedCompany] = useState(null);
 
-  // Tabs & Audit Logs
-  const [activeTab, setActiveTab] = useState("companies");
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
-
   // 🔄 Fetch Companies
   const loadCompanies = async () => {
     try {
@@ -115,7 +110,7 @@ export default function SuperAdminDashboard() {
       loadCompanies();
     } catch (err) {
       toast.error(
-        err.response?.data?.detail || "Failed to extend subscription"
+        err.response?.data?.detail || "Failed to extend subscription",
       );
     }
   };
@@ -138,7 +133,7 @@ export default function SuperAdminDashboard() {
           toast.success(
             `Company ${
               company.is_active ? "deactivated" : "activated"
-            } successfully`
+            } successfully`,
           );
           loadCompanies();
           setConfirmDialog({ ...confirmDialog, open: false });
@@ -195,27 +190,6 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // 📜 Fetch Audit Logs
-  const loadAuditLogs = async () => {
-    try {
-      setLoadingLogs(true);
-      const data = await getAuditLogs();
-      setAuditLogs(data);
-    } catch {
-      toast.error("Failed to load audit logs");
-    } finally {
-      setLoadingLogs(false);
-    }
-  };
-
-  // Switch Tab Handler
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === "audit") {
-      loadAuditLogs();
-    }
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 👑 HEADER */}
@@ -231,29 +205,7 @@ export default function SuperAdminDashboard() {
             Manage tenants, subscriptions, and system health
           </p>
         </div>
-        <div className="relative z-10 flex gap-3">
-          <button
-            onClick={() => setActiveTab("companies")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-              activeTab === "companies"
-                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/40 scale-105"
-                : "text-gray-700 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-700"
-            }`}
-          >
-            Companies
-          </button>
-          <button
-            onClick={() => handleTabChange("audit")}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-              activeTab === "audit"
-                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/40 scale-105"
-                : "text-gray-700 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-700"
-            }`}
-          >
-            <Activity size={16} /> Audit Logs
-          </button>
-        </div>
-        {activeTab === "companies" && (
+        <div className="relative z-10 flex gap-3 p-1">
           <button
             onClick={() => setShowCreateModal(true)}
             className="relative z-10 flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 hover:scale-105"
@@ -264,249 +216,107 @@ export default function SuperAdminDashboard() {
             />
             Add Company
           </button>
-        )}
+        </div>
       </div>
 
-      {activeTab === "companies" && (
-        <>
-          {/* 📊 STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Stat
-              label="Total Companies"
-              value={companies.length}
-              icon={Building2}
-              color="blue"
-            />
-            <Stat
-              label="Active Tenants"
-              value={companies.filter((c) => c.is_active).length}
-              icon={CheckCircle}
-              color="green"
-            />
-            <Stat
-              label="Expiring Soon (30 Days)"
-              value={
-                companies.filter((c) => {
-                  if (!c.is_active) return false;
-                  const end = new Date(c.subscription_end);
-                  const today = new Date();
-                  const warningDate = new Date();
-                  warningDate.setDate(today.getDate() + 30);
-                  return end > today && end <= warningDate;
-                }).length
-              }
-              icon={Calendar}
-              color="orange"
-            />
-            <Stat
-              label="Inactive"
-              value={companies.filter((c) => !c.is_active).length}
-              icon={XCircle}
-              color="red"
-            />
-          </div>
+      {/* 📊 STATS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Stat
+          label="Total Companies"
+          value={companies.length}
+          icon={Building2}
+          color="blue"
+        />
+        <Stat
+          label="Active Tenants"
+          value={companies.filter((c) => c.is_active).length}
+          icon={CheckCircle}
+          color="green"
+        />
+        <Stat
+          label="Expiring Soon (30 Days)"
+          value={
+            companies.filter((c) => {
+              if (!c.is_active) return false;
+              const end = new Date(c.subscription_end);
+              const today = new Date();
+              const warningDate = new Date();
+              warningDate.setDate(today.getDate() + 30);
+              return end > today && end <= warningDate;
+            }).length
+          }
+          icon={Calendar}
+          color="orange"
+        />
+        <Stat
+          label="Inactive"
+          value={companies.filter((c) => !c.is_active).length}
+          icon={XCircle}
+          color="red"
+        />
+      </div>
 
-          {/* 📋 TABLE */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
-              <Search className="text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search companies..."
-                className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
-              />
-            </div>
-
-            <div className="overflow-x-auto min-h-[400px]">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase tracking-wider font-semibold">
-                  <tr>
-                    <th className="px-6 py-4 whitespace-nowrap">
-                      Company Name
-                    </th>
-                    <th className="px-6 py-4 whitespace-nowrap">Email</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                    <th className="px-6 py-4 whitespace-nowrap">
-                      Subscription End
-                    </th>
-                    <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {loading ? (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="px-6 py-8 text-center text-gray-500"
-                      >
-                        Loading companies...
-                      </td>
-                    </tr>
-                  ) : companies.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="px-6 py-8 text-center text-gray-500"
-                      >
-                        No companies found. Create one to get started.
-                      </td>
-                    </tr>
-                  ) : (
-                    companies.map((company) => (
-                      <CompanyRow
-                        key={company.id}
-                        company={company}
-                        onManage={(c) => {
-                          setSelectedCompany(c);
-                          setShowManageModal(true);
-                        }}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
-
-      {activeTab === "audit" && (
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/20">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-lg">
-                <Activity size={20} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold bg-gradient-to-r from-purple-900 to-blue-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                  Recent Admin Activity
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Track all administrative actions and changes
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
-                <tr>
-                  <th className="px-6 py-4">Timestamp</th>
-                  <th className="px-6 py-4">Action</th>
-                  <th className="px-6 py-4">Admin</th>
-                  <th className="px-6 py-4">Target Company</th>
-                  <th className="px-6 py-4">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {loadingLogs ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="px-6 py-12 text-center text-gray-500"
-                    >
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                        <span className="text-sm font-medium">
-                          Loading logs...
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : auditLogs.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="px-6 py-12 text-center text-gray-500"
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <Activity
-                          className="text-gray-300 dark:text-gray-600"
-                          size={48}
-                        />
-                        <span className="text-sm font-medium">
-                          No activity recorded yet
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  auditLogs.map((log) => (
-                    <tr
-                      key={log.id}
-                      className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/5 transition-all duration-300"
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                            <Clock
-                              size={14}
-                              className="text-gray-500 dark:text-gray-400"
-                            />
-                          </div>
-                          <span className="text-gray-600 dark:text-gray-300 font-medium text-xs">
-                            {new Date(
-                              log.created_at.endsWith("Z")
-                                ? log.created_at
-                                : log.created_at + "Z"
-                            ).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-blue-600 text-white shadow-md uppercase tracking-wider">
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                            <User
-                              size={14}
-                              className="text-blue-600 dark:text-blue-400"
-                            />
-                          </div>
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {log.user_name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                            <Building2
-                              size={14}
-                              className="text-purple-600 dark:text-purple-400"
-                            />
-                          </div>
-                          <span className="text-gray-700 dark:text-gray-300 font-medium">
-                            {log.company_name || "-"}
-                          </span>
-                        </div>
-                      </td>
-                      <td
-                        className="px-6 py-5 text-gray-600 dark:text-gray-400 max-w-xs truncate text-sm"
-                        title={log.details}
-                      >
-                        {log.details}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+      {/* 📋 TABLE */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
+          <Search className="text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search companies..."
+            className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
+          />
         </div>
-      )}
+
+        <div className="overflow-x-auto min-h-[400px]">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="px-6 py-4 whitespace-nowrap">Company Name</th>
+                <th className="px-6 py-4 whitespace-nowrap">Email</th>
+                <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 whitespace-nowrap">
+                  Subscription End
+                </th>
+                <th className="px-6 py-4 text-right whitespace-nowrap">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan="5"
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    Loading companies...
+                  </td>
+                </tr>
+              ) : companies.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="5"
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    No companies found. Create one to get started.
+                  </td>
+                </tr>
+              ) : (
+                companies.map((company) => (
+                  <CompanyRow
+                    key={company.id}
+                    company={company}
+                    onManage={(c) => {
+                      setSelectedCompany(c);
+                      setShowManageModal(true);
+                    }}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* MODALS */}
       {showCreateModal && (

@@ -114,6 +114,7 @@ def create_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.services.audit_service import log_audit_action
     """Create a new role"""
     # TODO: Add permission check - require_permission("roles.create")
     
@@ -141,6 +142,15 @@ def create_role(
     db.commit()
     db.refresh(new_role)
     
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="ROLE_CREATE",
+        company_id=current_user.company_id,
+        details=f"Created Role {new_role.name}"
+    )
+    
     return new_role
 
 
@@ -151,6 +161,7 @@ def update_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.services.audit_service import log_audit_action
     """Update a role"""
     # TODO: Add permission check - require_permission("roles.edit")
     
@@ -183,6 +194,15 @@ def update_role(
     db.commit()
     db.refresh(role)
     
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="ROLE_UPDATE",
+        company_id=current_user.company_id,
+        details=f"Updated Role {role.name}"
+    )
+    
     return role
 
 
@@ -192,6 +212,7 @@ def delete_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.services.audit_service import log_audit_action
     """Delete a role"""
     # TODO: Add permission check - require_permission("roles.delete")
     
@@ -211,8 +232,18 @@ def delete_role(
             detail=f"Cannot delete role: {users_count} users are assigned to this role"
         )
     
+    role_name = role.name
     db.delete(role)
     db.commit()
+    
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="ROLE_DELETE",
+        company_id=current_user.company_id,
+        details=f"Deleted Role {role_name}"
+    )
     
     return None
 

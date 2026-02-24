@@ -272,6 +272,7 @@ def create_employee(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     # Check if email exists (only if provided)
     if data.email:
         existing = db.query(User).filter(User.email == data.email).first()
@@ -342,6 +343,16 @@ def create_employee(
 
     db.commit()
     db.refresh(user)
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="EMPLOYEE_CREATE",
+        company_id=company_id,
+        details=f"Created Employee {user.name}"
+    )
+
     return user
 
 @router.get("/next-id")
@@ -364,6 +375,7 @@ def update_employee(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     user = db.query(User).filter(
         User.id == user_id, 
         User.company_id == company_id
@@ -402,6 +414,16 @@ def update_employee(
 
     db.commit()
     db.refresh(user)
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="EMPLOYEE_UPDATE",
+        company_id=company_id,
+        details=f"Updated Employee {user.name}"
+    )
+
     return user
 
 @router.delete("/{user_id}")
@@ -411,6 +433,7 @@ def delete_employee(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     user = db.query(User).filter(
         User.id == user_id,
         User.company_id == company_id
@@ -426,6 +449,15 @@ def delete_employee(
     upload_dir = os.path.join(UPLOAD_DIR, str(user_id))
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="EMPLOYEE_DELETE",
+        company_id=company_id,
+        details=f"Deleted Employee ID {user_id}"
+    )
 
     return {"message": "Employee deleted"}
 

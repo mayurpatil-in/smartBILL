@@ -31,6 +31,7 @@ def create_item(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     item = Item(
         company_id=company_id, 
         financial_year_id=fy.id,
@@ -40,6 +41,15 @@ def create_item(
     db.add(item)
     db.commit()
     db.refresh(item)
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="ITEM_CREATE",
+        company_id=company_id,
+        details=f"Created Item {item.name}"
+    )
 
     return item
 
@@ -95,6 +105,7 @@ def update_item(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     item = db.query(Item).filter(
         Item.id == item_id,
         Item.company_id == company_id
@@ -111,6 +122,16 @@ def update_item(
 
     db.commit()
     db.refresh(item)
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="ITEM_UPDATE",
+        company_id=company_id,
+        details=f"Updated Item {item.name}"
+    )
+
     return item
 
 
@@ -121,6 +142,7 @@ def delete_item(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     item = db.query(Item).filter(
         Item.id == item_id,
         Item.company_id == company_id
@@ -155,8 +177,18 @@ def delete_item(
         )
 
     # If no usage found, safe to delete
+    item_name = item.name
     db.delete(item)
     db.commit()
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="ITEM_DELETE",
+        company_id=company_id,
+        details=f"Deleted Item {item_name}"
+    )
 
 
 @router.get("/{item_id}/print-barcode")

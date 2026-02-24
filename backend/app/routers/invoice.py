@@ -167,6 +167,7 @@ def create_invoice(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     """Create a direct invoice (not from challan)"""
     try:
         invoice_number = generate_invoice_number(db, company_id, fy.id)
@@ -276,6 +277,16 @@ def create_invoice(
         
         db.commit()
         db.refresh(invoice)
+        
+        # [AUDIT]
+        log_audit_action(
+            db=db,
+            user_id=current_user.id,
+            action="INVOICE_CREATE",
+            company_id=company_id,
+            details=f"Created Direct Invoice {invoice_number} for {grand_total}"
+        )
+        
         return invoice
     except Exception as e:
         db.rollback()
@@ -317,6 +328,7 @@ def update_invoice(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     invoice = db.query(Invoice).filter(
         Invoice.id == invoice_id,
         Invoice.company_id == company_id
@@ -469,6 +481,16 @@ def update_invoice(
             
     db.commit()
     db.refresh(invoice)
+    
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="INVOICE_UPDATE",
+        company_id=company_id,
+        details=f"Updated Invoice {invoice.invoice_number} to {grand_total}"
+    )
+    
     return invoice
 
 
@@ -479,6 +501,7 @@ def delete_invoice(
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     invoice = db.query(Invoice).filter(
         Invoice.id == invoice_id,
         Invoice.company_id == company_id
@@ -534,8 +557,19 @@ def delete_invoice(
     # 3. Delete Invoice Items
     db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).delete()
 
+    invoice_number = invoice.invoice_number
     # 3. Delete Invoice
     db.delete(invoice)
+    
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="INVOICE_DELETE",
+        company_id=company_id,
+        details=f"Deleted Invoice {invoice_number}"
+    )
+    
     db.commit()
     
     return {"message": "Invoice deleted", "reverted_challans": len(challan_item_ids)}
@@ -552,6 +586,7 @@ def create_invoice_from_challan(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
+    from app.services.audit_service import log_audit_action
     challan = db.query(DeliveryChallan).filter(
         DeliveryChallan.id == challan_id,
         DeliveryChallan.company_id == company_id,
@@ -600,6 +635,15 @@ def create_invoice_from_challan(
 
     db.commit()
     db.refresh(invoice)
+
+    # [AUDIT]
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="INVOICE_FROM_CHALLAN_CREATE",
+        company_id=company_id,
+        details=f"Created Invoice {invoice_number} from Challan {challan.challan_number}"
+    )
 
     return invoice
 
