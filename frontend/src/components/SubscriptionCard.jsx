@@ -215,6 +215,39 @@ export default function SubscriptionCard({ company, loading }) {
               </div>
             </div>
           )}
+
+          {/* Plan Details Section */}
+          {company.plan && (
+            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span className="bg-gradient-to-r from-indigo-500 to-purple-600 w-2 h-2 rounded-full"></span>
+                    {company.plan.name} Plan
+                  </h4>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Includes up to {company.plan.max_users} users
+                  </p>
+                </div>
+              </div>
+
+              {company.plan.features && company.plan.features.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                  {company.plan.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle2
+                        size={16}
+                        className="text-indigo-500 mt-0.5 shrink-0"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {feature}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

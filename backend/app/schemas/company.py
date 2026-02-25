@@ -19,11 +19,14 @@ class CompanyCreate(CompanyBase):
     is_active: bool = True
 
 
+from app.schemas.super_admin import SubscriptionPlanResponse
+
 class CompanyResponse(CompanyBase):
     id: int
     subscription_start: date
     subscription_end: date
     is_active: bool
+    plan: Optional[SubscriptionPlanResponse] = None
 
     class Config:
         from_attributes = True
