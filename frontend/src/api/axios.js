@@ -63,6 +63,17 @@ api.interceptors.response.use(
       window.location.replace("/unauthorized");
     }
 
+    // 🚧 Maintenance Mode (503)
+    if (status === 503 && error.response?.data?.is_maintenance) {
+      if (
+        window.location.pathname !== "/maintenance" &&
+        window.location.pathname !== "/login" &&
+        !window.location.pathname.startsWith("/super-admin")
+      ) {
+        window.location.replace("/maintenance");
+      }
+    }
+
     // 💳 Subscription expired
     if (status === 402) {
       window.location.replace("/subscription-expired");

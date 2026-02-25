@@ -46,6 +46,16 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
+    # 🚧 CHECK MAINTENANCE MODE
+    from app.core.maintenance import is_maintenance_mode
+    from fastapi.responses import JSONResponse
+    
+    if is_maintenance_mode() and user.legacy_role != "SUPER_ADMIN":
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "System is currently under maintenance. Please try again later.", "is_maintenance": True}
+        )
+
     # 🏢 CHECK COMPANY STATUS
     # 🏢 CHECK COMPANY STATUS
     if user.company_id and user.company:

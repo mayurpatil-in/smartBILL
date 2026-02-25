@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import SessionWarning from "../components/SessionWarning";
 import { PermissionProvider } from "../hooks/usePermissions";
 import { useAuth } from "../hooks/useAuth";
+import ImpersonationBanner from "../components/ImpersonationBanner";
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,7 +50,8 @@ export default function DashboardLayout() {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+          <ImpersonationBanner />
           <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
           <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 flex flex-col">

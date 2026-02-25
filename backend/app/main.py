@@ -151,6 +151,29 @@ class PrivateNetworkAccessMiddleware(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
 
+# ===================== MAINTENANCE MIDDLEWARE =====================
+from fastapi.responses import JSONResponse
+from app.core.maintenance import is_maintenance_mode
+
+class MaintenanceMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if is_maintenance_mode():
+            path = request.url.path
+            # Logins, super-admin API, API docs must be accessible
+            if not any(path.startswith(prefix) for prefix in [
+                "/auth/login",
+                "/super-admin",
+                "/profile",
+                "/health",
+                "/docs",
+                "/openapi.json"
+            ]):
+                return JSONResponse(
+                    status_code=503,
+                    content={"detail": "System is currently under maintenance. Please try again later.", "is_maintenance": True}
+                )
+        return await call_next(request)
+
 # ===================== CORS =====================
 # Priority: Use CORS_ORIGINS from .env if configured, otherwise fallback to localhost for dev
 # For VPS: Set CORS_ORIGINS in .env with your production domains
@@ -180,6 +203,7 @@ app.add_middleware(
 
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(PrivateNetworkAccessMiddleware)
+app.add_middleware(MaintenanceMiddleware)
 
 # ===================== STATIC FILES =====================
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

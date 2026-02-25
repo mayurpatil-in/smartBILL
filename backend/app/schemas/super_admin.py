@@ -81,3 +81,10 @@ class SubscriptionPlanResponse(SubscriptionPlanBase):
     
     class Config:
         from_attributes = True
+
+# --- Maintenance Mode Schemas ---
+class MaintenanceModeResponse(BaseModel):
+    is_maintenance: bool
+
+class MaintenanceModeUpdate(BaseModel):
+    is_maintenance: bool

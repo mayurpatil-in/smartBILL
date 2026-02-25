@@ -17,8 +17,12 @@ from app.schemas.super_admin import (
     SubscriptionPlanCreate,
     SubscriptionPlanUpdate,
     SubscriptionPlanResponse,
+    MaintenanceModeResponse,
+    MaintenanceModeUpdate,
 )
+from app.schemas.auth import TokenResponse
 from app.core.admin_guard import require_super_admin
+from app.core.security import create_access_token
 from app.services.super_admin_service import (
     create_company,
     create_company_admin,
@@ -36,10 +40,11 @@ from app.services.super_admin_service import (
     update_plan,
 )
 from app.models.company import Company
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.audit_log import AuditLog
 from app.models.invoice import Invoice
 from fastapi import HTTPException
+from app.core.maintenance import is_maintenance_mode, set_maintenance_mode
 
 router = APIRouter(
     prefix="/super-admin",
@@ -140,6 +145,7 @@ def list_companies(
 @router.get("/audit-logs", response_model=list[AuditLogResponse])
 def get_audit_logs(
     company_id: int | None = None,
+    is_super_admin: bool | None = None,
     db: Session = Depends(get_db),
     _=Depends(require_super_admin),
 ):
@@ -155,6 +161,12 @@ def get_audit_logs(
 
     if company_id:
         query = query.filter(AuditLog.company_id == company_id)
+
+    if is_super_admin is not None:
+        if is_super_admin:
+            query = query.filter(User.legacy_role == UserRole.SUPER_ADMIN.value)
+        else:
+            query = query.filter(User.legacy_role != UserRole.SUPER_ADMIN.value)
 
     return query.order_by(AuditLog.created_at.desc())\
         .limit(100)\
@@ -242,3 +254,61 @@ def update_plan_api(
     current_user: User = Depends(require_super_admin),
 ):
     return update_plan(db, plan_id, data, current_user.id)
+
+@router.get("/maintenance", response_model=MaintenanceModeResponse)
+def get_maintenance_status_api(
+    _=Depends(require_super_admin),
+):
+    return {"is_maintenance": is_maintenance_mode()}
+
+@router.post("/maintenance", response_model=MaintenanceModeResponse)
+def set_maintenance_status_api(
+    data: MaintenanceModeUpdate,
+    _=Depends(require_super_admin),
+):
+    set_maintenance_mode(data.is_maintenance)
+    return {"is_maintenance": data.is_maintenance}
+
+@router.post("/impersonate/{company_id}", response_model=TokenResponse)
+def impersonate_tenant_api(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    # Find active COMPANY_ADMIN for this company
+    target_admin = db.query(User).filter(
+        User.company_id == company_id,
+        User.legacy_role == UserRole.COMPANY_ADMIN.value,
+        User.is_active == True
+    ).first()
+
+    if not target_admin:
+        raise HTTPException(status_code=404, detail="No active Company Admin found for this tenant.")
+
+    if not target_admin.company.is_active:
+        raise HTTPException(status_code=403, detail="Company is currently deactivated.")
+
+    # Create Impersonation Token
+    token = create_access_token(
+        data={
+            "user_id": target_admin.id,
+            "name": f"{target_admin.name} (Impersonated)",
+            "company_id": target_admin.company_id,
+            "role": target_admin.legacy_role,
+            "role_name": target_admin.role.name if target_admin.role else None,
+            "company_name": target_admin.company.name if target_admin.company else None,
+            "is_impersonated": True,
+        }
+    )
+
+    # Log the action under Super Admin's ID
+    audit = AuditLog(
+        user_id=current_user.id,
+        action="IMPERSONATE",
+        details=f"Super Admin {current_user.name} impersonated {target_admin.company.name}",
+        company_id=company_id
+    )
+    db.add(audit)
+    db.commit()
+
+    return TokenResponse(access_token=token)

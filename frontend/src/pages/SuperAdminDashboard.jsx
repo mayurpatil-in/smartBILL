@@ -13,6 +13,9 @@ import {
   getPlans,
   createPlan,
   updatePlan,
+  getMaintenanceStatus,
+  setMaintenanceStatus,
+  impersonateTenant,
 } from "../api/superAdmin";
 import {
   Building2,
@@ -40,6 +43,7 @@ import {
   BarChart,
   Package,
   Layers,
+  AlertTriangle,
 } from "lucide-react";
 import {
   LineChart,
@@ -88,6 +92,10 @@ export default function SuperAdminDashboard() {
   });
   const [selectedCompany, setSelectedCompany] = useState(null);
 
+  // Maintenance Settings
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+
   // 🔄 Fetch Companies & Analytics
   const loadCompanies = async () => {
     try {
@@ -100,6 +108,18 @@ export default function SuperAdminDashboard() {
       setCompanies(compData);
       setAnalytics(analyticsData);
       setPlans(plansData);
+      try {
+        const maintenanceData = await getMaintenanceStatus();
+        setIsMaintenance(maintenanceData.is_maintenance);
+      } catch (err) {
+        console.warn("Maintenance status fetch failed:", err);
+      }
+      try {
+        const maintenanceData = await getMaintenanceStatus();
+        setIsMaintenance(maintenanceData.is_maintenance);
+      } catch (err) {
+        console.warn("Maintenance status fetch failed:", err);
+      }
     } catch {
       toast.error("Failed to load dashboard data");
     } finally {
@@ -246,6 +266,70 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleToggleMaintenance = async () => {
+    setConfirmDialog({
+      open: true,
+      title: isMaintenance
+        ? "Disable Maintenance Mode?"
+        : "Enable Maintenance Mode?",
+      message: isMaintenance
+        ? "This will allow all tenants to log in and use the application again."
+        : "WARNING: This will block all tenant users from accessing the application until disabled. Use only during critical updates.",
+      type: isMaintenance ? "info" : "danger",
+      confirmLabel: isMaintenance
+        ? "Disable Maintenance"
+        : "Enable Maintenance",
+      onConfirm: async () => {
+        try {
+          setTogglingMaintenance(true);
+          const newState = !isMaintenance;
+          const res = await setMaintenanceStatus(newState);
+          setIsMaintenance(res.is_maintenance);
+          toast.success(
+            res.is_maintenance
+              ? "Maintenance Mode ENABLED"
+              : "Maintenance Mode DISABLED",
+          );
+          setConfirmDialog({ ...confirmDialog, open: false });
+        } catch (error) {
+          toast.error("Failed to toggle maintenance mode");
+        } finally {
+          setTogglingMaintenance(false);
+        }
+      },
+    });
+  };
+
+  const handleImpersonate = async (company) => {
+    setConfirmDialog({
+      open: true,
+      title: `Impersonate ${company.name}?`,
+      message:
+        "You will be logged in as the admin for this tenant. A return banner will allow you to revert to Super Admin.",
+      type: "info",
+      confirmLabel: "Login As Tenant",
+      onConfirm: async () => {
+        try {
+          const res = await impersonateTenant(company.id);
+          // Store current token
+          const currentToken =
+            localStorage.getItem("access_token") ||
+            sessionStorage.getItem("access_token");
+          localStorage.setItem("super_admin_token", currentToken);
+
+          // Overwrite token and redirect
+          localStorage.setItem("access_token", res.access_token);
+          window.location.replace("/");
+        } catch (error) {
+          toast.error(
+            error.response?.data?.detail || "Failed to impersonate tenant",
+          );
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 👑 HEADER */}
@@ -286,6 +370,58 @@ export default function SuperAdminDashboard() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Maintenance Mode Banner */}
+      <div
+        className={`p-5 rounded-2xl border-2 shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+          isMaintenance
+            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+        }`}
+      >
+        <div className="flex items-center gap-4">
+          <div
+            className={`p-3 rounded-xl ${isMaintenance ? "bg-red-100 dark:bg-red-900/50" : "bg-gray-100 dark:bg-gray-700"}`}
+          >
+            <AlertTriangle
+              size={24}
+              className={
+                isMaintenance
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-gray-400"
+              }
+            />
+          </div>
+          <div>
+            <h3
+              className={`text-lg font-bold ${isMaintenance ? "text-red-700 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
+            >
+              System Maintenance Mode
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {isMaintenance
+                ? "Maintenance is ACTIVE. All tenant users are blocked from logging in or using APIs."
+                : "Normal operation. System is accessible to all active tenants."}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleToggleMaintenance}
+          disabled={togglingMaintenance}
+          className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all focus:ring-4 whitespace-nowrap ${
+            isMaintenance
+              ? "bg-red-600 hover:bg-red-700 text-white focus:ring-red-200"
+              : "bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
+          }`}
+        >
+          {togglingMaintenance
+            ? "Processing..."
+            : isMaintenance
+              ? "Disable Maintenance"
+              : "Enable Maintenance"}
+        </button>
       </div>
 
       {/* 🧭 TABS */}
@@ -738,6 +874,10 @@ export default function SuperAdminDashboard() {
           onToggleStatus={() => {
             setShowManageModal(false);
             handleToggleStatus(selectedCompany);
+          }}
+          onImpersonate={() => {
+            setShowManageModal(false);
+            handleImpersonate(selectedCompany);
           }}
           onDelete={() => {
             setShowManageModal(false);

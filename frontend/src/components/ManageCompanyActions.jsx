@@ -9,6 +9,7 @@ import {
   Trash2,
   Building2,
   Activity,
+  LogIn,
 } from "lucide-react";
 
 export default function ManageCompanyActions({
@@ -21,6 +22,7 @@ export default function ManageCompanyActions({
   onToggleStatus,
   onDelete,
   onViewLogs,
+  onImpersonate,
 }) {
   if (!company) return null;
 
@@ -114,6 +116,14 @@ export default function ManageCompanyActions({
             color="red"
             isDanger={true}
             onClick={onDelete}
+          />
+
+          <ActionCard
+            icon={LogIn}
+            title="Impersonate Admin"
+            desc="Log in as this tenant's admin"
+            color="indigo"
+            onClick={onImpersonate}
           />
 
           {/* VIEW AUDIT LOGS */}

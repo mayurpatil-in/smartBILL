@@ -9,6 +9,7 @@ import { useAuth } from "./hooks/useAuth";
 
 // 💤 Lazy Load Pages
 const Login = lazy(() => import("./auth/Login"));
+const Maintenance = lazy(() => import("./pages/Maintenance"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AIInsights = lazy(() => import("./pages/AIInsights")); // [NEW]
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
@@ -49,6 +50,7 @@ function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<Login />} />
+        <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/verify-id/:id" element={<VerifyID />} />
 
         {/* Employee Portal */}

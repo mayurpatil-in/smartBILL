@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { getAuditLogs } from "../api/superAdmin";
-import { Activity, Clock, User, Building2 } from "lucide-react";
+import { Activity, Clock, User, Building2, Filter } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function SuperAdminAuditLogs() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
+  const [logFilter, setLogFilter] = useState("all");
+
   // 📜 Fetch Audit Logs
   const loadAuditLogs = async () => {
     try {
       setLoadingLogs(true);
-      const data = await getAuditLogs();
+      let isSuperAdmin = null;
+      if (logFilter === "super_admin") isSuperAdmin = true;
+      if (logFilter === "tenant") isSuperAdmin = false;
+
+      const data = await getAuditLogs(null, isSuperAdmin);
       setAuditLogs(data);
     } catch {
       toast.error("Failed to load audit logs");
@@ -22,12 +28,12 @@ export default function SuperAdminAuditLogs() {
 
   useEffect(() => {
     loadAuditLogs();
-  }, []);
+  }, [logFilter]);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/20 gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-lg">
               <Activity size={20} className="text-white" />
@@ -40,6 +46,21 @@ export default function SuperAdminAuditLogs() {
                 System-wide tracking of critical administrative and user actions
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="pl-2">
+              <Filter size={16} className="text-gray-400" />
+            </div>
+            <select
+              value={logFilter}
+              onChange={(e) => setLogFilter(e.target.value)}
+              className="px-3 py-1.5 bg-transparent border-none text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-0 cursor-pointer outline-none"
+            >
+              <option value="all">All Activity</option>
+              <option value="super_admin">Super Admin Actions</option>
+              <option value="tenant">Tenant Actions</option>
+            </select>
           </div>
         </div>
         <div className="overflow-x-auto min-h-[500px]">

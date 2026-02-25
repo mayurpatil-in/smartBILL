@@ -35,7 +35,7 @@ export default function Login() {
 
     const checkStatus = async () => {
       try {
-        await api.get("/");
+        await api.get("/health");
         if (mounted) setIsOnline(true);
       } catch {
         if (mounted) setIsOnline(false);
