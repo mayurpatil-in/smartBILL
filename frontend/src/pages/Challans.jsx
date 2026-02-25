@@ -14,9 +14,10 @@ import {
   Printer,
   BarChart3,
   Send,
-  CheckCircle,
   Weight,
   ClipboardCheck,
+  MessageCircle,
+  CheckCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -25,6 +26,7 @@ import {
   printDeliveryChallan,
   printBulkDeliveryChallans,
   getChallanStats,
+  getDeliveryChallanShareLink,
 } from "../api/challans";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
@@ -35,8 +37,10 @@ import PDIReportModal from "../components/PDIReportModal";
 
 const PdfPreviewModal = lazy(() => import("../components/PdfPreviewModal"));
 import { formatDate } from "../utils/dateUtils";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Challans() {
+  const { hasFeature } = useAuth();
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
   const [items, setItems] = useState([]);
@@ -137,6 +141,23 @@ export default function Challans() {
         msg = "Network Error (Check AdBlocker/Extensions?)";
       }
       toast.error(`Failed: ${msg}`, { id: toastId });
+    }
+  };
+
+  const handleWhatsAppShare = async (challan) => {
+    try {
+      const toastId = toast.loading("Generating share link...");
+      const response = await getDeliveryChallanShareLink(challan.id);
+      toast.dismiss(toastId);
+
+      if (response.whatsapp_url) {
+        window.open(response.whatsapp_url, "_blank");
+      } else {
+        toast.error("Failed to generate WhatsApp link");
+      }
+    } catch (error) {
+      console.error("Failed to share via WhatsApp", error);
+      toast.error("Failed to prepare WhatsApp share");
     }
   };
 
@@ -544,6 +565,8 @@ export default function Challans() {
                     }}
                     onDelete={() => handleDelete(challan)}
                     onPrint={() => handlePrint(challan)}
+                    onWhatsApp={() => handleWhatsAppShare(challan)}
+                    hasWhatsAppFeature={hasFeature("WHATSAPP_SHARE")}
                     getStatusColor={getStatusColor}
                     selected={selectedChallans.has(challan.id)}
                     onSelect={() => toggleSelect(challan.id)}
@@ -700,6 +723,8 @@ function ChallanRow({
   onEditPDI,
   onDelete,
   onPrint,
+  onWhatsApp,
+  hasWhatsAppFeature,
   getStatusColor,
   selected,
   onSelect,
@@ -781,24 +806,17 @@ function ChallanRow({
           </div>
           <span
             className="text-sm font-semibold text-gray-700 dark:text-gray-300 line-clamp-2"
-            title={Object.values(
-              challan.items?.reduce((acc, i) => {
+            title={(() => {
+              if (!challan.items?.length) return "No Items";
+              const aggregated = challan.items.reduce((acc, i) => {
                 const name = i.item?.name || "Unknown";
                 acc[name] = (acc[name] || 0) + (Number(i.quantity) || 0);
                 return acc;
-              }, {}) || {},
-            )
-              .map((qty, index, arr) => {
-                const name = Object.keys(
-                  challan.items?.reduce((acc, i) => {
-                    const n = i.item?.name || "Unknown";
-                    acc[n] = (acc[n] || 0) + (Number(i.quantity) || 0);
-                    return acc;
-                  }, {}) || {},
-                )[index];
-                return `${name} (${qty} units)`;
-              })
-              .join(", ")}
+              }, {});
+              return Object.entries(aggregated)
+                .map(([name, qty]) => `${name} (${qty} units)`)
+                .join(", ");
+            })()}
           >
             {(() => {
               if (!challan.items?.length) return "No Items";
@@ -854,7 +872,6 @@ function ChallanRow({
             <ClipboardCheck size={16} />
           </button>
 
-          {/* Print Button */}
           <button
             onClick={onPrint}
             className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
@@ -862,6 +879,17 @@ function ChallanRow({
           >
             <Printer size={16} />
           </button>
+
+          {/* WhatsApp Share Button */}
+          {hasWhatsAppFeature && (
+            <button
+              onClick={onWhatsApp}
+              className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Share via WhatsApp"
+            >
+              <MessageCircle size={16} />
+            </button>
+          )}
 
           {/* Edit Button */}
           <button

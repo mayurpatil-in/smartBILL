@@ -1491,6 +1491,7 @@ function CreatePlanModal({ onClose, onSave }) {
     { id: "USER_MANAGEMENT", label: "User Management" },
     { id: "ROLE_MANAGEMENT", label: "Roles & Permissions" },
     { id: "ITEM_BARCODE", label: "Item Barcodes" },
+    { id: "WHATSAPP_SHARE", label: "WhatsApp Share" },
   ];
 
   const toggleFlag = (flagId) => {
@@ -1635,6 +1636,7 @@ function UpdatePlanModal({ plan, onClose, onSave }) {
     { id: "USER_MANAGEMENT", label: "User Management" },
     { id: "ROLE_MANAGEMENT", label: "Roles & Permissions" },
     { id: "ITEM_BARCODE", label: "Item Barcodes" },
+    { id: "WHATSAPP_SHARE", label: "WhatsApp Share" },
   ];
 
   const toggleFlag = (flagId) => {

@@ -10,7 +10,7 @@ from app.models.party_challan import PartyChallan
 from app.models.party_challan_item import PartyChallanItem
 from app.models.stock_transaction import StockTransaction
 from app.schemas.challan import ChallanCreate, ChallanResponse, ChallanUpdate
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, require_feature
 from app.utils.stock import get_current_stock
 
 router = APIRouter(prefix="/challan", tags=["Delivery Challan"])
@@ -1006,3 +1006,75 @@ async def print_challan(
         print(f"PDF Generation Error: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
+
+
+@router.get("/{challan_id}/share")
+async def share_challan(
+    challan_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    _ = Depends(require_feature("WHATSAPP_SHARE"))
+):
+    """Generate a WhatsApp-ready sharing link and message for a delivery challan"""
+    from app.core.config import get_backend_url
+    from app.core.security import create_url_signature
+    import urllib.parse
+    
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.party)
+    ).filter(
+        DeliveryChallan.id == challan_id,
+        DeliveryChallan.company_id == company_id
+    ).first()
+    
+    if not challan:
+        raise HTTPException(status_code=404, detail="Delivery Challan not found")
+
+    base_url = get_backend_url()
+    signature = create_url_signature(str(challan.id))
+    download_url = f"{base_url}/public/challan/{challan.id}/download?token={signature}"
+    
+    # Format the message
+    company = db.query(Company).filter(Company.id == company_id).first()
+    company_name = company.name if company else "Our Company"
+    party_name = challan.party.name if challan.party else "Customer"
+    
+    # Pure ASCII message — works on ALL WhatsApp versions and devices
+    challan_date_str = challan.challan_date.strftime('%d %b %Y') if challan.challan_date else "N/A"
+
+    lines = [
+        f"*Delivery Challan from {company_name}*",
+        "-" * 32,
+        f"Hello {party_name},",
+        "",
+        f"Please find your *Delivery Challan {challan.challan_number}* details below.",
+        "",
+        f"*Challan Date  :* {challan_date_str}",
+        f"*Vehicle No.   :* {challan.vehicle_number or 'N/A'}",
+        "",
+        "*Download Challan:*",
+        download_url,
+        "",
+        "Thank you for your business!",
+        "For any queries, feel free to reply to this message.",
+    ]
+    message = "\n".join(lines)
+
+    # Create the whatsapp deep link (explicit utf-8, safe='' to encode everything)
+    encoded_message = urllib.parse.quote(message, safe="", encoding="utf-8")
+    whatsapp_url = f"https://wa.me/?text={encoded_message}"
+    
+    if challan.party and challan.party.phone:
+        # naive cleanup of phone number for deep link
+        phone = ''.join(filter(str.isdigit, challan.party.phone))
+        # Ensure country code is present if typical 10 digit Indian number
+        if len(phone) == 10:
+            phone = f"91{phone}"
+        whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
+        
+    return {
+        "challan_id": challan.id,
+        "whatsapp_url": whatsapp_url,
+        "message": message,
+        "download_url": download_url
+    }

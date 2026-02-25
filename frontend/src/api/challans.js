@@ -69,3 +69,8 @@ export const printDeliveryChallan = async (id) => {
   });
   return response.data;
 };
+
+export const getDeliveryChallanShareLink = async (id) => {
+  const response = await api.get(`/challan/${id}/share`);
+  return response.data;
+};

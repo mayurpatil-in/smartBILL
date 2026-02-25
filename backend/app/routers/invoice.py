@@ -25,7 +25,7 @@ import os
 from app.models.user import User, UserRole
 
 from app.schemas.invoice import InvoiceResponse, InvoiceCreate
-from app.core.dependencies import get_company_id, get_active_financial_year, require_role
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role, require_feature
 from app.core.security import create_url_signature, verify_url_signature
 from app.utils.gst import calculate_gst
 from app.services.pdf_service import generate_pdf
@@ -801,6 +801,90 @@ async def public_download_invoice(
         media_type="application/pdf",
         headers={"Content-Disposition": f"inline; filename={invoice.invoice_number}.pdf"}
     )
+
+
+@router.get("/{invoice_id}/share")
+async def share_invoice(
+    invoice_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    _ = Depends(require_feature("WHATSAPP_SHARE"))
+):
+    """Generate a WhatsApp-ready sharing link and message for an invoice"""
+    from app.core.config import get_backend_url
+    from app.core.security import create_url_signature
+    import urllib.parse
+    
+    try:
+        invoice = db.query(Invoice).options(
+            joinedload(Invoice.party)
+        ).filter(
+            Invoice.id == invoice_id,
+            Invoice.company_id == company_id
+        ).first()
+        
+        if not invoice:
+            raise HTTPException(404, "Invoice not found")
+
+        base_url = get_backend_url()
+        signature = create_url_signature(str(invoice_id))
+        download_url = f"{base_url}/public/invoice/{invoice_id}/download?token={signature}"
+        
+        # Format the message
+        company = db.query(Company).filter(Company.id == company_id).first()
+        company_name = company.name if company else "Our Company"
+        party_name = invoice.party.name if invoice.party else "Customer"
+        
+        # Pure ASCII message — works on ALL WhatsApp versions and devices
+        status_str = invoice.payment_status.title() if invoice.payment_status else "Pending"
+        due_str    = invoice.due_date.strftime('%d %b %Y') if invoice.due_date else "N/A"
+        inv_date   = invoice.invoice_date.strftime('%d %b %Y') if invoice.invoice_date else "N/A"
+        amount_str = f"Rs. {float(invoice.grand_total or 0):,.2f}"
+
+        lines = [
+            f"*Invoice from {company_name}*",
+            "-" * 32,
+            f"Hello {party_name},",
+            "",
+            f"Please find your *Invoice {invoice.invoice_number}* details below.",
+            "",
+            f"*Invoice Date :* {inv_date}",
+            f"*Due Date     :* {due_str}",
+            f"*Total Amount :* {amount_str}",
+            f"*Status       :* {status_str}",
+            "",
+            "*Download Invoice:*",
+            download_url,
+            "",
+            "Thank you for your business!",
+            "For any queries, feel free to reply to this message.",
+        ]
+        message = "\n".join(lines)
+
+        # Create the whatsapp deep link (explicit utf-8 encoding, safe='' to encode everything)
+        encoded_message = urllib.parse.quote(message, safe="", encoding="utf-8")
+        whatsapp_url = f"https://wa.me/?text={encoded_message}"
+        
+        if invoice.party and invoice.party.phone:
+            # naive cleanup of phone number for deep link
+            phone = ''.join(filter(str.isdigit, invoice.party.phone))
+            # Ensure country code is present if typical 10 digit Indian number
+            if len(phone) == 10:
+                phone = f"91{phone}"
+            whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
+            
+        return {
+            "invoice_id": invoice.id,
+            "whatsapp_url": whatsapp_url,
+            "message": message,
+            "download_url": download_url
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ===============================

@@ -1,4 +1,3 @@
-
 import api from "./axios";
 
 export const getInvoices = async () => {
@@ -35,7 +34,7 @@ export const deleteInvoice = async (id) => {
 };
 
 export const getInvoiceStats = async () => {
-  const response = await api.get('/invoice/stats');
+  const response = await api.get("/invoice/stats");
   return response.data;
 };
 
@@ -46,6 +45,11 @@ export const getNextInvoiceNumber = async () => {
 
 export const getPendingInvoices = async (partyId) => {
   const params = partyId ? { party_id: partyId } : {};
-  const response = await api.get('/invoice/pending', { params });
+  const response = await api.get("/invoice/pending", { params });
+  return response.data;
+};
+
+export const getInvoiceShareLink = async (id) => {
+  const response = await api.get(`/invoice/${id}/share`);
   return response.data;
 };

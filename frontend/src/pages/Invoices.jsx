@@ -18,19 +18,27 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
+  MessageCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../api/axios";
-import { getInvoices, deleteInvoice, getInvoiceStats } from "../api/invoices";
+import {
+  getInvoices,
+  deleteInvoice,
+  getInvoiceStats,
+  getInvoiceShareLink,
+} from "../api/invoices";
 import { getParties } from "../api/parties";
 import PdfPreviewModal from "../components/PdfPreviewModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PermissionGuard from "../components/PermissionGuard";
 import EWayBillModal from "../components/EWayBillModal";
 import { formatDate } from "../utils/dateUtils";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Invoices() {
   const navigate = useNavigate();
+  const { hasFeature } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -132,6 +140,23 @@ export default function Invoices() {
     } catch (error) {
       console.error("Failed to check e-way bill eligibility", error);
       toast.error("Failed to check e-way bill eligibility");
+    }
+  };
+
+  const handleWhatsAppShare = async (invoiceId) => {
+    try {
+      const toastId = toast.loading("Generating share link...");
+      const response = await getInvoiceShareLink(invoiceId);
+      toast.dismiss(toastId);
+
+      if (response.whatsapp_url) {
+        window.open(response.whatsapp_url, "_blank");
+      } else {
+        toast.error("Failed to generate WhatsApp link");
+      }
+    } catch (error) {
+      console.error("Failed to share via WhatsApp", error);
+      toast.error("Failed to prepare WhatsApp share");
     }
   };
 
@@ -476,6 +501,15 @@ export default function Invoices() {
                         >
                           <Printer size={16} />
                         </button>
+                        {hasFeature("WHATSAPP_SHARE") && (
+                          <button
+                            onClick={() => handleWhatsAppShare(inv.id)}
+                            className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                            title="Share via WhatsApp"
+                          >
+                            <MessageCircle size={16} />
+                          </button>
+                        )}
                         {/* E-Way Bill Button - Only show for invoices >= 50000 */}
                         {Number(inv.grand_total) >= 50000 && (
                           <button
