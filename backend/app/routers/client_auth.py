@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.database.session import get_db
 from app.models.client_login import ClientLogin
 from app.models.party import Party
+from app.models.company import Company
 
 router = APIRouter(prefix="/auth/client", tags=["client-auth"])
 
@@ -40,6 +41,16 @@ def login_access_token(
         
     if not client.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
+    # 🚧 CHECK FEATURE FLAG
+    company = db.query(Company).filter(Company.id == client.party.company_id).first()
+    if company and company.plan:
+        feature_flags = company.plan.feature_flags or []
+        if "CLIENT_PORTAL" not in feature_flags:
+            raise HTTPException(
+                status_code=403, 
+                detail="The Client Portal feature is not enabled for this company."
+            )
         
     # Create token with specific client claims
     token = security.create_access_token(

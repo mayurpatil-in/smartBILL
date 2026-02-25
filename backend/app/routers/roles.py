@@ -7,14 +7,18 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.database.session import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_feature
 from app.models.user import User
 from app.models.role import Role
 from app.models.permission import Permission
 from app.models.role_permission import RolePermission
 from app.services.permission_service import PermissionService
 
-router = APIRouter(prefix="/roles", tags=["Roles & Permissions"])
+router = APIRouter(
+    prefix="/roles", 
+    tags=["Roles & Permissions"],
+    dependencies=[Depends(require_feature("ROLE_MANAGEMENT"))]
+)
 
 
 # Pydantic schemas

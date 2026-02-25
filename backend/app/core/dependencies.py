@@ -138,6 +138,30 @@ def enforce_company_subscription(
 
 
 # ============================================================
+# 🛡️ FEATURE FLAG ENFORCEMENT
+# ============================================================
+def require_feature(flag_name: str):
+    def checker(
+        current_user: User = Depends(get_current_user), 
+        db: Session = Depends(get_db)
+    ) -> User:
+        if current_user.legacy_role == UserRole.SUPER_ADMIN.value:
+            return current_user # Super Admins bypass flag checks
+            
+        company = db.query(Company).filter(Company.id == current_user.company_id).first()
+        if company and company.plan:
+            feature_flags = company.plan.feature_flags or []
+            if flag_name not in feature_flags:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Feature '{flag_name}' is not enabled for your company's plan."
+                )
+        return current_user
+
+    return checker
+
+
+# ============================================================
 # 📆 ACTIVE FINANCIAL YEAR (COMPANY USERS ONLY)
 # ============================================================
 def get_active_financial_year(

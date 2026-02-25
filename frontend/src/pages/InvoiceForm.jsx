@@ -26,6 +26,7 @@ import { getParties } from "../api/parties";
 import { getPendingChallanItems } from "../api/challans";
 import { getActiveFinancialYear } from "../api/financialYear";
 import useBarcodeScanner from "../hooks/useBarcodeScanner";
+import { useAuth } from "../hooks/useAuth";
 
 export default function InvoiceForm() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ export default function InvoiceForm() {
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState("");
   const partySelectRef = useRef(null);
   const itemSelectRef = useRef(null);
+  const { hasFeature } = useAuth();
 
   // Barcode Scanner Integration
   useBarcodeScanner({
@@ -62,6 +64,7 @@ export default function InvoiceForm() {
       }
     },
     minLength: 3,
+    enabled: hasFeature("ITEM_BARCODE"),
   });
 
   // Pending items from backend

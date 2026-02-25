@@ -31,13 +31,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @router.get("/")
 def get_profile(user: User = Depends(get_current_user)):
+    # Prepare Company Plan info
+    plan_info = None
+    if user.company and user.company.plan:
+        plan_info = {
+            "name": user.company.plan.name,
+            "max_users": user.company.plan.max_users,
+            "features": user.company.plan.features,
+            "feature_flags": user.company.plan.feature_flags
+        }
+
     return {
         "user": {
             "name": user.name,
             "email": user.email,
             "role": user.role,
         },
-        "company": user.company  # SQLAlchemy model will be serialized automatically if simple
+        "company": user.company,
+        "plan": plan_info
     }
 
 

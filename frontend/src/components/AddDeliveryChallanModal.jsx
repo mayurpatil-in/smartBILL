@@ -24,6 +24,7 @@ import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
 import { getPartyChallansByItem } from "../api/partyChallans";
 import useBarcodeScanner from "../hooks/useBarcodeScanner";
+import { useAuth } from "../hooks/useAuth";
 
 import {
   getFinancialYearStartDate,
@@ -36,6 +37,7 @@ export default function AddDeliveryChallanModal({
   onSuccess,
   deliveryChallan,
 }) {
+  const { hasFeature } = useAuth();
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useState([]);
   const [items, setItems] = useState([]);
@@ -184,6 +186,7 @@ export default function AddDeliveryChallanModal({
       }
     },
     minLength: 3,
+    enabled: hasFeature("ITEM_BARCODE"),
   });
 
   if (!open) return null;

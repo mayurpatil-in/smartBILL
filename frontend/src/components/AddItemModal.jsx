@@ -20,8 +20,10 @@ import { createItem, updateItem } from "../api/items";
 import { getParties } from "../api/parties";
 import { getProcesses } from "../api/processes";
 import AddProcessModal from "./AddProcessModal";
+import { useAuth } from "../hooks/useAuth";
 
 export default function AddItemModal({ open, onClose, onSuccess, item }) {
+  const { hasFeature } = useAuth();
   const [loading, setLoading] = useState(false);
   const [parties, setParties] = useState([]);
   const [processes, setProcesses] = useState([]);
@@ -277,33 +279,35 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                     placeholder="Enter part number"
                   />
 
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Input
-                        label="Barcode"
-                        icon={<Tag size={16} />}
-                        name="barcode"
-                        id="barcode"
-                        value={form.barcode || ""}
-                        onChange={(v) => setForm({ ...form, barcode: v })}
-                        placeholder="Scan or enter barcode"
-                      />
+                  {hasFeature("ITEM_BARCODE") && (
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <Input
+                          label="Barcode"
+                          icon={<Tag size={16} />}
+                          name="barcode"
+                          id="barcode"
+                          value={form.barcode || ""}
+                          onChange={(v) => setForm({ ...form, barcode: v })}
+                          placeholder="Scan or enter barcode"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const randomCode = Math.floor(
+                            100000000000 + Math.random() * 900000000000,
+                          ).toString();
+                          setForm({ ...form, barcode: randomCode });
+                          toast.success("Generated random barcode");
+                        }}
+                        className="px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl font-medium text-sm transition-colors mb-[1px]"
+                        title="Generate Random Barcode"
+                      >
+                        Generate
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const randomCode = Math.floor(
-                          100000000000 + Math.random() * 900000000000,
-                        ).toString();
-                        setForm({ ...form, barcode: randomCode });
-                        toast.success("Generated random barcode");
-                      }}
-                      className="px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl font-medium text-sm transition-colors mb-[1px]"
-                      title="Generate Random Barcode"
-                    >
-                      Generate
-                    </button>
-                  </div>
+                  )}
                 </div>
 
                 {/* Linking & Process Section */}

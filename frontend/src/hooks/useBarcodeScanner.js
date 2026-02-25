@@ -4,11 +4,14 @@ export default function useBarcodeScanner({
   onScan,
   minLength = 3,
   timeThreshold = 100,
+  enabled = true,
 }) {
   const buffer = useRef("");
   const lastKeyTime = useRef(Date.now());
 
   useEffect(() => {
+    if (!enabled) return;
+
     const handleKeyDown = (e) => {
       const currentTime = Date.now();
       const char = e.key;

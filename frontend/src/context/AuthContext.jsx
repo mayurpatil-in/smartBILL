@@ -65,6 +65,7 @@ export function AuthProvider({ children }) {
             role_name: profileData.user.role_name, // Add role_name for RBAC
             companyName: profileData.company?.name || prev.companyName,
             companyLogo: profileData.company?.logo,
+            plan: profileData.plan || null,
           }));
         }
 
@@ -120,6 +121,13 @@ export function AuthProvider({ children }) {
     });
   };
 
+  // 🚀 Global Feature Flag Checker
+  const hasFeature = (flagId) => {
+    if (user?.role === "SUPER_ADMIN") return true;
+    const featureFlags = user?.plan?.feature_flags || [];
+    return featureFlags.includes(flagId);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -130,6 +138,7 @@ export function AuthProvider({ children }) {
         isCompanyAdmin: user?.role === "COMPANY_ADMIN",
         isAdmin: user?.role === "ADMIN",
         isUser: user?.role === "USER",
+        hasFeature,
         login,
         logout,
         updateUser,

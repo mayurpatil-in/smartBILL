@@ -71,6 +71,14 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
                 detail="Your subscription plan has expired. Please renew."
             )
 
+        # 🛡️ CHECK EMPLOYEE PORTAL FEATURE FLAG
+        if user.role and user.role.name == "Employee":
+            if user.company.plan and "EMPLOYEE_PORTAL" not in (user.company.plan.feature_flags or []):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="The Employee Portal feature is not enabled for your company."
+                )
+
     token = create_access_token(
         data={
             "user_id": user.id,

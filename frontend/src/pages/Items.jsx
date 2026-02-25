@@ -31,8 +31,10 @@ import { getParties } from "../api/parties";
 import AddItemModal from "../components/AddItemModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useBarcodeScanner from "../hooks/useBarcodeScanner";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Items() {
+  const { hasFeature } = useAuth();
   const [items, setItems] = useState([]);
   const [parties, setParties] = useState([]);
   const [selectedParty, setSelectedParty] = useState("");
@@ -79,6 +81,7 @@ export default function Items() {
       setSearchTerm(code);
       toast.success(`Filtered by barcode: ${code}`);
     },
+    enabled: hasFeature("ITEM_BARCODE"),
   });
 
   const handleToggleStatus = async (item) => {
@@ -285,7 +288,9 @@ export default function Items() {
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Item Name</th>
-                <th className="px-6 py-4 whitespace-nowrap">Barcode</th>
+                {hasFeature("ITEM_BARCODE") && (
+                  <th className="px-6 py-4 whitespace-nowrap">Barcode</th>
+                )}
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
                 <th className="px-6 py-4 whitespace-nowrap">Party</th>
                 <th className="px-6 py-4 whitespace-nowrap">Process</th>
@@ -344,6 +349,7 @@ export default function Items() {
                     onDelete={() => setDeleteConfirm({ open: true, item })}
                     onToggleStatus={() => handleToggleStatus(item)}
                     handlePrintBarcode={handlePrintClick}
+                    hasBarcodeFeature={hasFeature("ITEM_BARCODE")}
                   />
                 ))
               )}
@@ -813,6 +819,7 @@ function ItemRow({
   onDelete,
   onToggleStatus,
   handlePrintBarcode,
+  hasBarcodeFeature,
 }) {
   return (
     <tr
@@ -834,17 +841,19 @@ function ItemRow({
           )}
         </div>
       </td>
-      <td className="px-6 py-5">
-        {item.barcode ? (
-          <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
-            {item.barcode}
-          </span>
-        ) : (
-          <span className="text-gray-400 dark:text-gray-600 text-xs italic">
-            —
-          </span>
-        )}
-      </td>
+      {hasBarcodeFeature && (
+        <td className="px-6 py-5">
+          {item.barcode ? (
+            <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
+              {item.barcode}
+            </span>
+          ) : (
+            <span className="text-gray-400 dark:text-gray-600 text-xs italic">
+              —
+            </span>
+          )}
+        </td>
+      )}
       <td className="px-6 py-5">
         <span
           className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
@@ -945,8 +954,8 @@ function ItemRow({
       </td>
       <td className="px-6 py-5">
         <div className="flex items-center justify-end gap-2">
-          {/* Print Barcode Button - Only if barcode exists */}
-          {item.barcode && (
+          {/* Print Barcode Button - Only if barcode exists and feature enabled */}
+          {hasBarcodeFeature && item.barcode && (
             <button
               onClick={() => handlePrintBarcode(item)}
               className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"

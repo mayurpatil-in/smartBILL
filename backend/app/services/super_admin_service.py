@@ -253,7 +253,7 @@ def create_plan(db: Session, data, admin_id: int):
     db.add(plan)
     db.commit()
     db.refresh(plan)
-    log_audit_action(db, admin_id, "CREATE_PLAN", plan.id, f"Created plan {plan.name}")
+    log_audit_action(db, admin_id, "CREATE_PLAN", None, f"Created plan {plan.name}")
     return plan
 
 def update_plan(db: Session, plan_id: int, data, admin_id: int):
@@ -267,5 +267,5 @@ def update_plan(db: Session, plan_id: int, data, admin_id: int):
         
     db.commit()
     db.refresh(plan)
-    log_audit_action(db, admin_id, "UPDATE_PLAN", plan.id, f"Updated plan {plan.name}")
+    log_audit_action(db, admin_id, "UPDATE_PLAN", None, f"Updated plan {plan.name}")
     return plan

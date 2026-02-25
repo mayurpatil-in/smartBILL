@@ -63,6 +63,7 @@ class SubscriptionPlanBase(BaseModel):
     duration_days: int
     max_users: int
     features: list[str] | None = []
+    feature_flags: list[str] | None = []
     is_active: bool = True
 
 class SubscriptionPlanCreate(SubscriptionPlanBase):
@@ -74,6 +75,7 @@ class SubscriptionPlanUpdate(BaseModel):
     duration_days: int | None = None
     max_users: int | None = None
     features: list[str] | None = None
+    feature_flags: list[str] | None = None
     is_active: bool | None = None
 
 class SubscriptionPlanResponse(SubscriptionPlanBase):

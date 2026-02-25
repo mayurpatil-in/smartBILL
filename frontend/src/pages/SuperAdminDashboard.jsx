@@ -1478,8 +1478,29 @@ function CreatePlanModal({ onClose, onSave }) {
     duration_days: 30,
     max_users: 5,
     features: "",
+    feature_flags: [],
     is_active: true,
   });
+
+  const AVAILABLE_FLAGS = [
+    { id: "AI_INSIGHTS", label: "AI Insights" },
+    { id: "EMPLOYEE_MANAGEMENT", label: "Employee Management" },
+    { id: "DELIVERY_CHALLAN", label: "Delivery Challan" },
+    { id: "EMPLOYEE_PORTAL", label: "Employee Portal" },
+    { id: "CLIENT_PORTAL", label: "Client Portal" },
+    { id: "USER_MANAGEMENT", label: "User Management" },
+    { id: "ROLE_MANAGEMENT", label: "Roles & Permissions" },
+    { id: "ITEM_BARCODE", label: "Item Barcodes" },
+  ];
+
+  const toggleFlag = (flagId) => {
+    setForm((prev) => ({
+      ...prev,
+      feature_flags: prev.feature_flags.includes(flagId)
+        ? prev.feature_flags.filter((f) => f !== flagId)
+        : [...prev.feature_flags, flagId],
+    }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1492,6 +1513,7 @@ function CreatePlanModal({ onClose, onSave }) {
         .split(",")
         .map((f) => f.trim())
         .filter(Boolean),
+      feature_flags: form.feature_flags,
     };
     onSave(payload);
   };
@@ -1550,6 +1572,28 @@ function CreatePlanModal({ onClose, onSave }) {
           ></textarea>
         </div>
 
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+            Feature Access (Modules)
+          </label>
+          <div className="space-y-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700">
+            {AVAILABLE_FLAGS.map((flag) => (
+              <label
+                key={flag.id}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.feature_flags.includes(flag.id)}
+                  onChange={() => toggleFlag(flag.id)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm dark:text-gray-300">{flag.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <label className="flex items-center gap-2 cursor-pointer mt-2">
           <input
             type="checkbox"
@@ -1578,8 +1622,29 @@ function UpdatePlanModal({ plan, onClose, onSave }) {
     duration_days: plan.duration_days.toString(),
     max_users: plan.max_users.toString(),
     features: (plan.features || []).join(", "),
+    feature_flags: plan.feature_flags || [],
     is_active: plan.is_active,
   });
+
+  const AVAILABLE_FLAGS = [
+    { id: "AI_INSIGHTS", label: "AI Insights" },
+    { id: "EMPLOYEE_MANAGEMENT", label: "Employee Management" },
+    { id: "DELIVERY_CHALLAN", label: "Delivery Challan" },
+    { id: "EMPLOYEE_PORTAL", label: "Employee Portal" },
+    { id: "CLIENT_PORTAL", label: "Client Portal" },
+    { id: "USER_MANAGEMENT", label: "User Management" },
+    { id: "ROLE_MANAGEMENT", label: "Roles & Permissions" },
+    { id: "ITEM_BARCODE", label: "Item Barcodes" },
+  ];
+
+  const toggleFlag = (flagId) => {
+    setForm((prev) => ({
+      ...prev,
+      feature_flags: prev.feature_flags.includes(flagId)
+        ? prev.feature_flags.filter((f) => f !== flagId)
+        : [...prev.feature_flags, flagId],
+    }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1592,6 +1657,7 @@ function UpdatePlanModal({ plan, onClose, onSave }) {
         .split(",")
         .map((f) => f.trim())
         .filter(Boolean),
+      feature_flags: form.feature_flags,
       is_active: form.is_active,
     };
     onSave(payload);
@@ -1644,6 +1710,28 @@ function UpdatePlanModal({ plan, onClose, onSave }) {
             value={form.features}
             onChange={(e) => setForm({ ...form, features: e.target.value })}
           ></textarea>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+            Feature Access (Modules)
+          </label>
+          <div className="space-y-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700">
+            {AVAILABLE_FLAGS.map((flag) => (
+              <label
+                key={flag.id}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.feature_flags.includes(flag.id)}
+                  onChange={() => toggleFlag(flag.id)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm dark:text-gray-300">{flag.label}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer mt-2">

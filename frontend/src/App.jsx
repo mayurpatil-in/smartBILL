@@ -41,6 +41,17 @@ const ClientInvoices = lazy(() => import("./pages/client/ClientInvoices"));
 const ClientLedger = lazy(() => import("./pages/client/ClientLedger")); // [New Feature]
 const ClientSettings = lazy(() => import("./pages/client/ClientSettings")); // [New Feature]
 
+function FeatureGuard({ flag, children }) {
+  const { user, isSuperAdmin } = useAuth();
+  if (isSuperAdmin) return children;
+
+  const featureFlags = user?.plan?.feature_flags || [];
+  if (!featureFlags.includes(flag)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
 function AppRoutes() {
   const { isSuperAdmin, user } = useAuth();
   const isEmployee = user?.role_name === "Employee";
@@ -58,7 +69,9 @@ function AppRoutes() {
           path="/employee"
           element={
             <ProtectedRoute>
-              <EmployeeDashboard />
+              <FeatureGuard flag="EMPLOYEE_PORTAL">
+                <EmployeeDashboard />
+              </FeatureGuard>
             </ProtectedRoute>
           }
         />
@@ -92,21 +105,57 @@ function AppRoutes() {
             path="dashboard"
             element={isSuperAdmin ? <SuperAdminDashboard /> : <Dashboard />}
           />
-          <Route path="ai-insights" element={<AIInsights />} /> {/* [NEW] */}
+          <Route
+            path="ai-insights"
+            element={
+              <FeatureGuard flag="AI_INSIGHTS">
+                <AIInsights />
+              </FeatureGuard>
+            }
+          />{" "}
+          {/* [NEW] */}
           <Route path="invoices" element={<Invoices />} />
           <Route path="invoices/new" element={<InvoiceForm />} />
           <Route path="invoices/:id/edit" element={<InvoiceForm />} />
           <Route path="parties" element={<Parties />} />
           <Route path="items" element={<Items />} />
           <Route path="party-challans" element={<PartyChallans />} />
-          <Route path="challans" element={<Challans />} />
-          <Route path="employees" element={<Employees />} />
+          <Route
+            path="challans"
+            element={
+              <FeatureGuard flag="DELIVERY_CHALLAN">
+                <Challans />
+              </FeatureGuard>
+            }
+          />
+          <Route
+            path="employees"
+            element={
+              <FeatureGuard flag="EMPLOYEE_MANAGEMENT">
+                <Employees />
+              </FeatureGuard>
+            }
+          />
           <Route path="reports" element={<Reports />} />
           <Route path="payments" element={<Payments />} />
           <Route path="settings" element={<Settings />} />
           <Route path="expenses" element={<Expenses />} />
-          <Route path="roles" element={<RoleManagement />} />
-          <Route path="users" element={<UserManagement />} />
+          <Route
+            path="roles"
+            element={
+              <FeatureGuard flag="ROLE_MANAGEMENT">
+                <RoleManagement />
+              </FeatureGuard>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <FeatureGuard flag="USER_MANAGEMENT">
+                <UserManagement />
+              </FeatureGuard>
+            }
+          />
           <Route path="backup" element={<Backup />} />
           <Route
             path="audit-logs"

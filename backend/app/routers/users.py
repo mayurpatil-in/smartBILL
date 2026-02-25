@@ -5,7 +5,8 @@ from typing import List, Optional
 from app.database.session import get_db
 from app.models.user import User
 from app.models.role import Role
-from app.core.dependencies import get_current_user
+from app.models.company import Company
+from app.core.dependencies import get_current_user, require_feature
 from app.core.security import get_password_hash
 from app.services.permission_service import PermissionService
 from pydantic import BaseModel, EmailStr
@@ -13,6 +14,7 @@ from pydantic import BaseModel, EmailStr
 router = APIRouter(
     prefix="/users",
     tags=["Users"],
+    dependencies=[Depends(require_feature("USER_MANAGEMENT"))]
 )
 
 
@@ -78,6 +80,19 @@ def create_user(
             detail="Super admins cannot create company users"
         )
     
+    # Check plan user limits
+    company = db.query(Company).filter(Company.id == current_user.company_id).first()
+    if company and company.plan:
+        current_user_count = db.query(User).filter(
+            User.company_id == current_user.company_id,
+            User.is_active == True
+        ).count()
+        if current_user_count >= company.plan.max_users:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"User limit reached for your current plan (Max: {company.plan.max_users}). Please upgrade your subscription."
+            )
+    
     # Check if email already exists
     existing = db.query(User).filter(User.email == request.email).first()
     if existing:
@@ -99,6 +114,13 @@ def create_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot assign Super Admin role"
         )
+        
+    if role.name == "Employee" and company and company.plan:
+        if "EMPLOYEE_PORTAL" not in (company.plan.feature_flags or []):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot create Employees. Employee Portal access is not enabled for your plan."
+            )
     
     # Determine legacy_role based on role name
     legacy_role_map = {

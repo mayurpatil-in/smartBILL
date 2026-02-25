@@ -28,7 +28,7 @@ export default function Sidebar({
   onClose,
   onToggleCollapse,
 }) {
-  const { logout, isSuperAdmin, isCompanyAdmin, user } = useAuth();
+  const { logout, isSuperAdmin, isCompanyAdmin, user, hasFeature } = useAuth();
   const { hasPermission } = usePermissions();
 
   return (
@@ -123,12 +123,14 @@ export default function Sidebar({
           />
           {!isSuperAdmin && (
             <>
-              <MenuLink
-                to="/ai-insights"
-                icon={Sparkles}
-                label="AI Insights"
-                collapsed={collapsed}
-              />
+              {hasFeature("AI_INSIGHTS") && (
+                <MenuLink
+                  to="/ai-insights"
+                  icon={Sparkles}
+                  label="AI Insights"
+                  collapsed={collapsed}
+                />
+              )}
               {(isCompanyAdmin || hasPermission("parties.view")) && (
                 <MenuLink
                   to="/parties"
@@ -153,12 +155,14 @@ export default function Sidebar({
                     label="Party Challans"
                     collapsed={collapsed}
                   />
-                  <MenuLink
-                    to="/challans"
-                    icon={Truck}
-                    label="Delivery Challans"
-                    collapsed={collapsed}
-                  />
+                  {hasFeature("DELIVERY_CHALLAN") && (
+                    <MenuLink
+                      to="/challans"
+                      icon={Truck}
+                      label="Delivery Challans"
+                      collapsed={collapsed}
+                    />
+                  )}
                 </>
               )}
             </>
@@ -203,23 +207,25 @@ export default function Sidebar({
             </div>
 
             {/* GROUP 3: HR */}
-            <div className="space-y-1">
-              {!collapsed && (
-                <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-100 dark:border-purple-900/30">
-                  <p className="text-xs font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent uppercase tracking-wider">
-                    HR
-                  </p>
-                </div>
-              )}
-              {(isCompanyAdmin || hasPermission("employees.view")) && (
-                <MenuLink
-                  to="/employees"
-                  icon={Users}
-                  label="Employees"
-                  collapsed={collapsed}
-                />
-              )}
-            </div>
+            {hasFeature("EMPLOYEE_MANAGEMENT") && (
+              <div className="space-y-1">
+                {!collapsed && (
+                  <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-100 dark:border-purple-900/30">
+                    <p className="text-xs font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent uppercase tracking-wider">
+                      HR
+                    </p>
+                  </div>
+                )}
+                {(isCompanyAdmin || hasPermission("employees.view")) && (
+                  <MenuLink
+                    to="/employees"
+                    icon={Users}
+                    label="Employees"
+                    collapsed={collapsed}
+                  />
+                )}
+              </div>
+            )}
 
             {/* GROUP 4: ADMIN */}
             <div className="space-y-1">
@@ -247,6 +253,7 @@ export default function Sidebar({
                 />
               )}
               {!isSuperAdmin &&
+                hasFeature("USER_MANAGEMENT") &&
                 (isCompanyAdmin || hasPermission("users.view")) && (
                   <MenuLink
                     to="/users"
@@ -256,6 +263,7 @@ export default function Sidebar({
                   />
                 )}
               {!isSuperAdmin &&
+                hasFeature("ROLE_MANAGEMENT") &&
                 (isCompanyAdmin || hasPermission("roles.view")) && (
                   <MenuLink
                     to="/roles"
