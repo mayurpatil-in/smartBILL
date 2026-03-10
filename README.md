@@ -111,6 +111,26 @@ npx tauri android dev
 
 ---
 
+## 🏗️ Architecture Diagrams
+
+### System Architecture — Layers
+
+![Permotion](./diagram/System.png)
+
+---
+
+### Module Data Flow
+
+![Permotion](./diagram/Module.png)
+
+---
+
+### Business Workflows
+
+![Permotion](./diagram/Business.png)
+
+---
+
 ## 🗺️ Quick Navigation
 
 | #   | Module                                                                   | What It Does                           |
