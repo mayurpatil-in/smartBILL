@@ -74,6 +74,7 @@ export default function Login() {
       const res = await api.post("/auth/login", {
         email,
         password,
+        remember,
       });
 
       const token = res.data.access_token;
