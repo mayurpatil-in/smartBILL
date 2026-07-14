@@ -149,13 +149,20 @@ def require_feature(flag_name: str):
             return current_user # Super Admins bypass flag checks
             
         company = db.query(Company).filter(Company.id == current_user.company_id).first()
-        if company and company.plan:
-            feature_flags = company.plan.feature_flags or []
-            if flag_name not in feature_flags:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Feature '{flag_name}' is not enabled for your company's plan."
-                )
+        
+        if not company or not company.plan:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No active subscription plan assigned to your company."
+            )
+            
+        feature_flags = company.plan.feature_flags or []
+        if flag_name not in feature_flags:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Feature '{flag_name}' is not enabled for your company's plan."
+            )
+            
         return current_user
 
     return checker

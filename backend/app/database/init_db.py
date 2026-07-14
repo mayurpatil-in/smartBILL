@@ -54,6 +54,21 @@ def init_db():
              print("Super Admin already exists.")
         
         db.close()
+        
+        # --- SEED RBAC ROLES AND PERMISSIONS ---
+        try:
+            import sys
+            import os
+            # Ensure backend root is in path so 'scripts' can be imported
+            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if backend_dir not in sys.path:
+                sys.path.insert(0, backend_dir)
+                
+            from scripts.seed_rbac_data import seed_rbac_data
+            seed_rbac_data()
+        except Exception as e:
+            print(f"Error seeding RBAC roles: {e}")
+            
     except Exception as e:
         print(f"Error seeding default user: {e}")
 

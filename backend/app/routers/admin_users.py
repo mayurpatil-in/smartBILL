@@ -25,7 +25,7 @@ def create_company_admin(
         name=name,
         email=email,
         password_hash=get_password_hash(password),  # ✅ FIXED
-        role=UserRole.ADMIN,
+        legacy_role="COMPANY_ADMIN",
         company_id=company_id,
         is_active=True,
     )

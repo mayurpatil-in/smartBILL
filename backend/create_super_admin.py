@@ -20,7 +20,8 @@ from app.database.session import SessionLocal
 # Import all models to ensure they are registered with SQLAlchemy
 from app.models.user import User, UserRole
 from app.core.security import get_password_hash
-from app.models import * # safe catch-all if __init__ exposes them
+from app.models.company import Company
+from app.models.role import Role
 
 def create_super_admin():
     print("====================================")
@@ -66,7 +67,7 @@ def create_user_in_db(name: str, email: str, password: str):
             name=name,
             email=email,
             password_hash=hashed,
-            role=UserRole.SUPER_ADMIN,
+            legacy_role="SUPER_ADMIN",
             is_active=True,
             company_id=None # Super Admin has no specific company
         )

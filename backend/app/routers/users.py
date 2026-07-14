@@ -82,16 +82,23 @@ def create_user(
     
     # Check plan user limits
     company = db.query(Company).filter(Company.id == current_user.company_id).first()
-    if company and company.plan:
-        current_user_count = db.query(User).filter(
-            User.company_id == current_user.company_id,
-            User.is_active == True
-        ).count()
-        if current_user_count >= company.plan.max_users:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User limit reached for your current plan (Max: {company.plan.max_users}). Please upgrade your subscription."
-            )
+    
+    if not company or not company.plan:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No active subscription plan assigned to your company. Cannot create users."
+        )
+        
+    current_user_count = db.query(User).filter(
+        User.company_id == current_user.company_id,
+        User.is_active == True
+    ).count()
+    
+    if current_user_count >= company.plan.max_users:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User limit reached for your current plan (Max: {company.plan.max_users}). Please upgrade your subscription."
+        )
     
     # Check if email already exists
     existing = db.query(User).filter(User.email == request.email).first()
@@ -115,7 +122,7 @@ def create_user(
             detail="Cannot assign Super Admin role"
         )
         
-    if role.name == "Employee" and company and company.plan:
+    if role.name == "Employee":
         if "EMPLOYEE_PORTAL" not in (company.plan.feature_flags or []):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

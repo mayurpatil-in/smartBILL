@@ -26,10 +26,18 @@ def create_company(db: Session, data, admin_id: int):
         sub_end = data.subscription_end or (sub_start + timedelta(days=365))
         
         plan_id = data.plan_id
+        plan = None
+        
         if plan_id:
             plan = db.query(SubscriptionPlan).get(plan_id)
+        else:
+            # Fetch the lowest price plan as default (Free Tier / Basic Plan)
+            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.is_active == True).order_by(SubscriptionPlan.price.asc()).first()
             if plan:
-                sub_end = sub_start + timedelta(days=plan.duration_days)
+                plan_id = plan.id
+                
+        if plan:
+            sub_end = sub_start + timedelta(days=plan.duration_days)
 
         company = Company(
             name=data.name,

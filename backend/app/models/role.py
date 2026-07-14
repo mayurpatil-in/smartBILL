@@ -19,3 +19,4 @@ class Role(Base):
     # Relationships
     permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
     users = relationship("User", back_populates="role")
+
