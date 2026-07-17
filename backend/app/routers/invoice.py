@@ -245,7 +245,7 @@ def create_invoice(
                 )
                 db.add(stock_tx)
             
-        gst_amount, grand_total = calculate_gst(subtotal)
+        gst_amount, grand_total = calculate_gst(subtotal, data.gst_rate)
         
         invoice.subtotal = subtotal
         invoice.gst_amount = gst_amount
@@ -449,7 +449,7 @@ def update_invoice(
             db.add(stock_tx)
 
     # 5. Recalculate Totals
-    gst_amount, grand_total = calculate_gst(subtotal)
+    gst_amount, grand_total = calculate_gst(subtotal, data.gst_rate)
     
     invoice.subtotal = subtotal
     invoice.gst_amount = gst_amount

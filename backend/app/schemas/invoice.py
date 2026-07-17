@@ -71,6 +71,7 @@ class InvoiceCreate(BaseModel):
     invoice_date: date
     due_date: Optional[date] = None
     notes: Optional[str] = None
+    gst_rate: Optional[float] = 18.0
     items: List[InvoiceItemCreate]
 
 

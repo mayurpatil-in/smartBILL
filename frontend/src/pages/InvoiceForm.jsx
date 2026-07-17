@@ -405,6 +405,7 @@ export default function InvoiceForm() {
         invoice_date: formData.invoice_date,
         due_date: formData.due_date || null,
         notes: formData.notes,
+        gst_rate: gstRate,
         items: formData.items.map((i) => ({
           item_id: i.item_id,
           grn_no: i.grn_no,
