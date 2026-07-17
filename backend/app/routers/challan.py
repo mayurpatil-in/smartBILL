@@ -596,7 +596,8 @@ def get_pending_challan_items(
                  "quantity": rem_ok + rem_cr + rem_mr, # Total includes Remaining MR
                  "original_ok_qty": group["orig_ok"],
                  "original_cr_qty": group["orig_cr"],
-                 "rate": key[2] # The rate from the key
+                 "rate": key[2], # The rate from the key
+                 "party_rate": float(group["item"].party_rate) if group["item"].party_rate else 0.0
              })
 
     return pending_items
@@ -936,7 +937,7 @@ async def bulk_print_challans(
         
         return Response(
             content=pdf_content,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={"Content-Disposition": "inline; filename=bulk-delivery-challans.pdf"}
         )
     except Exception as e:
@@ -998,7 +999,7 @@ async def print_challan(
         # Return PDF
         return Response(
             content=pdf_content,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
         )
     except Exception as e:

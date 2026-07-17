@@ -186,7 +186,7 @@ async def public_download_challan(
         
         return Response(
             content=pdf_content,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={"Content-Disposition": f"inline; filename=DC-{challan.challan_number}.pdf"}
         )
     except Exception as e:

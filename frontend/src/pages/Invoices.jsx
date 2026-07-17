@@ -95,7 +95,7 @@ export default function Invoices() {
       });
       toast.dismiss(loadToast);
 
-      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blob = new Blob([response.data], { type: "text/html" });
 
       if (blob.size < 100) {
         toast.error("Generated PDF is empty");

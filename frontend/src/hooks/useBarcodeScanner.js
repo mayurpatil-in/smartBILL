@@ -15,6 +15,8 @@ export default function useBarcodeScanner({
     const handleKeyDown = (e) => {
       const currentTime = Date.now();
       const char = e.key;
+      
+      if (!char) return;
 
       // Ignore non-character keys (except Enter)
       if (char.length > 1 && char !== "Enter") {

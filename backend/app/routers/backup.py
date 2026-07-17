@@ -118,7 +118,8 @@ async def download_backup(
 async def import_backup(
     file: UploadFile = File(...),
     password: Optional[str] = Form(None),
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN))
+    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    db: Session = Depends(get_db)
 ):
     """
     Import a database backup (.sql or .enc).
@@ -155,6 +156,12 @@ async def import_backup(
 
         # 3. Restore using psql
         try:
+            # CRITICAL: We must close all existing connections to the database
+            # before restoring, otherwise pg_restore will hang indefinitely 
+            # waiting for an exclusive lock on the database tables!
+            db.close()
+            engine.dispose()
+            
             backup_manager.restore_database(source_path)
         except Exception as e:
             raise Exception(f"PSQL Restore failed: {str(e)}")
@@ -169,6 +176,9 @@ async def import_backup(
         raise he
     except Exception as e:
         if os.path.exists(temp_filename): os.remove(temp_filename)
-        raise HTTPException(status_code=500, detail=f"Failed to restore backup: {str(e)}")
+        error_msg = f"Failed to restore backup: {str(e)}"
+        with open("backup_import_error.log", "w") as f:
+            f.write(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
         
     return {"message": "Database restored successfully. Safety backup created."}

@@ -233,7 +233,7 @@ async def generate_pdi_report_pdf(report_id: int, db: Session = Depends(get_db),
     headers = {
         'Content-Disposition': f'inline; filename="PDI_Report_{challan.challan_number}.pdf"'
     }
-    return StreamingResponse(io.BytesIO(pdf_data), headers=headers, media_type='application/pdf')
+    return StreamingResponse(io.BytesIO(pdf_data), headers=headers, media_type='text/html')
 
 @router.get("/test-pdf")
 async def test_pdf_generation():
@@ -242,7 +242,7 @@ async def test_pdf_generation():
     try:
         pdf_data = await pdf_manager.generate(html)
         print(f"[PDI DEBUG] Test PDF generated. Size: {len(pdf_data)}")
-        return StreamingResponse(io.BytesIO(pdf_data), media_type='application/pdf', headers={'Content-Disposition': 'inline; filename="test.pdf"'})
+        return StreamingResponse(io.BytesIO(pdf_data), media_type='text/html', headers={'Content-Disposition': 'inline; filename="test.pdf"'})
     except Exception as e:
         print(f"[PDI ERROR] Test PDF failed: {e}")
         return {"error": str(e)}

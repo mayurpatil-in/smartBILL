@@ -24,11 +24,15 @@ import {
   getFinancialYearStartDate,
   getFinancialYearEndDate,
 } from "../utils/dateUtils";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 export default function PDIReportModal({ isOpen, onClose, challan }) {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [itemConfig, setItemConfig] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
   const [formData, setFormData] = useState({
     inspector_name: "",
     inspection_date: new Date().toISOString().split("T")[0],
@@ -205,10 +209,11 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
     try {
       const blob = await printPDIReport(report.id);
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
-      window.open(url, "_blank");
-      toast.success("Report opened for printing", { id: loadingToast });
+      setPreviewUrl(url);
+      setPreviewOpen(true);
+      toast.success("PDF generated", { id: loadingToast });
     } catch (error) {
       console.error("Failed to print PDI report", error);
       toast.error("PDF Failed. Opening HTML view...", { id: loadingToast });
@@ -645,6 +650,19 @@ export default function PDIReportModal({ isOpen, onClose, challan }) {
           </div>
         </div>
       </div>
+      
+      <PdfPreviewModal
+        isOpen={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          if (previewUrl) {
+            window.URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+        pdfUrl={previewUrl}
+        title={`PDI Report #${report?.id}`}
+      />
     </div>
   );
 }

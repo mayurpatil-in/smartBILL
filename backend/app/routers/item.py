@@ -277,7 +277,7 @@ async def print_item_barcode(
 
         return Response(
             content=pdf_content,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={"Content-Disposition": f"attachment; filename=barcode_{item.barcode}_{format}.pdf"}
         )
 

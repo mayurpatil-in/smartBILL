@@ -738,7 +738,7 @@ async def print_invoice(
     
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename={invoice.invoice_number}.pdf"}
     )
 
@@ -798,7 +798,7 @@ async def public_download_invoice(
     
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename={invoice.invoice_number}.pdf"}
     )
 
@@ -1022,7 +1022,7 @@ async def generate_eway_bill_preview(
     
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename=EWayBill_{invoice.invoice_number}.pdf"}
     )
 
@@ -1093,7 +1093,7 @@ async def print_eway_bill(
         
         return Response(
             content=pdf_content,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={"Content-Disposition": f"inline; filename=EWayBill_{invoice.invoice_number}.pdf"}
         )
     except HTTPException as he:

@@ -425,7 +425,7 @@ async def get_job_work_stock_summary_pdf(
 
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={
             "Content-Disposition": f"attachment; filename=Job_Work_Stock_Summary.pdf"
         }
@@ -581,7 +581,7 @@ async def get_party_ledger_pdf(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -900,7 +900,7 @@ async def get_party_statement_pdf(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -1358,7 +1358,7 @@ async def get_stock_ledger_print_old(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -1805,7 +1805,7 @@ async def get_gst_report_pdf(
 
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={
             "Content-Disposition": f"attachment; filename=GST_Report_{type}.pdf",
             "Access-Control-Allow-Origin": "*",
@@ -2530,7 +2530,7 @@ async def get_stock_ledger_pdf(
 
         return Response(
             content=pdf_data,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={
                 "Content-Disposition": "attachment; filename=Stock_Ledger.pdf",
                 "Access-Control-Allow-Origin": "*",
@@ -2704,7 +2704,7 @@ async def get_grn_report_pdf(
         
         return Response(
             content=pdf_data,
-            media_type="application/pdf",
+            media_type="text/html",
             headers={
                 "Content-Disposition": f"attachment; filename=GRN_Report.pdf"
             }

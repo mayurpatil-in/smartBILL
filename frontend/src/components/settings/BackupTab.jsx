@@ -161,7 +161,8 @@ const BackupTab = () => {
       // Auto-download the newly created file
       handleDownloadBackup(data.filename);
     } catch (e) {
-      toast.error("Failed to create backup", { id: toastId });
+      const msg = e.response?.data?.detail || "Failed to create backup";
+      toast.error(msg, { id: toastId, duration: 5000 });
     }
   };
 

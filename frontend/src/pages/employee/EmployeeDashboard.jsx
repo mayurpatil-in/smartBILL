@@ -230,7 +230,7 @@ export default function EmployeeDashboard() {
     try {
       const blob = await getMySalarySlipPdf(month, year);
       // Create a blob with the correct PDF MIME type
-      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const pdfBlob = new Blob([blob], { type: "text/html" });
       const url = window.URL.createObjectURL(pdfBlob);
 
       // Open in new tab

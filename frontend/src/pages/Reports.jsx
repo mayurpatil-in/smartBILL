@@ -238,7 +238,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
 
       setPreviewDoc({
@@ -343,7 +343,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
 
       setPreviewDoc({
@@ -395,7 +395,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
 
       setPreviewDoc({
@@ -428,7 +428,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
 
       setPreviewDoc({
@@ -470,7 +470,7 @@ export default function Reports() {
 
       // Create blob URL for preview
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
 
       setPreviewDoc({
@@ -505,7 +505,7 @@ export default function Reports() {
       });
 
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
 
       setPreviewDoc({

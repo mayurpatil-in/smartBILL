@@ -128,7 +128,7 @@ export default function Challans() {
       toastId = toast.loading("Generating PDF...");
       const blob = await printDeliveryChallan(challan.id);
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
       setPreviewUrl(url);
       toast.success("PDF generated", { id: toastId });
@@ -183,7 +183,7 @@ export default function Challans() {
         Array.from(selectedChallans),
       );
       const url = window.URL.createObjectURL(
-        new Blob([blob], { type: "application/pdf" }),
+        new Blob([blob], { type: "text/html" }),
       );
       setPreviewUrl(url);
       toast.success("PDF generated", { id: toastId });

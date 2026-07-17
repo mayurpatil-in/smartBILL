@@ -84,8 +84,11 @@ def run_migrations():
     """Run Alembic migrations to ensure DB schema is up to date."""
     try:
         logger.info("Running database migrations...")
-        # Point to alembic.ini in the current directory (dist root)
-        alembic_cfg = Config("alembic.ini")
+        # Use absolute path to alembic.ini so it works on both desktop and server
+        # (working directory may differ on shared hosting)
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        alembic_ini_path = os.path.join(backend_dir, "alembic.ini")
+        alembic_cfg = Config(alembic_ini_path)
         # Force the config to use our computed AppData DB URL
         alembic_cfg.set_main_option("sqlalchemy.url", deployment_db_url)
         # Run upgrade head
@@ -110,24 +113,38 @@ async def startup_event():
     logger.info("Startup event triggered.")
     print("STARTUP: Event triggered.") # Logs to backend_entry.log
     
-    try:
-        # 1. Ensure Tables Exist (Fallback/Safety)
-        print("STARTUP: Running init_db() to create tables...")
-        init_db()
-        print("STARTUP: init_db() completed.")
+    # =========================================================================
+    # FAST FAST STARTUP FOR PASSENGER (SHARED HOSTING)
+    # =========================================================================
+    if os.getenv("SERVER_ENV") == "passenger":
+        logger.info("Passenger environment detected. Bypassing background tasks on startup to prevent deadlocks.")
+        print("STARTUP: Running on Passenger. Bypassing background threads.")
+        return
         
-        # 2. Run Migrations (Update schema if needed)
-        run_migrations()
-        print("STARTUP: Migrations completed/attempted.")
+    try:
+        import asyncio
+        
+        # Define a synchronous function to run all the DB setup
+        def sync_db_setup():
+            print("STARTUP: Running init_db() to create tables...")
+            init_db()
+            print("STARTUP: init_db() completed.")
+            
+            print("STARTUP: Running migrations...")
+            run_migrations()
+            print("STARTUP: Migrations completed.")
+            
+            print("STARTUP: Creating default Super Admin...")
+            create_default_super_admin()
+            print("STARTUP: Super Admin creation step done.")
+
+        # 1 & 2 & 4. Run synchronous DB tasks in a background thread 
+        # so they don't block the a2wsgi event loop on Passenger!
+        await asyncio.to_thread(sync_db_setup)
 
         # 3. Start Services
         await pdf_manager.start()
         backup_manager.start_scheduler()
-        
-        # 4. Create Super Admin
-        print("STARTUP: Creating default Super Admin...")
-        create_default_super_admin()
-        print("STARTUP: Super Admin creation step done.")
         
         logger.info("Startup complete.")
     except Exception as e:
@@ -206,6 +223,7 @@ app.add_middleware(PrivateNetworkAccessMiddleware)
 app.add_middleware(MaintenanceMiddleware)
 
 # ===================== STATIC FILES =====================
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 from app.routers.financial_year import router as fy_router
 from app.routers.party import router as party_router

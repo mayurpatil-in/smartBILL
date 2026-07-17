@@ -97,7 +97,7 @@ export default function EWayBillModal({
 
       toast.dismiss(loadToast);
 
-      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blob = new Blob([response.data], { type: "text/html" });
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
 
@@ -141,7 +141,7 @@ export default function EWayBillModal({
 
       toast.dismiss();
 
-      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blob = new Blob([response.data], { type: "text/html" });
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
 

@@ -1,19 +1,35 @@
-from app.database.session import SessionLocal
-from app.models.user import User
-from app.core.security import verify_password
+import os
+import sys
+from sqlalchemy import create_engine, text
 
-db = SessionLocal()
-user = db.query(User).filter(User.email == "admin@smartbill.com").first()
+# Force passenger env to bypass any blocking imports if needed
+os.environ["SERVER_ENV"] = "passenger"
 
-if user:
-    print(f"User found: YES")
-    print(f"Email: {user.email}")
-    print(f"Password hash: {user.password_hash}")
-    print(f"Password verify (admin123): {verify_password('admin123', user.password_hash)}")
-    print(f"Role ID: {user.role_id}")
-    print(f"Legacy Role: {user.legacy_role}")
-    print(f"Company ID: {user.company_id}")
-else:
-    print("User NOT found!")
+try:
+    from dotenv import load_dotenv
+    load_dotenv(".env")
 
-db.close()
+    # Connect directly to the database using the URL from .env
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("Error: DATABASE_URL not found in .env")
+        sys.exit(1)
+
+    print(f"Connecting to database...")
+    engine = create_engine(db_url)
+    
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT id, email, legacy_role FROM users WHERE email = 'admin@smartbill.com'"))
+        user = result.fetchone()
+        
+        if user:
+            print("\n✅ SUCCESS: Super Admin was found in the database!")
+            print(f"ID: {user[0]}")
+            print(f"Email: {user[1]}")
+            print(f"Role: {user[2]}")
+        else:
+            print("\n❌ FAILED: The admin@smartbill.com user does NOT exist in the database.")
+            print("To create it, the app needs to run its database initialization script.")
+
+except Exception as e:
+    print(f"\n❌ ERROR: Could not check the database. Details: {str(e)}")

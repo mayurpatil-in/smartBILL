@@ -10,6 +10,7 @@ class ItemCreate(BaseModel):
     casting_weight: float = 0
     scrap_weight: float = 0
     rate: float
+    party_rate: Optional[float] = 0
     party_id: Optional[int] = None
     process_id: Optional[int] = None
     barcode: Optional[str] = None

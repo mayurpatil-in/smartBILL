@@ -37,6 +37,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
     casting_weight: 0,
     scrap_weight: 0,
     rate: 0,
+    party_rate: 0,
     party_id: "",
     process_id: "",
     barcode: "",
@@ -74,6 +75,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
         casting_weight: item.casting_weight || 0,
         scrap_weight: item.scrap_weight || 0,
         rate: item.rate || 0,
+        party_rate: item.party_rate || 0,
         party_id: item.party_id || "",
         process_id: item.process_id || "",
         barcode: item.barcode || "",
@@ -91,6 +93,7 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
         casting_weight: 0,
         scrap_weight: 0,
         rate: 0,
+        party_rate: 0,
         party_id: "",
         process_id: "",
         is_active: true,
@@ -456,19 +459,33 @@ export default function AddItemModal({ open, onClose, onSuccess, item }) {
                       suffix="kg"
                     />
                   </div>
-                  <Input
-                    label="Rate"
-                    icon={<IndianRupee size={16} />}
-                    type="number"
-                    name="item_rate"
-                    id="item_rate"
-                    value={form.rate}
-                    onChange={(v) => setForm({ ...form, rate: v })}
-                    required
-                    placeholder="0.00"
-                    step="0.01"
-                    prefix="₹"
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Rate"
+                      icon={<IndianRupee size={16} />}
+                      type="number"
+                      name="item_rate"
+                      id="item_rate"
+                      value={form.rate}
+                      onChange={(v) => setForm({ ...form, rate: v })}
+                      required
+                      placeholder="0.00"
+                      step="0.01"
+                      prefix="₹"
+                    />
+                    <Input
+                      label="Party Rate"
+                      icon={<IndianRupee size={16} />}
+                      type="number"
+                      name="party_rate"
+                      id="party_rate"
+                      value={form.party_rate}
+                      onChange={(v) => setForm({ ...form, party_rate: v })}
+                      placeholder="0.00"
+                      step="0.01"
+                      prefix="₹"
+                    />
+                  </div>
                 </div>
               </div>
             ) : (

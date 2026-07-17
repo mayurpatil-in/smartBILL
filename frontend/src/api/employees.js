@@ -82,7 +82,7 @@ export const getEmployeeIDCard = async (userId) => {
     responseType: "blob",
   });
   return window.URL.createObjectURL(
-    new Blob([response.data], { type: "application/pdf" }),
+    new Blob([response.data], { type: "text/html" }),
   );
 };
 

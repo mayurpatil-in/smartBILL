@@ -234,7 +234,7 @@ async def download_my_salary_slip(
     
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
@@ -678,7 +678,6 @@ def calculate_salary(
         off_days = company.off_days if company and company.off_days else [] # List of ints [0-6]
         
         if off_days:
-            from calendar import monthrange
             _, days_in_month_count = monthrange(year, month)
             
             for day in range(1, days_in_month_count + 1):
@@ -883,7 +882,7 @@ async def get_salary_slip_pdf(
     
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
@@ -1004,7 +1003,7 @@ async def get_id_card_pdf(
     
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 

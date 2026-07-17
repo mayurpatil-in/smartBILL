@@ -125,21 +125,33 @@ export default function Items() {
         printModal.format,
         printModal.date,
       );
-      const url = window.URL.createObjectURL(blob);
+      const text = await blob.text();
 
       // Auto-print
       const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = url;
+      iframe.style.position = "absolute";
+      iframe.style.width = "0px";
+      iframe.style.height = "0px";
+      iframe.style.border = "none";
+      iframe.srcdoc = text; // Use srcdoc instead of src to bypass Chrome extension bugs
+      
       document.body.appendChild(iframe);
-      iframe.contentWindow.onload = function () {
-        iframe.contentWindow.print();
+      
+      // Wait a tiny bit for the iframe to fully parse the HTML before printing
+      setTimeout(() => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.error("Print failed:", e);
+        }
         // Cleanup after a delay to ensure print dialog opened
         setTimeout(() => {
-          document.body.removeChild(iframe);
-          window.URL.revokeObjectURL(url);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
         }, 60000);
-      };
+      }, 500);
 
       toast.success(`Printing ${printModal.count} barcode(s)...`);
       setPrintModal({ open: false, item: null, count: 1, date: "" });
@@ -298,6 +310,7 @@ export default function Items() {
                 <th className="px-6 py-4 whitespace-nowrap">Cast Wt.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Scrap Wt.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Rate</th>
+                <th className="px-6 py-4 whitespace-nowrap">Party Rate</th>
                 <th className="px-6 py-4 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -946,6 +959,22 @@ function ItemRow({
           </div>
           <span className="font-bold text-base text-green-600 dark:text-green-400">
             {Number(item.rate).toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-5">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-md">
+            <IndianRupee
+              size={14}
+              className="text-indigo-600 dark:text-indigo-400"
+            />
+          </div>
+          <span className="font-bold text-base text-indigo-600 dark:text-indigo-400">
+            {Number(item.party_rate || 0).toLocaleString("en-IN", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}

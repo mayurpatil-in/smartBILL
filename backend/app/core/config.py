@@ -1,7 +1,12 @@
 from typing import Any
+import os
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.paths import DATABASE_URL as DEFAULT_DB_URL
+
+# Resolve .env path relative to THIS file, not the working directory
+_ENV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".env")
+_ENV_FILE = os.path.normpath(_ENV_FILE)
 
 class Settings(BaseSettings):
     # ================= BASIC =================
@@ -23,7 +28,7 @@ class Settings(BaseSettings):
 
     # ✅ REQUIRED FOR PYDANTIC v2
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         extra="allow",   # 🔑 prevents env validation crashes
     )
     

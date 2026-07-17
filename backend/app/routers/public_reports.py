@@ -168,7 +168,7 @@ async def public_ledger_download(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -370,7 +370,7 @@ async def public_statement_download(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -582,7 +582,7 @@ async def public_stock_download(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -773,6 +773,6 @@ async def public_gst_report_download(
     
     return Response(
         content=pdf_data,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

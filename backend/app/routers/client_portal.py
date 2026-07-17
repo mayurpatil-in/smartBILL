@@ -283,7 +283,7 @@ async def download_invoice_pdf(
     # Return PDF
     return Response(
         content=pdf_content,
-        media_type="application/pdf",
+        media_type="text/html",
         headers={"Content-Disposition": f"inline; filename=Invoice-{invoice.invoice_number}.pdf"}
     )
 

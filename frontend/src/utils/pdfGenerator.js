@@ -13,8 +13,8 @@ export const generateSalarySlip = async (salaryData, employee) => {
     });
 
     // Create a blob URL
-    const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
-    const filename = `SalarySlip_${employee.name}_${salaryData.month}.pdf`;
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: "text/html" }));
+    const filename = `SalarySlip_${employee.name}_${salaryData.month}.html`;
     
     toast.dismiss(loadingToast);
     return { url, filename };

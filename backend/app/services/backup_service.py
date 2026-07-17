@@ -20,9 +20,26 @@ if os.name == 'nt':  # Windows
     PSQL_EXE = os.path.join(PG_BIN_PATH, "psql.exe")
     PG_RESTORE_EXE = os.path.join(PG_BIN_PATH, "pg_restore.exe")
 else:  # Linux / VPS
-    PG_DUMP_EXE = shutil.which("pg_dump") or "pg_dump"
-    PSQL_EXE = shutil.which("psql") or "psql"
-    PG_RESTORE_EXE = shutil.which("pg_restore") or "pg_restore"
+    def find_pg_tool(tool_name):
+        tool_path = shutil.which(tool_name)
+        if tool_path: return tool_path
+        # Search common cPanel / Linux paths
+        common_paths = [
+            f"/usr/bin/{tool_name}",
+            f"/usr/local/bin/{tool_name}",
+            f"/usr/pgsql-15/bin/{tool_name}",
+            f"/usr/pgsql-14/bin/{tool_name}",
+            f"/usr/pgsql-16/bin/{tool_name}",
+            f"/opt/cpanel/ea-php81/root/usr/bin/{tool_name}" # Example cPanel path
+        ]
+        for p in common_paths:
+            if os.path.exists(p) and os.access(p, os.X_OK):
+                return p
+        return tool_name
+
+    PG_DUMP_EXE = find_pg_tool("pg_dump")
+    PSQL_EXE = find_pg_tool("psql")
+    PG_RESTORE_EXE = find_pg_tool("pg_restore")
 
 class BackupManager:
     def __init__(self):
@@ -126,13 +143,14 @@ class BackupManager:
 
     def _get_db_config(self):
         """Parse DATABASE_URL for Postgres params"""
-        u = urlparse(settings.DATABASE_URL)
+        from sqlalchemy.engine.url import make_url
+        u = make_url(settings.DATABASE_URL)
         return {
             "user": u.username,
             "password": u.password,
-            "host": u.hostname,
+            "host": u.host,
             "port": u.port or 5432,
-            "dbname": u.path.lstrip("/")
+            "dbname": u.database
         }
 
     def _derive_key(self, password: str, salt: bytes) -> bytes:
@@ -194,6 +212,8 @@ class BackupManager:
         except Exception as e:
             print(f"Backup failed: {e}")
             self._create_notification("Backup Failed", f"Error: {str(e)}", "error")
+            if not auto:
+                raise e
             return None
 
     def _run_pg_dump(self, file_path, format):
@@ -217,11 +237,17 @@ class BackupManager:
         else:
             cmd.extend(["-F", "p", "-c"])
         
-        result = subprocess.run(cmd, env=env, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"pg_dump failed: {result.stderr}")
-            return False
-        return True
+        try:
+            result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+            if result.returncode != 0:
+                error_msg = f"pg_dump failed: {result.stderr}"
+                print(error_msg)
+                raise Exception(error_msg)
+            return True
+        except FileNotFoundError:
+            error_msg = f"pg_dump executable not found at '{PG_DUMP_EXE}'. Cannot backup Postgres on this server."
+            print(error_msg)
+            raise Exception(error_msg)
 
     def _encrypt_file(self, file_path, filename, password, auto):
         """Encrypts a file and handles cleanup"""
