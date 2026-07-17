@@ -24,6 +24,7 @@ import { setDarkMode } from "../utils/theme";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import ProfileModal from "./ProfileModal";
+import LanguageSwitcher from "./LanguageSwitcher";
 import {
   getNotifications,
   markAsRead,
@@ -431,6 +432,9 @@ export default function Navbar({ onMenuClick }) {
             )}
           </div>
         </button>
+
+        {/* Language Switcher */}
+        <LanguageSwitcher />
 
         {/* Notifications */}
         <NotificationDropdown />

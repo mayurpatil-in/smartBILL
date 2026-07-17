@@ -24,8 +24,10 @@ import { getParties, deleteParty, updateParty } from "../api/parties";
 import AddPartyModal from "../components/AddPartyModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PermissionGuard from "../components/PermissionGuard";
+import { useTranslation } from "react-i18next";
 
 export default function Parties() {
+  const { t } = useTranslation();
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -96,10 +98,10 @@ export default function Parties() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Parties Management
+            {t("parties.title")}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage your customers and vendors efficiently
+            {t("parties.subtitle")}
           </p>
         </div>
         <PermissionGuard permission="parties.create">
@@ -114,7 +116,7 @@ export default function Parties() {
               size={18}
               className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
             />
-            Add Party
+            {t("parties.add_party")}
           </button>
         </PermissionGuard>
       </div>
@@ -122,13 +124,13 @@ export default function Parties() {
       {/* Stats/Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
-          label="Total Parties"
+          label={t("parties.total_parties")}
           value={parties.length}
           icon={Users}
           color="blue"
         />
         <StatCard
-          label="Total Collected"
+          label={t("parties.total_collected")}
           value={`₹${parties
             .reduce((acc, curr) => acc + (Number(curr.total_received) || 0), 0)
             .toLocaleString("en-IN", {
@@ -139,7 +141,7 @@ export default function Parties() {
           color="green"
         />
         <StatCard
-          label="Total Outstanding"
+          label={t("parties.total_outstanding")}
           value={`₹${parties
             .reduce((acc, curr) => acc + (Number(curr.current_balance) || 0), 0)
             .toLocaleString("en-IN", {
@@ -166,14 +168,14 @@ export default function Parties() {
                 type="text"
                 name="party_search"
                 id="party_search"
-                placeholder="Search parties by name..."
+                placeholder={t("parties.search_placeholder")}
                 className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               {searchTerm && (
                 <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
-                  {filteredParties.length} found
+                  {filteredParties.length} {t("parties.found")}
                 </span>
               )}
             </div>
@@ -185,14 +187,14 @@ export default function Parties() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
-                <th className="px-6 py-4 whitespace-nowrap">Contact</th>
-                <th className="px-6 py-4 whitespace-nowrap">GSTIN</th>
-                <th className="px-6 py-4 whitespace-nowrap">Collected</th>
-                <th className="px-6 py-4 whitespace-nowrap">Outstanding</th>
-                <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("parties.table_name")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("parties.table_contact")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("parties.table_gstin")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("parties.table_collected")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("parties.table_outstanding")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("parties.table_status")}</th>
                 <th className="px-6 py-4 text-right whitespace-nowrap">
-                  Actions
+                  {t("parties.table_actions")}
                 </th>
               </tr>
             </thead>
@@ -206,7 +208,7 @@ export default function Parties() {
                     <div className="flex flex-col items-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       <span className="text-sm font-medium">
-                        Loading parties...
+                        {t("parties.loading")}
                       </span>
                     </div>
                   </td>
@@ -223,10 +225,10 @@ export default function Parties() {
                         size={48}
                       />
                       <span className="text-sm font-medium">
-                        No parties found.
+                        {t("parties.no_parties")}
                       </span>
                       <span className="text-xs text-gray-400">
-                        Try adjusting your search
+                        {t("parties.try_adjusting")}
                       </span>
                     </div>
                   </td>
@@ -255,19 +257,19 @@ export default function Parties() {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Showing{" "}
+                {t("parties.showing")}{" "}
                 <span className="font-bold text-blue-600 dark:text-blue-400">
                   {startIndex + 1}
                 </span>{" "}
-                to{" "}
+                {t("parties.to")}{" "}
                 <span className="font-bold text-blue-600 dark:text-blue-400">
                   {Math.min(endIndex, filteredParties.length)}
                 </span>{" "}
-                of{" "}
+                {t("parties.of")}{" "}
                 <span className="font-bold text-gray-900 dark:text-white">
                   {filteredParties.length}
                 </span>{" "}
-                parties
+                {t("parties.parties_lower")}
               </span>
               <select
                 name="parties_per_page"
@@ -279,10 +281,10 @@ export default function Parties() {
                 }}
                 className="px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
+                <option value={10}>10 {t("parties.per_page")}</option>
+                <option value={25}>25 {t("parties.per_page")}</option>
+                <option value={50}>50 {t("parties.per_page")}</option>
+                <option value={100}>100 {t("parties.per_page")}</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -369,6 +371,7 @@ export default function Parties() {
 }
 
 function PartyRow({ party, index, onEdit, onToggleStatus, onDelete }) {
+  const { t } = useTranslation();
   return (
     <tr
       className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/30 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
@@ -400,7 +403,7 @@ function PartyRow({ party, index, onEdit, onToggleStatus, onDelete }) {
             </div>
           ) : (
             <span className="text-gray-400 dark:text-gray-500 text-xs italic">
-              No phone
+              {t("parties.no_phone")}
             </span>
           )}
           {party.email && (
@@ -481,7 +484,7 @@ function PartyRow({ party, index, onEdit, onToggleStatus, onDelete }) {
               })}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-1.5 font-medium">
-              {party.current_balance >= 0 ? "(Receivable)" : "(Payable)"}
+              {party.current_balance >= 0 ? `(${t("parties.receivable")})` : `(${t("parties.payable")})`}
             </span>
           </div>
         </div>
@@ -501,7 +504,7 @@ function PartyRow({ party, index, onEdit, onToggleStatus, onDelete }) {
                 : "bg-red-500 shadow-lg shadow-red-500/50"
             }`}
           ></span>
-          {party.is_active ? "Active" : "Inactive"}
+          {party.is_active ? t("parties.active") : t("parties.inactive")}
         </span>
       </td>
       <td className="px-6 py-5">

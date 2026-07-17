@@ -38,8 +38,10 @@ import PDIReportModal from "../components/PDIReportModal";
 const PdfPreviewModal = lazy(() => import("../components/PdfPreviewModal"));
 import { formatDate } from "../utils/dateUtils";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 export default function Challans() {
+  const { t } = useTranslation();
   const { hasFeature } = useAuth();
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
@@ -108,12 +110,12 @@ export default function Challans() {
   const confirmDelete = async () => {
     try {
       await deleteDeliveryChallan(deleteConfirm.challan.id);
-      toast.success("Delivery Challan deleted successfully");
+      toast.success(t("challans.delete_success"));
       setDeleteConfirm({ open: false, challan: null });
       loadChallans();
     } catch (err) {
       toast.error(
-        err.response?.data?.detail || "Failed to delete delivery challan",
+        err.response?.data?.detail || t("challans.delete_failed"),
       );
     }
   };
@@ -314,10 +316,10 @@ export default function Challans() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Delivery Challans
+            {t("challans.title")}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage delivery challans and track shipments
+            {t("challans.subtitle")}
           </p>
         </div>
 
@@ -334,7 +336,7 @@ export default function Challans() {
               size={18}
               className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
             />
-            Create Challan
+            {t("challans.create_challan")}
           </button>
         </div>
       </div>
@@ -342,24 +344,24 @@ export default function Challans() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          label="Total Challans"
+          label={t("challans.total_challans")}
           value={totalChallans}
           icon={BarChart3}
           color="purple"
         />
         <StatCard
-          label="Sent"
+          label={t("challans.sent")}
           value={totalSent}
           icon={Send}
           color="blue"
-          subtext={`${totalQuantitySent} units sent`}
+          subtext={`${totalQuantitySent} ${t("challans.units_sent")}`}
         />
         <StatCard
-          label="Delivered"
+          label={t("challans.delivered")}
           value={totalDelivered}
           icon={CheckCircle}
           color="green"
-          subtext={`${totalQuantityDelivered} units delivered`}
+          subtext={`${totalQuantityDelivered} ${t("challans.units_delivered")}`}
         />
       </div>
 
@@ -379,14 +381,14 @@ export default function Challans() {
                   type="text"
                   name="delivery_challan_search"
                   id="delivery_challan_search"
-                  placeholder="Search by challan number or party..."
+                  placeholder={t("challans.search_placeholder")}
                   className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {searchTerm && (
                   <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-md">
-                    {filteredChallans.length} found
+                    {filteredChallans.length} {t("challans.found")}
                   </span>
                 )}
               </div>
@@ -404,7 +406,7 @@ export default function Challans() {
                   max={dateRange.end}
                 />
               </div>
-              <span className="text-gray-400 font-medium">to</span>
+              <span className="text-gray-400 font-medium">{t("challans.to")}</span>
               <div className="relative">
                 <input
                   type="date"
@@ -426,7 +428,7 @@ export default function Challans() {
                 onChange={(e) => setPartyFilter(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value="">All Parties</option>
+                <option value="">{t("challans.filter_all_parties")}</option>
                 {parties
                   .filter((p) => p.is_active)
                   .map((p) => (
@@ -446,7 +448,7 @@ export default function Challans() {
                 disabled={!partyFilter}
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="">All Items</option>
+                <option value="">{t("challans.filter_all_items")}</option>
                 {filteredItems
                   .filter((item) => item.is_active)
                   .map((item) => (
@@ -465,10 +467,10 @@ export default function Challans() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value="">All Status</option>
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="delivered">Delivered</option>
+                <option value="">{t("challans.filter_all_status")}</option>
+                <option value="draft">{t("challans.status_draft")}</option>
+                <option value="sent">{t("challans.status_sent")}</option>
+                <option value="delivered">{t("challans.status_delivered")}</option>
               </select>
             </div>
 
@@ -480,7 +482,7 @@ export default function Challans() {
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-900 border-2 border-blue-100 dark:border-blue-900/50 hover:border-blue-500 dark:hover:border-blue-500 text-blue-600 dark:text-blue-400 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-sm hover:shadow-md animate-fade-in whitespace-nowrap"
                 >
                   <Printer size={18} />
-                  <span>Print ({selectedChallans.size})</span>
+                  <span>{t("challans.print_selected")} ({selectedChallans.size})</span>
                 </button>
               </div>
             )}
@@ -505,13 +507,13 @@ export default function Challans() {
                     />
                   </div>
                 </th>
-                <th className="px-6 py-4 whitespace-nowrap">Challan No.</th>
-                <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                <th className="px-6 py-4 whitespace-nowrap">Party</th>
-                <th className="px-6 py-4 whitespace-nowrap">Vehicle No.</th>
-                <th className="px-6 py-4 whitespace-nowrap">Items</th>
-                <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_challan_no")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_date")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_party")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_vehicle_no")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_items")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_status")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("challans.table_actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -524,7 +526,7 @@ export default function Challans() {
                     <div className="flex flex-col items-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                       <span className="text-sm font-medium">
-                        Loading challans...
+                        {t("challans.loading")}
                       </span>
                     </div>
                   </td>
@@ -541,10 +543,10 @@ export default function Challans() {
                         size={48}
                       />
                       <span className="text-sm font-medium">
-                        No challans found.
+                        {t("challans.no_challans")}
                       </span>
                       <span className="text-xs text-gray-400">
-                        Try adjusting your search or filters
+                        {t("challans.try_adjusting")}
                       </span>
                     </div>
                   </td>
@@ -582,19 +584,19 @@ export default function Challans() {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Showing{" "}
+                {t("challans.showing")}{" "}
                 <span className="font-bold text-green-600 dark:text-green-400">
                   {startIndex + 1}
                 </span>{" "}
-                to{" "}
+                {t("challans.to")}{" "}
                 <span className="font-bold text-green-600 dark:text-green-400">
                   {Math.min(endIndex, filteredChallans.length)}
                 </span>{" "}
-                of{" "}
+                {t("challans.of")}{" "}
                 <span className="font-bold text-gray-900 dark:text-white">
                   {filteredChallans.length}
                 </span>{" "}
-                challans
+                {t("challans.challans_label")}
               </span>
               <select
                 name="delivery_challans_per_page"
@@ -606,10 +608,10 @@ export default function Challans() {
                 }}
                 className="px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
+                <option value={10}>{t("challans.per_page_10")}</option>
+                <option value={25}>{t("challans.per_page_25")}</option>
+                <option value={50}>{t("challans.per_page_50")}</option>
+                <option value={100}>{t("challans.per_page_100")}</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -683,9 +685,9 @@ export default function Challans() {
 
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Delete Delivery Challan"
-        message={`Are you sure you want to delete delivery challan ${deleteConfirm.challan?.challan_number}? This action cannot be undone.`}
-        confirmLabel="Delete"
+        title={t("challans.delete_title")}
+        message={t("challans.delete_message", { challan_number: deleteConfirm.challan?.challan_number })}
+        confirmLabel={t("challans.delete_confirm")}
         type="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirm({ open: false, challan: null })}
@@ -729,6 +731,7 @@ function ChallanRow({
   selected,
   onSelect,
 }) {
+  const { t } = useTranslation();
   return (
     <tr
       className={`group transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(34,197,94)] ${
@@ -814,12 +817,12 @@ function ChallanRow({
                 return acc;
               }, {});
               return Object.entries(aggregated)
-                .map(([name, qty]) => `${name} (${qty} units)`)
+                .map(([name, qty]) => `${name} (${qty} ${t("challans.units")})`)
                 .join(", ");
             })()}
           >
             {(() => {
-              if (!challan.items?.length) return "No Items";
+              if (!challan.items?.length) return t("challans.no_items");
               const aggregated = challan.items.reduce((acc, i) => {
                 const name = i.item?.name || "Unknown";
                 acc[name] = (acc[name] || 0) + (Number(i.quantity) || 0);
@@ -831,7 +834,7 @@ function ChallanRow({
                   <span key={name}>
                     {name}{" "}
                     <span className="text-gray-400 font-normal">
-                      ({qty} units)
+                      ({qty} {t("challans.units")})
                     </span>
                     {index < arr.length - 1 && ", "}
                   </span>
@@ -856,7 +859,7 @@ function ChallanRow({
                   : "bg-gray-500 shadow-lg shadow-gray-500/50"
             }`}
           ></span>
-          {challan.status.charAt(0).toUpperCase() + challan.status.slice(1)}
+          {t(`challans.status_${challan.status.toLowerCase()}`)}
         </span>
       </td>
       <td className="px-6 py-5">

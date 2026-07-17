@@ -6,13 +6,15 @@ import {
   AlertTriangle,
   Calendar,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const CashFlowProjection = ({ projectionData, loading }) => {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          Cash Flow Projection
+          {t("dashboard_analytics.cash_flow_projection")}
         </h3>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -56,7 +58,7 @@ const CashFlowProjection = ({ projectionData, loading }) => {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <IndianRupee size={24} className="text-green-600" />
-          Cash Flow Projection
+          {t("dashboard_analytics.cash_flow_projection")}
         </h3>
         {projectionData.cash_runway_days && (
           <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
@@ -140,7 +142,7 @@ const CashFlowProjection = ({ projectionData, loading }) => {
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Expected Income
+                    {t("dashboard_analytics.expected_inflow")}
                   </div>
                   <div className="text-sm font-bold text-green-600">
                     +₹
@@ -151,7 +153,7 @@ const CashFlowProjection = ({ projectionData, loading }) => {
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Expected Expense
+                    {t("dashboard_analytics.expected_outflow")}
                   </div>
                   <div className="text-sm font-bold text-red-600">
                     -₹

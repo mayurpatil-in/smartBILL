@@ -45,6 +45,7 @@ import {
   getEmployeeIDCard,
 } from "../api/employees";
 import { getExpenses, deleteExpense } from "../api/expenses";
+import { useTranslation } from "react-i18next";
 
 function StatCard({ label, value, icon: Icon, color }) {
   const colors = {
@@ -113,6 +114,8 @@ export default function Employees() {
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const { t } = useTranslation();
+
   // Preview State
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
@@ -146,11 +149,11 @@ export default function Employees() {
     try {
       await deleteEmployee(employeeToDelete.id);
       setEmployees(employees.filter((e) => e.id !== employeeToDelete.id));
-      toast.success("Employee deleted");
+      toast.success(t("employees.delete_success"));
       setDeleteModalOpen(false);
       setEmployeeToDelete(null);
     } catch (err) {
-      toast.error("Failed to delete employee");
+      toast.error(t("employees.delete_failed"));
     } finally {
       setDeleteLoading(false);
     }
@@ -166,7 +169,7 @@ export default function Employees() {
         ),
       );
       toast.success(
-        `Employee marked as ${!employee.is_active ? "Active" : "Inactive"}`,
+        t("employees.status_updated", { status: !employee.is_active ? t("employees.active") : t("employees.inactive") })
       );
     } catch (err) {
       console.error(err);
@@ -200,10 +203,10 @@ export default function Employees() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Employee Management
+            {t("employees.title")}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm sm:text-base">
-            Manage your team, attendance, and payroll
+            {t("employees.subtitle")}
           </p>
         </div>
         <button
@@ -217,7 +220,7 @@ export default function Employees() {
             size={18}
             className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
           />
-          Add Employee
+          {t("employees.add_employee")}
         </button>
       </div>
 
@@ -225,13 +228,13 @@ export default function Employees() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
           {[
-            { id: "list", label: "All Employees", icon: Users },
-            { id: "attendance", label: "Attendance", icon: Calendar },
-            { id: "report", label: "Report", icon: FileText },
-            { id: "payroll", label: "Payroll", icon: IndianRupee },
-            { id: "history", label: "History", icon: History },
-            { id: "holidays", label: "Holidays", icon: PartyPopper },
-            { id: "weekends", label: "Weekends", icon: Coffee },
+            { id: "list", label: t("employees.tab_all_employees"), icon: Users },
+            { id: "attendance", label: t("employees.tab_attendance"), icon: Calendar },
+            { id: "report", label: t("employees.tab_report"), icon: FileText },
+            { id: "payroll", label: t("employees.tab_payroll"), icon: IndianRupee },
+            { id: "history", label: t("employees.tab_history"), icon: History },
+            { id: "holidays", label: t("employees.tab_holidays"), icon: PartyPopper },
+            { id: "weekends", label: t("employees.tab_weekends"), icon: Coffee },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -275,19 +278,19 @@ export default function Employees() {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard
-              label="Total Employees"
+              label={t("employees.total_employees")}
               value={employees.length}
               icon={Users}
               color="blue"
             />
             <StatCard
-              label="Active"
+              label={t("employees.active")}
               value={employees.filter((e) => e.is_active).length}
               icon={UserCheck}
               color="green"
             />
             <StatCard
-              label="Monthly Payroll"
+              label={t("employees.monthly_payroll")}
               value={`₹${employees
                 .reduce((acc, curr) => {
                   const salary =
@@ -314,7 +317,7 @@ export default function Employees() {
                   type="text"
                   name="employee_search"
                   id="employee_search"
-                  placeholder="Search employees..."
+                  placeholder={t("employees.search_placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
@@ -327,18 +330,18 @@ export default function Employees() {
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Name
+                      {t("employees.table_name")}
                     </th>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Designation
+                      {t("employees.table_designation")}
                     </th>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Contact
+                      {t("employees.table_contact")}
                     </th>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Status
+                      {t("employees.table_status")}
                     </th>
-                    <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("employees.table_actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -351,7 +354,7 @@ export default function Employees() {
                         <div className="flex flex-col items-center gap-3">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                           <span className="text-sm font-medium">
-                            Loading employees...
+                            {t("employees.loading")}
                           </span>
                         </div>
                       </td>
@@ -368,10 +371,10 @@ export default function Employees() {
                             size={48}
                           />
                           <span className="text-sm font-medium">
-                            No employees found
+                            {t("employees.no_employees")}
                           </span>
                           <span className="text-xs text-gray-400">
-                            Add your first employee to get started
+                            {t("employees.no_employees_subtext")}
                           </span>
                         </div>
                       </td>
@@ -445,7 +448,7 @@ export default function Employees() {
                                 : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800"
                             }`}
                           >
-                            {emp.is_active ? "Active" : "Inactive"}
+                            {emp.is_active ? t("employees.active") : t("employees.inactive")}
                           </span>
                         </td>
                         <td className="px-6 py-5">
@@ -519,8 +522,8 @@ export default function Employees() {
         open={deleteModalOpen}
         onCancel={() => setDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Employee"
-        message={`Are you sure you want to delete ${employeeToDelete?.name}? This action cannot be undone.`}
+        title={t("employees.delete_title")}
+        message={t("employees.delete_message", { name: employeeToDelete?.name })}
       />
 
       {/* PDF Preview Modal */}
@@ -539,8 +542,8 @@ export default function Employees() {
   );
 }
 
-// Sub-component for Payroll (simplistic view)
 function PayrollView({ employees }) {
+  const { t } = useTranslation();
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [salaries, setSalaries] = useState({});
@@ -607,10 +610,10 @@ function PayrollView({ employees }) {
           </div>
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-              Payroll Management
+              {t("employees.payroll_management")}
             </h3>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Calculate and manage salaries for{" "}
+              {t("employees.payroll_subtitle")}{" "}
               {new Date(0, month - 1).toLocaleString("default", {
                 month: "long",
               })}{" "}
@@ -622,7 +625,7 @@ function PayrollView({ employees }) {
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full md:w-auto">
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
             <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              Month:
+              {t("employees.month")}
             </span>
             <select
               name="payroll_month"
@@ -642,7 +645,7 @@ function PayrollView({ employees }) {
           </div>
           <div className="flex items-center gap-2 flex-1 sm:flex-none">
             <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              Year:
+              {t("employees.year")}
             </span>
             <input
               type="number"
@@ -661,7 +664,7 @@ function PayrollView({ employees }) {
               size={16}
               className="group-hover:rotate-12 transition-transform duration-300 sm:w-[18px] sm:h-[18px]"
             />
-            Refresh
+            {t("employees.refresh")}
           </button>
         </div>
       </div>
@@ -672,30 +675,30 @@ function PayrollView({ employees }) {
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  Employee
+                  {t("employees.payroll_employee")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  Base Salary
+                  {t("employees.payroll_base_salary")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  Attendance
+                  {t("employees.payroll_attendance")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  OT + Bonus
+                  {t("employees.payroll_ot_bonus")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  Advances
+                  {t("employees.payroll_advances")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  TDS / Tax
+                  {t("employees.payroll_tds")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  Prof. Tax
+                  {t("employees.payroll_prof_tax")}
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
-                  Net Pay
+                  {t("employees.payroll_net_pay")}
                 </th>
-                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("employees.table_actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -705,7 +708,7 @@ function PayrollView({ employees }) {
                     <div className="flex flex-col items-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                       <span className="text-sm font-medium">
-                        Calculating payroll...
+                        {t("employees.calculating_payroll")}
                       </span>
                     </div>
                   </td>
@@ -763,7 +766,7 @@ function PayrollView({ employees }) {
                             </div>
                             <span className="font-medium text-gray-700 dark:text-gray-300">
                               {slip?.present_days || 0} /{" "}
-                              {slip?.total_days || 30} Days
+                              {slip?.total_days || 30} {t("employees.days")}
                             </span>
                           </div>
                         </td>
@@ -794,7 +797,7 @@ function PayrollView({ employees }) {
                               onClick={() => setSelectedEmpForAdvance(emp)}
                               className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105"
                             >
-                              Manage
+                              {t("employees.manage")}
                             </button>
                           </div>
                         </td>
@@ -839,7 +842,7 @@ function PayrollView({ employees }) {
                                   size={14}
                                   className="group-hover:rotate-12 transition-transform duration-200"
                                 />{" "}
-                                Pay
+                                {t("employees.pay_salary")}
                               </button>
                             )}
 
@@ -918,6 +921,7 @@ function PaySalaryModal({
   year,
   onSuccess,
 }) {
+  const { t } = useTranslation();
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [loading, setLoading] = useState(false);
 
@@ -1014,6 +1018,7 @@ function PaySalaryModal({
 }
 
 function SalaryHistory() {
+  const { t } = useTranslation();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
@@ -1057,7 +1062,7 @@ function SalaryHistory() {
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       <div className="p-6 border-b border-gray-100 dark:border-gray-700">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <History size={20} className="text-blue-600" /> Salary History
+          <History size={20} className="text-blue-600" /> {t("employees.salary_history_title")}
         </h2>
       </div>
 
@@ -1076,19 +1081,19 @@ function SalaryHistory() {
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Date
+                  {t("employees.table_date")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Description
+                  {t("employees.table_description")}
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Amount
+                  {t("employees.table_amount")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Method
+                  {t("employees.table_payment_method")}
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {t("employees.table_actions")}
                 </th>
               </tr>
             </thead>

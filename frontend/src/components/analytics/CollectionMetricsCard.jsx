@@ -1,12 +1,14 @@
 import React from "react";
 import { Target, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const CollectionMetricsCard = ({ metrics, loading }) => {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          Collection Metrics
+          {t("dashboard_analytics.collection_metrics")}
         </h3>
         <div className="grid grid-cols-2 gap-4">
           {[1, 2].map((i) => (
@@ -49,7 +51,7 @@ const CollectionMetricsCard = ({ metrics, loading }) => {
     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <Target size={24} className="text-indigo-600" />
-        Collection Metrics
+        {t("dashboard_analytics.collection_metrics")}
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

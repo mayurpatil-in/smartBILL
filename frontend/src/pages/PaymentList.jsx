@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Search,
@@ -33,6 +34,7 @@ import { getPendingInvoices } from "../api/invoices";
 import { formatDate } from "../utils/dateUtils";
 
 export default function PaymentList() {
+  const { t } = useTranslation();
   const [payments, setPayments] = useState([]);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -306,11 +308,11 @@ export default function PaymentList() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Payments
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+            {t("payments.title")}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Track inward and outward payments
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t("payments.subtitle")}
           </p>
         </div>
         <button
@@ -321,26 +323,26 @@ export default function PaymentList() {
             size={18}
             className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
           />
-          Record Payment
+          {t("payments.record_payment")}
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
-          label="Total Payments"
+          label={t("payments.total_payments")}
           value={totalPayments}
           icon={Wallet}
           color="blue"
         />
         <StatCard
-          label="Total Amount"
+          label={t("payments.total_amount")}
           value={`₹${totalAmount.toLocaleString()}`}
           icon={IndianRupee}
           color="green"
         />
         <StatCard
-          label="This Month"
+          label={t("payments.this_month")}
           value={`₹${thisMonthAmount.toLocaleString()}`}
           icon={TrendingUp}
           color="purple"
@@ -371,9 +373,9 @@ export default function PaymentList() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               {searchTerm && (
-                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-md">
+                <div className="text-sm text-gray-500 bg-white/60 dark:bg-gray-800/60 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 font-medium">
                   {filteredPayments.length} found
-                </span>
+                </div>
               )}
             </div>
           </div>
@@ -392,7 +394,7 @@ export default function PaymentList() {
               }
               className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
             >
-              <option value="">All Parties</option>
+              <option value=""> {t("payments.all_parties")} </option>
               {parties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -413,7 +415,7 @@ export default function PaymentList() {
               }
               className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
             >
-              <option value="">All Types</option>
+              <option value=""> {t("payments.all_types")} </option>
               <option value="RECEIVED">Received (In)</option>
               <option value="PAID">Paid (Out)</option>
             </select>
@@ -427,14 +429,16 @@ export default function PaymentList() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                <th className="px-6 py-4 whitespace-nowrap">Party</th>
+                <th className="px-6 py-4 whitespace-nowrap"> {t("payments.table_date")} </th>
+                <th className="px-6 py-4 whitespace-nowrap"> {t("payments.table_party")} </th>
                 <th className="px-6 py-4 whitespace-nowrap">Mode / Ref</th>
-                <th className="px-6 py-4 whitespace-nowrap">Type</th>
+                <th className="px-6 py-4 whitespace-nowrap"> {t("payments.table_type")} </th>
                 <th className="px-6 py-4 whitespace-nowrap text-right">
-                  Amount
+                  {t("payments.table_amount")}
                 </th>
-                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap">
+                  {t("payments.table_reference")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -446,9 +450,9 @@ export default function PaymentList() {
                   >
                     <div className="flex flex-col items-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-                      <span className="text-sm font-medium">
+                      <p className="text-gray-500 mt-2 font-medium">
                         Loading payments...
-                      </span>
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -456,19 +460,15 @@ export default function PaymentList() {
                 <tr>
                   <td
                     colSpan="6"
-                    className="px-6 py-12 text-center text-gray-500"
+                    className="px-6 py-12 text-center"
                   >
-                    <div className="flex flex-col items-center gap-2">
-                      <Wallet
-                        className="text-gray-300 dark:text-gray-600"
-                        size={48}
-                      />
-                      <span className="text-sm font-medium">
-                        No payments found.
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        Try adjusting your filters
-                      </span>
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
+                        <Search size={32} className="text-gray-400" />
+                      </div>
+                      <p className="text-lg font-medium text-gray-900 dark:text-white">
+                        {t("payments.no_payments")}
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -556,14 +556,14 @@ export default function PaymentList() {
                         <button
                           onClick={() => handleEdit(payment)}
                           className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                          title="Edit Payment"
+                          title={t("payments.edit_payment")}
                         >
                           <Edit size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(payment.id)}
                           className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                          title="Delete Payment"
+                          title={t("payments.delete_payment")}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -581,19 +581,19 @@ export default function PaymentList() {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Showing{" "}
+                {t("payments.showing")}{" "}
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
                   {startIndex + 1}
                 </span>{" "}
-                to{" "}
+                {t("payments.to")}{" "}
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
                   {Math.min(endIndex, payments.length)}
                 </span>{" "}
-                of{" "}
+                {t("payments.of")}{" "}
                 <span className="font-bold text-gray-900 dark:text-white">
                   {payments.length}
                 </span>{" "}
-                payments
+                {t("payments.payments_count")}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -671,38 +671,19 @@ export default function PaymentList() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl border border-gray-200 dark:border-gray-700 animate-scale-in overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="relative p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-emerald-600 to-teal-700 overflow-hidden">
-              {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 hidden sm:block"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24 hidden sm:block"></div>
-
+            <div className="relative p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="relative flex justify-between items-start sm:items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
-                    {editId ? (
-                      <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <Edit size={20} className="text-white sm:w-6 sm:h-6" />
-                      </div>
-                    ) : (
-                      <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <Plus size={20} className="text-white sm:w-6 sm:h-6" />
-                      </div>
-                    )}
-                    <span className="truncate">
-                      {editId ? "Edit Payment" : "Record New Payment"}
-                    </span>
-                  </h2>
-                  <p className="text-xs sm:text-sm text-emerald-50 mt-1 sm:mt-2 ml-8 sm:ml-14">
-                    {editId
-                      ? "Update payment details and allocations"
-                      : "Enter payment details and allocate to invoices"}
-                  </p>
-                </div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400">
+                    {editId ? <Edit size={24} /> : <Plus size={24} />}
+                  </div>
+                  {editId ? t("payments.edit_payment") : t("payments.record_payment")}
+                </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg sm:rounded-xl transition-all duration-200 text-white hover:scale-110 backdrop-blur-sm flex-shrink-0"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 text-gray-500 hover:scale-110"
                 >
-                  <X size={20} className="sm:w-6 sm:h-6" />
+                  <X size={24} />
                 </button>
               </div>
             </div>
@@ -715,11 +696,8 @@ export default function PaymentList() {
               <div className="w-full md:w-5/12 p-6 overflow-y-auto border-r border-gray-100 dark:border-gray-700 space-y-5">
                 {/* Party */}
                 <div>
-                  <label
-                    htmlFor="payment_party_id"
-                    className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
-                  >
-                    Party Name
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    {t("payments.party")} *
                   </label>
                   <div className="relative group">
                     <User
@@ -736,7 +714,7 @@ export default function PaymentList() {
                       }
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all appearance-none"
                     >
-                      <option value="">Select Party</option>
+                      <option value=""> {t("payments.select_party")} </option>
                       {parties.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -778,11 +756,8 @@ export default function PaymentList() {
                   </div>
                   {/* Amount */}
                   <div>
-                    <label
-                      htmlFor="payment_amount"
-                      className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide"
-                    >
-                      Amount
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      {t("payments.amount")} *
                     </label>
                     <div className="relative group">
                       <IndianRupee
@@ -858,10 +833,10 @@ export default function PaymentList() {
                         }
                         className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all appearance-none"
                       >
-                        <option value="CASH">Cash</option>
-                        <option value="BANK_TRANSFER">Bank Transfer</option>
-                        <option value="CHEQUE">Cheque</option>
-                        <option value="UPI">UPI</option>
+                        <option value="CASH"> {t("payments.cash")} </option>
+                        <option value="BANK_TRANSFER"> {t("payments.bank_transfer")} </option>
+                        <option value="CHEQUE"> {t("payments.cheque")} </option>
+                        <option value="UPI"> {t("payments.upi")} </option>
                         <option value="OTHER">Other</option>
                       </select>
                     </div>
@@ -930,22 +905,22 @@ export default function PaymentList() {
                       <div className="flex justify-between items-center mb-3">
                         <h3 className="tex-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
                           <Briefcase size={16} className="text-purple-600" />
-                          Settle Invoices
+                          {t("payments.settle_invoices")}
                         </h3>
                         <button
                           type="button"
                           onClick={handleAutoAllocate}
                           className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 font-medium transition-colors border border-blue-100 dark:border-blue-800"
                         >
-                          <Calculator size={14} /> Auto Allocate
+                          <Calculator size={14} /> {t("payments.auto_allocate")}
                         </button>
                       </div>
 
                       {/* Summary Cards */}
-                      <div className="flex gap-4">
+                      <div className="flex gap-4 mb-4">
                         <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-xl border border-purple-100 dark:border-purple-800 flex-1">
                           <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                            Total Balance Due
+                            {t("payments.total_balance_due")}
                           </div>
                           <div className="text-lg font-bold text-gray-900 dark:text-white">
                             ₹
@@ -963,7 +938,7 @@ export default function PaymentList() {
 
                         <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-100 dark:border-green-800 flex-1">
                           <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                            Allocated Amount
+                            {t("payments.allocated_amount")}
                           </div>
                           <div className="text-lg font-bold text-green-700 dark:text-green-400">
                             ₹
@@ -971,6 +946,19 @@ export default function PaymentList() {
                               parseFloat(formData.amount) || 0
                             ).toLocaleString()}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Header for list */}
+                      <div className="flex justify-between text-xs px-2 mb-2">
+                        <div className="pb-3 text-gray-500 font-medium w-1/4">
+                          {t("payments.invoice")}
+                        </div>
+                        <div className="pb-3 text-right text-gray-500 font-medium w-1/4">
+                          {t("payments.due")}
+                        </div>
+                        <div className="pb-3 text-right text-gray-500 font-medium w-1/4">
+                          {t("payments.allocation")}
                         </div>
                       </div>
                     </div>
@@ -1102,13 +1090,20 @@ export default function PaymentList() {
                 )}
 
                 {/* Footer Action */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0 z-10">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0 z-10 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 px-6 py-3 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                  >
+                    {t("payments.cancel")}
+                  </button>
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+                    className="flex-[2] px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2"
                   >
                     <CheckCircle size={20} />
-                    {editId ? "Update Payment" : "Save Payment Record"}
+                    {t("payments.save")}
                   </button>
                 </div>
               </div>

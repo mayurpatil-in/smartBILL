@@ -10,15 +10,17 @@ import {
   Cell,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const ProductPerformanceChart = ({ products, loading }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-          Top Products
+          {t("dashboard_analytics.product_performance")}
         </h3>
         <div className="h-[320px] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-xl relative overflow-hidden animate-pulse" />
       </div>
@@ -30,11 +32,11 @@ const ProductPerformanceChart = ({ products, loading }) => {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Package size={24} className="text-purple-600" />
-          Top Products
+          {t("dashboard_analytics.product_performance")}
         </h3>
         <div className="text-center text-gray-500 py-12 flex flex-col items-center gap-2">
           <Package size={48} className="opacity-20" />
-          <span>No product data available</span>
+          <span>{t("dashboard_analytics.no_product_data")}</span>
         </div>
       </div>
     );
@@ -58,13 +60,13 @@ const ProductPerformanceChart = ({ products, loading }) => {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Package size={24} className="text-purple-600" />
-          Top Products
+          {t("dashboard_analytics.product_performance")}
         </h3>
         <button
           onClick={() => navigate("/items")}
           className="text-sm text-purple-600 hover:text-purple-700 font-semibold flex items-center gap-1"
         >
-          View All <ArrowRight size={16} />
+          {t("dashboard_analytics.view_all")} <ArrowRight size={16} />
         </button>
       </div>
 
@@ -89,7 +91,7 @@ const ProductPerformanceChart = ({ products, loading }) => {
             <Tooltip
               formatter={(value, name) => {
                 if (name === "total_revenue")
-                  return [`₹${value.toLocaleString()}`, "Revenue"];
+                  return [`₹${value.toLocaleString()}`, t("dashboard_analytics.revenue")];
                 return [value, name];
               }}
               contentStyle={{
@@ -130,7 +132,7 @@ const ProductPerformanceChart = ({ products, loading }) => {
                   {product.item_name}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {product.total_quantity_sold.toLocaleString()} units • Avg: ₹
+                  {product.total_quantity_sold.toLocaleString()} {t("dashboard_analytics.units_sold")} • {t("dashboard_analytics.avg")}: ₹
                   {product.avg_selling_price.toLocaleString()}
                 </p>
               </div>

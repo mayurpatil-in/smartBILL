@@ -35,8 +35,10 @@ import PermissionGuard from "../components/PermissionGuard";
 import EWayBillModal from "../components/EWayBillModal";
 import { formatDate } from "../utils/dateUtils";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 export default function Invoices() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { hasFeature } = useAuth();
   const [invoices, setInvoices] = useState([]);
@@ -230,10 +232,10 @@ export default function Invoices() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Invoices
+            {t("invoices.title")}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage and track all tax invoices
+            {t("invoices.subtitle")}
           </p>
         </div>
         <PermissionGuard permission="invoices.create">
@@ -245,7 +247,7 @@ export default function Invoices() {
               size={18}
               className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
             />
-            Create Invoice
+            {t("invoices.create_invoice")}
           </button>
         </PermissionGuard>
       </div>
@@ -253,23 +255,23 @@ export default function Invoices() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
-          label="Total Invoiced"
+          label={t("invoices.total_invoiced")}
           value={`₹${filteredStats.total.amount.toLocaleString()}`}
-          subValue={`${filteredStats.total.count} invoices`}
+          subValue={`${filteredStats.total.count} ${t("invoices.invoices_count")}`}
           icon={BarChart3}
           color="purple"
         />
         <StatCard
-          label="Paid Amount"
+          label={t("invoices.paid_amount")}
           value={`₹${filteredStats.paid.amount.toLocaleString()}`}
-          subValue={`${filteredStats.paid.count} invoices`}
+          subValue={`${filteredStats.paid.count} ${t("invoices.invoices_count")}`}
           icon={CheckCircle}
           color="green"
         />
         <StatCard
-          label="Pending Amount"
+          label={t("invoices.pending_amount")}
           value={`₹${filteredStats.pending.amount.toLocaleString()}`}
-          subValue={`${filteredStats.pending.count} invoices`}
+          subValue={`${filteredStats.pending.count} ${t("invoices.invoices_count")}`}
           icon={AlertCircle}
           color="orange"
         />
@@ -294,14 +296,14 @@ export default function Invoices() {
                   type="text"
                   name="invoice_search"
                   id="invoice_search"
-                  placeholder="Search by invoice number or party..."
+                  placeholder={t("invoices.search_placeholder")}
                   className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {searchTerm && (
                   <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md">
-                    {filteredInvoices.length} found
+                    {filteredInvoices.length} {t("invoices.found")}
                   </span>
                 )}
               </div>
@@ -318,7 +320,7 @@ export default function Invoices() {
                 onChange={(e) => setPartyFilter(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value="ALL">All Parties</option>
+                <option value="ALL">{t("invoices.filter_party")}</option>
                 {parties.map((party) => (
                   <option key={party.id} value={party.id}>
                     {party.name}
@@ -338,10 +340,10 @@ export default function Invoices() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value="ALL">All Status</option>
-                <option value="OPEN">Open</option>
-                <option value="PARTIAL">Partial</option>
-                <option value="PAID">Paid</option>
+                <option value="ALL">{t("invoices.filter_status")}</option>
+                <option value="OPEN">{t("invoices.status_open")}</option>
+                <option value="PARTIAL">{t("invoices.status_partial")}</option>
+                <option value="PAID">{t("invoices.status_paid")}</option>
               </select>
             </div>
           </div>
@@ -352,15 +354,15 @@ export default function Invoices() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Invoice No</th>
-                <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                <th className="px-6 py-4 whitespace-nowrap">Party</th>
-                <th className="px-6 py-4 whitespace-nowrap">Items</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_invoice_no")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_date")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_party")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_items")}</th>
                 <th className="px-6 py-4 whitespace-nowrap text-right">
-                  Amount
+                  {t("invoices.table_amount")}
                 </th>
-                <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_status")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -373,7 +375,7 @@ export default function Invoices() {
                     <div className="flex flex-col items-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                       <span className="text-sm font-medium">
-                        Loading invoices...
+                        {t("invoices.loading")}
                       </span>
                     </div>
                   </td>
@@ -545,10 +547,10 @@ export default function Invoices() {
                         size={48}
                       />
                       <span className="text-sm font-medium">
-                        No invoices found.
+                        {t("invoices.no_invoices")}
                       </span>
                       <span className="text-xs text-gray-400">
-                        Try adjusting your search or filters
+                        {t("invoices.try_adjusting")}
                       </span>
                     </div>
                   </td>
@@ -563,19 +565,19 @@ export default function Invoices() {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Showing{" "}
+                {t("invoices.showing")}{" "}
                 <span className="font-bold text-indigo-600 dark:text-indigo-400">
                   {startIndex + 1}
                 </span>{" "}
-                to{" "}
+                {t("invoices.to")}{" "}
                 <span className="font-bold text-indigo-600 dark:text-indigo-400">
                   {Math.min(endIndex, filteredInvoices.length)}
                 </span>{" "}
-                of{" "}
+                {t("invoices.of")}{" "}
                 <span className="font-bold text-gray-900 dark:text-white">
                   {filteredInvoices.length}
                 </span>{" "}
-                invoices
+                {t("invoices.invoices_count")}
               </span>
             </div>
             <div className="flex items-center gap-2">

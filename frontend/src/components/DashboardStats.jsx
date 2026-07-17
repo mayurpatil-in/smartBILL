@@ -9,6 +9,7 @@ import {
   Activity,
   Sparkles,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat("en-IN", {
@@ -19,6 +20,7 @@ const formatCurrency = (amount) => {
 };
 
 const StatCard = ({ title, value, icon: Icon, color, trend, index }) => {
+  const { t } = useTranslation();
   const colorStyles = {
     green: {
       gradient: "from-emerald-500 via-green-500 to-teal-500",
@@ -115,7 +117,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend, index }) => {
               </span>
             )}
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-              vs last period
+              {t("dashboard_analytics.vs_last_period")}
             </span>
           </div>
         )}
@@ -141,6 +143,7 @@ const LoadingSkeleton = ({ index }) => (
 );
 
 export default function DashboardStats({ stats, loading }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -160,7 +163,7 @@ export default function DashboardStats({ stats, loading }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
-        title="Total Revenue"
+        title={t("dashboard_analytics.total_revenue")}
         value={stats?.revenue}
         icon={IndianRupee}
         color="green"
@@ -168,7 +171,7 @@ export default function DashboardStats({ stats, loading }) {
         index={0}
       />
       <StatCard
-        title="Total Receivables"
+        title={t("dashboard_analytics.total_receivables")}
         value={stats?.receivables}
         icon={Wallet}
         color="orange"
@@ -176,7 +179,7 @@ export default function DashboardStats({ stats, loading }) {
         index={1}
       />
       <StatCard
-        title="Total Expenses"
+        title={t("dashboard_analytics.total_expenses")}
         value={stats?.expenses}
         icon={TrendingDown}
         color="blue"
@@ -184,7 +187,7 @@ export default function DashboardStats({ stats, loading }) {
         index={2}
       />
       <StatCard
-        title="Net Income"
+        title={t("dashboard_analytics.net_income")}
         value={stats?.net_income}
         icon={Activity}
         color="purple"

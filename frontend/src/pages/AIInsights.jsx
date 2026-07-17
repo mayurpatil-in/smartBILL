@@ -40,8 +40,10 @@ import {
   CustomerRiskScatter,
 } from "../components/InsightCharts";
 import ReceivablesModal from "../components/ReceivablesModal";
+import { useTranslation } from "react-i18next";
 
 export default function AIInsights() {
+  const { t } = useTranslation();
   const [briefing, setBriefing] = useState(null);
   const [anomalies, setAnomalies] = useState([]);
   const [predictions, setPredictions] = useState([]);
@@ -156,7 +158,7 @@ export default function AIInsights() {
           </div>
         </div>
         <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">
-          Analysing your business data…
+          {t("ai_insights.analysing")}
         </p>
       </div>
     );
@@ -191,10 +193,10 @@ export default function AIInsights() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-extrabold tracking-tight">
-                    AI Insights
+                    {t("ai_insights.title")}
                   </h1>
                   <p className="text-white/60 text-sm font-medium">
-                    Powered by ArcNeuron.ai intelligence
+                    {t("ai_insights.subtitle")}
                   </p>
                 </div>
               </div>
@@ -213,12 +215,12 @@ export default function AIInsights() {
                   size={15}
                   className={refreshing ? "animate-spin" : ""}
                 />
-                Refresh
+                {t("ai_insights.refresh")}
               </button>
               {lastUpdated && (
                 <span className="text-white/50 text-xs flex items-center gap-1">
                   <Clock size={11} />
-                  Updated {lastUpdated.toLocaleTimeString()}
+                  {t("ai_insights.updated")} {lastUpdated.toLocaleTimeString()}
                 </span>
               )}
 
@@ -231,14 +233,14 @@ export default function AIInsights() {
         {briefing?.metrics && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <KpiCard
-              label="Today's Sales"
+              label={t("ai_insights.todays_sales")}
               value={`₹${Number(briefing.metrics.sales_today || 0).toLocaleString("en-IN")}`}
               sub={
                 briefing.metrics.sales_change > 0
-                  ? `+₹${Number(briefing.metrics.sales_change).toLocaleString("en-IN")} vs yesterday`
+                  ? `+₹${Number(briefing.metrics.sales_change).toLocaleString("en-IN")} ${t("ai_insights.vs_yesterday")}`
                   : briefing.metrics.sales_change < 0
-                    ? `₹${Number(briefing.metrics.sales_change).toLocaleString("en-IN")} vs yesterday`
-                    : "No sales yesterday"
+                    ? `₹${Number(briefing.metrics.sales_change).toLocaleString("en-IN")} ${t("ai_insights.vs_yesterday")}`
+                    : t("ai_insights.no_sales_yesterday")
               }
               trend={
                 briefing.metrics.sales_change > 0
@@ -254,9 +256,9 @@ export default function AIInsights() {
             />
 
             <KpiCard
-              label="Low Stock Items"
+              label={t("ai_insights.low_stock_items")}
               value={briefing.metrics.low_stock_items || 0}
-              sub="Items with ≤ 5 units"
+              sub={t("ai_insights.items_with_5_units")}
               trend={briefing.metrics.low_stock_items > 0 ? "warn" : "good"}
               icon={Package}
               gradient="from-orange-500 to-red-500"
@@ -267,13 +269,13 @@ export default function AIInsights() {
               }
             />
             <KpiCard
-              label="Pending Receivable"
+              label={t("ai_insights.pending_receivable")}
               value={
                 briefing.metrics.total_receivable >= 100000
                   ? `₹${(briefing.metrics.total_receivable / 100000).toFixed(2)}L`
                   : `₹${Number(briefing.metrics.total_receivable || 0).toLocaleString("en-IN")}`
               }
-              sub="Total outstanding balance"
+              sub={t("ai_insights.total_outstanding_balance")}
               trend="neutral"
               icon={Activity}
               gradient="from-blue-500 to-indigo-500"
@@ -304,18 +306,18 @@ export default function AIInsights() {
           {/* ANOMALIES – Full width now */}
           <div>
             <SectionCard
-              title="Detected Anomalies"
+              title={t("ai_insights.detected_anomalies")}
               icon={ShieldAlert}
               iconClass="text-rose-500"
               badge={
                 anomalies.length > 0
                   ? {
-                      label: `${anomalies.length} Issue${anomalies.length > 1 ? "s" : ""}`,
+                      label: `${anomalies.length} ${anomalies.length > 1 ? t("ai_insights.issues") : t("ai_insights.issue")}`,
                       color:
                         "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
                     }
                   : {
-                      label: "All Clear",
+                      label: t("ai_insights.all_clear"),
                       color:
                         "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
                     }
@@ -325,8 +327,8 @@ export default function AIInsights() {
                 <EmptyState
                   icon={CheckCircle}
                   iconClass="text-emerald-500"
-                  title="Everything looks healthy!"
-                  sub="No anomalies detected in your business data."
+                  title={t("ai_insights.healthy_title")}
+                  sub={t("ai_insights.healthy_sub")}
                 />
               ) : (
                 <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -345,14 +347,14 @@ export default function AIInsights() {
           {/* PREDICTIONS LIST – Moved here */}
           <div className="h-[300px] lg:h-[400px]">
             <SectionCard
-              title="Smart Predictions"
+              title={t("ai_insights.smart_predictions")}
               icon={Brain}
               iconClass="text-indigo-500"
-              sub="Based on 30-day sales velocity"
+              sub={t("ai_insights.predictions_sub")}
               badge={
                 predictions.length > 0
                   ? {
-                      label: `${predictions.length} Alert${predictions.length > 1 ? "s" : ""}`,
+                      label: `${predictions.length} ${predictions.length > 1 ? t("ai_insights.alerts") : t("ai_insights.alert")}`,
                       color:
                         "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
                     }
@@ -363,8 +365,8 @@ export default function AIInsights() {
                 <EmptyState
                   icon={Zap}
                   iconClass="text-indigo-400"
-                  title="No stockout risks"
-                  sub="All tracked items have sufficient stock."
+                  title={t("ai_insights.no_stockout_risks")}
+                  sub={t("ai_insights.all_tracked_items")}
                 />
               ) : (
                 <div className="space-y-3 p-4 overflow-y-auto max-h-[230px] lg:max-h-[310px] custom-scrollbar">
@@ -390,7 +392,7 @@ export default function AIInsights() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <SummaryPill
             icon={Users}
-            label="Dormant Customers"
+            label={t("ai_insights.dormant_customers")}
             value={
               anomalies.filter((a) => a.type === "DORMANT_CUSTOMER").length
             }
@@ -398,19 +400,19 @@ export default function AIInsights() {
           />
           <SummaryPill
             icon={AlertTriangle}
-            label="High Debt Parties"
+            label={t("ai_insights.high_debt_parties")}
             value={anomalies.filter((a) => a.type === "HIGH_DEBT").length}
             color="text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-400"
           />
           <SummaryPill
             icon={Package}
-            label="Stockout Risks"
+            label={t("ai_insights.stockout_risks")}
             value={predictions.length}
             color="text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:text-indigo-400"
           />
           <SummaryPill
             icon={Activity}
-            label="Total Issues"
+            label={t("ai_insights.total_issues")}
             value={anomalies.length + predictions.length}
             color="text-violet-600 bg-violet-50 dark:bg-violet-900/20 dark:text-violet-400"
           />
@@ -435,7 +437,7 @@ export default function AIInsights() {
                     {statementModal.partyName}
                   </h2>
                   <p className="text-white/70 text-xs">
-                    Financial Statement ·{" "}
+                    {t("ai_insights.financial_statement")} ·{" "}
                     {activeFY
                       ? `${formatDate(activeFY.start_date)} to ${formatDate(activeFY.end_date)}`
                       : `${getFinancialYearStartDate()} to ${getFinancialYearEndDate()}`}
@@ -456,7 +458,7 @@ export default function AIInsights() {
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                   <p className="text-gray-500 font-medium">
-                    Loading statement…
+                    {t("ai_insights.loading_statement")}
                   </p>
                 </div>
               ) : statementData.length === 0 ? (
@@ -465,22 +467,22 @@ export default function AIInsights() {
                     <FileText size={32} className="text-gray-400" />
                   </div>
                   <p className="font-semibold text-gray-600 dark:text-gray-300">
-                    No transactions found
+                    {t("ai_insights.no_transactions")}
                   </p>
                   <p className="text-sm text-gray-400">
-                    No records for this party in the current financial year.
+                    {t("ai_insights.no_records_party")}
                   </p>
                 </div>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
                     <tr>
-                      <th className="px-5 py-3 text-left">Date</th>
-                      <th className="px-5 py-3 text-left">Ref</th>
-                      <th className="px-5 py-3 text-left">Description</th>
-                      <th className="px-5 py-3 text-right">Debit (₹)</th>
-                      <th className="px-5 py-3 text-right">Credit (₹)</th>
-                      <th className="px-5 py-3 text-right">Balance (₹)</th>
+                      <th className="px-5 py-3 text-left">{t("ai_insights.table_date")}</th>
+                      <th className="px-5 py-3 text-left">{t("ai_insights.table_ref")}</th>
+                      <th className="px-5 py-3 text-left">{t("ai_insights.table_description")}</th>
+                      <th className="px-5 py-3 text-right">{t("ai_insights.table_debit")}</th>
+                      <th className="px-5 py-3 text-right">{t("ai_insights.table_credit")}</th>
+                      <th className="px-5 py-3 text-right">{t("ai_insights.table_balance")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -540,11 +542,10 @@ export default function AIInsights() {
             {statementData.length > 0 && (
               <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between text-sm">
                 <span className="text-gray-500">
-                  {statementData.length} transaction
-                  {statementData.length !== 1 ? "s" : ""}
+                  {statementData.length} {statementData.length !== 1 ? t("ai_insights.transactions") : t("ai_insights.transaction")}
                 </span>
                 <span className="font-bold text-gray-800 dark:text-white">
-                  Closing Balance: ₹
+                  {t("ai_insights.closing_balance")}: ₹
                   {Number(
                     statementData[statementData.length - 1]?.balance || 0,
                   ).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -567,10 +568,10 @@ export default function AIInsights() {
                       </div>
                       <div>
                         <h2 className="font-bold text-lg leading-tight">
-                          Low Stock Items
+                          {t("ai_insights.low_stock_items")}
                         </h2>
                         <p className="text-white/70 text-xs">
-                          Items with ≤ 5 units
+                          {t("ai_insights.items_with_5_units")}
                         </p>
                       </div>
                     </div>
@@ -586,11 +587,11 @@ export default function AIInsights() {
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
                         <tr>
-                          <th className="px-6 py-3 text-left">Item Name</th>
+                          <th className="px-6 py-3 text-left">{t("ai_insights.table_item_name")}</th>
                           <th className="px-6 py-3 text-right">
-                            Current Stock
+                            {t("ai_insights.table_current_stock")}
                           </th>
-                          <th className="px-6 py-3 text-right">Status</th>
+                          <th className="px-6 py-3 text-right">{t("ai_insights.table_status")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -611,8 +612,8 @@ export default function AIInsights() {
                                   className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-full ${item.current_stock <= 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"}`}
                                 >
                                   {item.current_stock <= 0
-                                    ? "Out of Stock"
-                                    : "Low Stock"}
+                                    ? t("ai_insights.out_of_stock")
+                                    : t("ai_insights.low_stock")}
                                 </span>
                               </td>
                             </tr>
@@ -643,9 +644,9 @@ export default function AIInsights() {
                 </div>
                 <div>
                   <h2 className="font-bold text-lg leading-tight">
-                    Low Stock Items
+                    {t("ai_insights.low_stock_items")}
                   </h2>
-                  <p className="text-white/70 text-xs">Items with ≤ 5 units</p>
+                  <p className="text-white/70 text-xs">{t("ai_insights.items_with_5_units")}</p>
                 </div>
               </div>
               <button
@@ -660,9 +661,9 @@ export default function AIInsights() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs font-bold sticky top-0">
                   <tr>
-                    <th className="px-6 py-3 text-left">Item Name</th>
-                    <th className="px-6 py-3 text-right">Current Stock</th>
-                    <th className="px-6 py-3 text-right">Status</th>
+                    <th className="px-6 py-3 text-left">{t("ai_insights.table_item_name")}</th>
+                    <th className="px-6 py-3 text-right">{t("ai_insights.table_current_stock")}</th>
+                    <th className="px-6 py-3 text-right">{t("ai_insights.table_status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -682,8 +683,8 @@ export default function AIInsights() {
                           className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-full ${item.current_stock <= 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"}`}
                         >
                           {item.current_stock <= 0
-                            ? "Out of Stock"
-                            : "Low Stock"}
+                            ? t("ai_insights.out_of_stock")
+                            : t("ai_insights.low_stock")}
                         </span>
                       </td>
                     </tr>
@@ -801,6 +802,7 @@ function SectionCard({ title, icon: Icon, iconClass, sub, badge, children }) {
 }
 
 function AnomalyRow({ item, onViewStatement }) {
+  const { t } = useTranslation();
   const isHigh = item.severity === "high";
   return (
     <div className="px-6 py-5 hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
@@ -843,7 +845,7 @@ function AnomalyRow({ item, onViewStatement }) {
                     : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100"
                 }`}
               >
-                View Statement <ArrowRight size={13} />
+                {t("ai_insights.view_statement")} <ArrowRight size={13} />
               </button>
             )}
         </div>
@@ -853,6 +855,7 @@ function AnomalyRow({ item, onViewStatement }) {
 }
 
 function PredictionCard({ pred }) {
+  const { t } = useTranslation();
   const urgency =
     pred.days_remaining <= 2
       ? "critical"
@@ -888,23 +891,23 @@ function PredictionCard({ pred }) {
         <span
           className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${s.badge}`}
         >
-          Stockout Risk
+          {t("ai_insights.stockout_risk")}
         </span>
         <span className="text-xs font-bold text-gray-600 dark:text-gray-300 font-mono">
-          {pred.days_remaining}d left
+          {t("ai_insights.days_left", { days: pred.days_remaining })}
         </span>
       </div>
       <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 truncate">
         {pred.item_name}
       </h4>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-        Stock:{" "}
+        {t("ai_insights.stock")}:{" "}
         <span className="font-semibold text-gray-700 dark:text-gray-200">
-          {pred.current_stock} units
+          {pred.current_stock} {t("ai_insights.units")}
         </span>
-        &nbsp;·&nbsp; Avg:{" "}
+        &nbsp;·&nbsp; {t("ai_insights.avg")}:{" "}
         <span className="font-semibold text-gray-700 dark:text-gray-200">
-          {pred.avg_daily_sales}/day
+          {pred.avg_daily_sales}/{t("ai_insights.per_day")}
         </span>
       </p>
       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
@@ -914,7 +917,7 @@ function PredictionCard({ pred }) {
         />
       </div>
       <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 text-right">
-        Est. out by{" "}
+        {t("ai_insights.est_out_by")}{" "}
         <span className="font-semibold">
           {new Date(pred.predicted_date).toLocaleDateString("en-IN", {
             day: "numeric",

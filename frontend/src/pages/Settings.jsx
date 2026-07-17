@@ -12,8 +12,10 @@ import {
 import { getProfile } from "../api/profile";
 import SubscriptionCard from "../components/SubscriptionCard";
 import { Settings as SettingsIcon, Database, LayoutGrid } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("general");
 
   // -- Financial Year State --
@@ -101,10 +103,10 @@ export default function Settings() {
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                Settings
+                {t("settings.title")}
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage your application configuration and preferences
+                {t("settings.subtitle")}
               </p>
             </div>
           </div>
@@ -124,7 +126,7 @@ export default function Settings() {
           >
             <div className="flex items-center justify-center gap-2">
               <LayoutGrid size={18} />
-              <span className="hidden xs:inline sm:inline">General</span>
+              <span className="hidden xs:inline sm:inline">{t("settings.general")}</span>
             </div>
           </button>
           <button
@@ -138,7 +140,7 @@ export default function Settings() {
             <div className="flex items-center justify-center gap-2">
               <Database size={18} />
               <span className="hidden xs:inline sm:inline">
-                Backup & Restore
+                {t("settings.backup_restore")}
               </span>
             </div>
           </button>

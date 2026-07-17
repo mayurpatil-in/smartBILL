@@ -32,8 +32,10 @@ import AddItemModal from "../components/AddItemModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useBarcodeScanner from "../hooks/useBarcodeScanner";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 export default function Items() {
+  const { t } = useTranslation();
   const { hasFeature } = useAuth();
   const [items, setItems] = useState([]);
   const [parties, setParties] = useState([]);
@@ -198,10 +200,10 @@ export default function Items() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Stock / Items
+            {t("items.title")}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage your product inventory efficiently
+            {t("items.subtitle")}
           </p>
         </div>
         <button
@@ -215,26 +217,26 @@ export default function Items() {
             size={18}
             className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
           />
-          Add Item
+          {t("items.add_item")}
         </button>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
-          label="Total Items"
+          label={t("items.total_items")}
           value={totalItems}
           icon={Boxes}
           color="blue"
         />
         <StatCard
-          label="Active Items"
+          label={t("items.active_items")}
           value={activeItems}
           icon={Package}
           color="green"
         />
         <StatCard
-          label="Total Value"
+          label={t("items.total_value")}
           value={`₹${totalValue.toLocaleString("en-IN", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -260,14 +262,14 @@ export default function Items() {
                   type="text"
                   name="item_search"
                   id="item_search"
-                  placeholder="Search items by name..."
+                  placeholder={t("items.search_placeholder")}
                   className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {searchTerm && (
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
-                    {filteredItems.length} found
+                    {filteredItems.length} {t("items.found")}
                   </span>
                 )}
               </div>
@@ -281,7 +283,7 @@ export default function Items() {
                 onChange={(e) => setSelectedParty(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value="">All Parties</option>
+                <option value="">{t("items.all_parties")}</option>
                 {parties
                   .filter((p) => p.is_active)
                   .map((p) => (
@@ -299,19 +301,19 @@ export default function Items() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Item Name</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_item_name")}</th>
                 {hasFeature("ITEM_BARCODE") && (
-                  <th className="px-6 py-4 whitespace-nowrap">Barcode</th>
+                  <th className="px-6 py-4 whitespace-nowrap">{t("items.table_barcode")}</th>
                 )}
-                <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                <th className="px-6 py-4 whitespace-nowrap">Party</th>
-                <th className="px-6 py-4 whitespace-nowrap">Process</th>
-                <th className="px-6 py-4 whitespace-nowrap">P.O No</th>
-                <th className="px-6 py-4 whitespace-nowrap">Cast Wt.</th>
-                <th className="px-6 py-4 whitespace-nowrap">Scrap Wt.</th>
-                <th className="px-6 py-4 whitespace-nowrap">Rate</th>
-                <th className="px-6 py-4 whitespace-nowrap">Party Rate</th>
-                <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_status")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_party")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_process")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_po_no")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_cast_wt")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_scrap_wt")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_rate")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_party_rate")}</th>
+                <th className="px-6 py-4 whitespace-nowrap">{t("items.table_actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -324,7 +326,7 @@ export default function Items() {
                     <div className="flex flex-col items-center gap-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       <span className="text-sm font-medium">
-                        Loading items...
+                        {t("items.loading")}
                       </span>
                     </div>
                   </td>
@@ -341,10 +343,10 @@ export default function Items() {
                         size={48}
                       />
                       <span className="text-sm font-medium">
-                        No items found.
+                        {t("items.no_items")}
                       </span>
                       <span className="text-xs text-gray-400">
-                        Try adjusting your search or filters
+                        {t("items.try_adjusting")}
                       </span>
                     </div>
                   </td>
@@ -375,19 +377,19 @@ export default function Items() {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Showing{" "}
+                {t("items.showing")}{" "}
                 <span className="font-bold text-blue-600 dark:text-blue-400">
                   {startIndex + 1}
                 </span>{" "}
-                to{" "}
+                {t("items.to")}{" "}
                 <span className="font-bold text-blue-600 dark:text-blue-400">
                   {Math.min(endIndex, filteredItems.length)}
                 </span>{" "}
-                of{" "}
+                {t("items.of")}{" "}
                 <span className="font-bold text-gray-900 dark:text-white">
                   {filteredItems.length}
                 </span>{" "}
-                items
+                {t("items.items_lower")}
               </span>
               <select
                 name="items_per_page"
@@ -399,10 +401,10 @@ export default function Items() {
                 }}
                 className="px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
+                <option value={10}>10 {t("items.per_page")}</option>
+                <option value={25}>25 {t("items.per_page")}</option>
+                <option value={50}>50 {t("items.per_page")}</option>
+                <option value={100}>100 {t("items.per_page")}</option>
               </select>
             </div>
             <div className="flex items-center gap-2">

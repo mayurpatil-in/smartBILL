@@ -31,22 +31,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  ArrowRight,
-  Calendar,
-  FileText,
-  PieChart as PieChartIcon,
-  Plus,
-  Users,
-  Package,
-  TrendingUp,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, Calendar, FileText, PieChart as PieChartIcon, Plus, Users, Package, TrendingUp, Sparkles, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/axios";
+import { useTranslation } from "react-i18next";
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user, isCompanyAdmin } = useAuth();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
@@ -142,28 +133,28 @@ export default function Dashboard() {
   // Quick Actions Configuration
   const quickActions = [
     {
-      label: "New Invoice",
+      label: t("dashboard.new_invoice"),
       icon: FileText,
       path: "/invoices",
       gradient: "from-blue-500 to-indigo-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
     },
     {
-      label: "Add Party",
+      label: t("dashboard.add_party"),
       icon: Users,
       path: "/parties",
       gradient: "from-emerald-500 to-teal-600",
       bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
     },
     {
-      label: "Manage Items",
+      label: t("dashboard.manage_items"),
       icon: Package,
       path: "/items",
       gradient: "from-purple-500 to-pink-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
     },
     {
-      label: "View Reports",
+      label: t("dashboard.view_reports"),
       icon: TrendingUp,
       path: "/reports",
       gradient: "from-orange-500 to-red-600",
@@ -211,7 +202,7 @@ export default function Dashboard() {
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-1 sm:mb-2 flex items-center gap-2 sm:gap-3">
               <span className="truncate">
-                Welcome back, {user?.name || "Admin"}
+                {user?.name ? t("dashboard.welcome_back", { name: user.name }) : t("dashboard.welcome_back_fallback")}
               </span>
               <span className="animate-float inline-block flex-shrink-0">
                 👋
@@ -222,11 +213,11 @@ export default function Dashboard() {
                 size={16}
                 className="text-yellow-300 flex-shrink-0 sm:w-[18px] sm:h-[18px]"
               />
-              <span>Here's what's happening in</span>
+              <span>{t("dashboard.heres_whats_happening")}</span>
               <span className="font-bold underline decoration-blue-300 underline-offset-4 break-words">
                 {user?.companyName}
               </span>
-              <span>today.</span>
+              <span>{t("dashboard.today")}</span>
             </p>
           </div>
         </div>
@@ -243,7 +234,7 @@ export default function Dashboard() {
               className="text-blue-200 group-hover:text-white transition-colors sm:w-5 sm:h-5 flex-shrink-0"
             />
             <span className="text-blue-100 group-hover:text-white transition-colors">
-              FY:{" "}
+              {t("dashboard.fy")}
               <span className="font-bold text-white">
                 {new Date(activeFY.start_date).getFullYear()}-
                 {new Date(activeFY.end_date).getFullYear().toString().slice(-2)}
@@ -348,10 +339,10 @@ export default function Dashboard() {
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <TrendingUp size={24} className="text-blue-600" />
-                  Cash Flow Analysis
+                  {t("dashboard.cash_flow_analysis")}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  Income vs Expenses over time
+                  {t("dashboard.income_vs_expenses")}
                 </p>
               </div>
             </div>
@@ -482,7 +473,7 @@ export default function Dashboard() {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 self-start w-full flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <PieChartIcon size={24} className="text-purple-600" />
-                Expense Breakdown
+                {t("dashboard.expense_breakdown")}
               </span>
             </h3>
 
@@ -535,7 +526,7 @@ export default function Dashboard() {
               ) : (
                 <div className="text-gray-400 text-sm flex flex-col items-center gap-2">
                   <PieChartIcon size={48} className="opacity-20" />
-                  <span>No expense data</span>
+                  <span>{t("dashboard.no_expense_data")}</span>
                 </div>
               )}
             </div>
@@ -548,7 +539,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <FileText size={24} className="text-indigo-600" />
-            Recent Invoices
+            {t("dashboard.recent_invoices")}
           </h3>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 max-h-[320px] custom-scrollbar">
@@ -608,7 +599,7 @@ export default function Dashboard() {
             ) : (
               <div className="text-center text-gray-500 py-12 flex flex-col items-center gap-3">
                 <FileText size={48} className="opacity-20" />
-                <p>No recent activity</p>
+                <p>{t("dashboard.no_recent_activity")}</p>
               </div>
             )}
           </div>
@@ -623,7 +614,7 @@ export default function Dashboard() {
               transition-all duration-300
               hover:scale-[1.02]"
           >
-            View All Invoices <ArrowRight size={18} />
+            {t("dashboard.view_all_invoices")} <ArrowRight size={18} />
           </button>
         </div>
       )}

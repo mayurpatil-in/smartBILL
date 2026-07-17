@@ -1,9 +1,11 @@
 import React from "react";
 import { AlertTriangle, Clock, AlertCircle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const OverdueInvoicesAlert = ({ overdueData, loading, onDismiss }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (loading) {
     return (
@@ -85,14 +87,13 @@ const OverdueInvoicesAlert = ({ overdueData, loading, onDismiss }) => {
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
             <h4 className={`text-lg font-bold ${config.textColor}`}>
-              {hasCritical ? "🚨 Critical: " : "⚠️ "}
-              Overdue Invoices Alert
+              {hasCritical ? `🚨 ${t("dashboard_analytics.critical")}: ` : "⚠️ "}
+              {t("dashboard_analytics.overdue_invoices")}
             </h4>
           </div>
 
           <p className={`text-sm ${config.textColor} mb-3`}>
-            You have <strong>{overdueData.total_count} invoices</strong> overdue
-            totaling{" "}
+            {t("dashboard_analytics.you_have", { count: overdueData.total_count, defaultValue: `You have ${overdueData.total_count} invoices overdue totaling` })}{" "}
             <strong className="text-lg">
               ₹{overdueData.total_overdue.toLocaleString()}
             </strong>
@@ -128,7 +129,7 @@ const OverdueInvoicesAlert = ({ overdueData, loading, onDismiss }) => {
               className={`px-4 py-2 bg-white dark:bg-gray-800 ${config.textColor} font-semibold rounded-lg shadow hover:shadow-md transition-all duration-200 text-sm flex items-center gap-2`}
             >
               <Clock size={16} />
-              View Overdue Invoices
+              {t("dashboard_analytics.view_all_overdue")}
             </button>
             <button
               onClick={() => navigate("/payments")}

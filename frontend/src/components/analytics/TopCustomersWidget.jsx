@@ -1,16 +1,18 @@
 import React from "react";
 import { Users, TrendingUp, Calendar, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const TopCustomersWidget = ({ customers, loading }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Users size={24} className="text-blue-600" />
-          Top Customers
+          {t("dashboard_analytics.top_customers")}
         </h3>
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -29,11 +31,11 @@ const TopCustomersWidget = ({ customers, loading }) => {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Users size={24} className="text-blue-600" />
-          Top Customers
+          {t("dashboard_analytics.top_customers")}
         </h3>
         <div className="text-center text-gray-500 py-12 flex flex-col items-center gap-2">
           <Users size={48} className="opacity-20" />
-          <span>No customer data available</span>
+          <span>{t("dashboard_analytics.no_customer_data")}</span>
         </div>
       </div>
     );
@@ -51,13 +53,13 @@ const TopCustomersWidget = ({ customers, loading }) => {
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Users size={24} className="text-blue-600" />
-          Top Customers
+          {t("dashboard_analytics.top_customers")}
         </h3>
         <button
           onClick={() => navigate("/parties")}
           className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
         >
-          View All <ArrowRight size={16} />
+          {t("dashboard_analytics.view_all")} <ArrowRight size={16} />
         </button>
       </div>
 
@@ -102,7 +104,7 @@ const TopCustomersWidget = ({ customers, loading }) => {
                 <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
                   <span className="flex items-center gap-1">
                     <TrendingUp size={12} />
-                    {customer.invoice_count} invoices
+                    {customer.invoice_count} {t("dashboard_analytics.invoices")}
                   </span>
                   {customer.last_invoice_date && (
                     <span className="flex items-center gap-1">
@@ -124,7 +126,7 @@ const TopCustomersWidget = ({ customers, loading }) => {
                       })}
                     </span>
                     <span className="text-gray-500">
-                      Avg: ₹
+                      {t("dashboard_analytics.avg")}: ₹
                       {customer.avg_invoice_value.toLocaleString("en-IN", {
                         maximumFractionDigits: 2,
                       })}
@@ -150,7 +152,7 @@ const TopCustomersWidget = ({ customers, loading }) => {
         <div className="mt-4 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600 dark:text-gray-400">
-              Top {customers.length} customers contribute
+              {t("dashboard_analytics.top_customers_contribute", { count: customers.length })}
             </span>
             <span className="font-bold text-blue-600">
               {customers

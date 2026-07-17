@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, Fragment } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Search,
@@ -40,6 +41,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ChequePrintModal from "../components/ChequePrintModal";
 
 export default function Expenses() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("all"); // 'all' or 'recurring'
   const [expenses, setExpenses] = useState([]);
   const [stats, setStats] = useState(null);
@@ -125,12 +127,8 @@ export default function Expenses() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-            Expense Tracker
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Manage operational costs, bills, and cheques
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent"> {t("expenses.title")} </h1>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1"> {t("expenses.subtitle")} </p>
         </div>
         <button
           onClick={() => {
@@ -142,22 +140,20 @@ export default function Expenses() {
           <Plus
             size={18}
             className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
-          />
-          Add Expense
-        </button>
+          /> {t("expenses.add_expense")} </button>
       </div>
 
       {/* Stats (Only visible on All Expenses tab) */}
       {activeTab === "all" && stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <StatCard
-            label="Total Expenses"
+            label={t("expenses.total_expenses")}
             value={`₹${Number(stats.total_amount).toLocaleString("en-IN")}`}
             icon={TrendingDown}
             color="red"
           />
           <StatCard
-            label="This Month"
+            label={t("expenses.this_month")}
             value={`₹${Number(stats.this_month_amount).toLocaleString(
               "en-IN",
             )}`}
@@ -165,7 +161,7 @@ export default function Expenses() {
             color="blue"
           />
           <StatCard
-            label="Total Count"
+            label={t("expenses.total_count")}
             value={stats.count}
             icon={ReceiptIndianRupee}
             color="orange"
@@ -183,9 +179,7 @@ export default function Expenses() {
                 ? "border-red-500 text-red-600 dark:text-red-400"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
-          >
-            All Expenses
-          </button>
+          > {t("expenses.tab_all")} </button>
           <button
             onClick={() => setActiveTab("recurring")}
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
@@ -193,9 +187,7 @@ export default function Expenses() {
                 ? "border-blue-500 text-blue-600 dark:text-blue-400"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
-          >
-            Recurring Templates
-          </button>
+          > {t("expenses.tab_recurring")} </button>
         </nav>
       </div>
 
@@ -313,6 +305,7 @@ function StatCard({ label, value, icon: Icon, color }) {
 }
 
 function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [expensesPerPage] = useState(10);
 
@@ -341,7 +334,7 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
       <div className="p-12 text-center text-gray-500">
         <div className="flex flex-col items-center gap-2">
           <Receipt className="text-gray-300 dark:text-gray-600" size={48} />
-          <span className="text-sm font-medium">No expenses found.</span>
+          <span className="text-sm font-medium"> {t("expenses.no_expenses")} </span>
           <span className="text-xs text-gray-400">
             Add your first expense to get started
           </span>
@@ -355,12 +348,12 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
         <table className="w-full text-left text-sm">
           <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
             <tr>
-              <th className="px-6 py-4 whitespace-nowrap">Date</th>
-              <th className="px-6 py-4 whitespace-nowrap">Category</th>
-              <th className="px-6 py-4 whitespace-nowrap">Payee / Details</th>
-              <th className="px-6 py-4 whitespace-nowrap">Mode</th>
-              <th className="px-6 py-4 whitespace-nowrap text-right">Amount</th>
-              <th className="px-6 py-4 whitespace-nowrap">Actions</th>
+              <th className="px-6 py-4 whitespace-nowrap"> {t("expenses.table_date")} </th>
+              <th className="px-6 py-4 whitespace-nowrap"> {t("expenses.table_category")} </th>
+              <th className="px-6 py-4 whitespace-nowrap"> {t("expenses.table_party")} </th>
+              <th className="px-6 py-4 whitespace-nowrap"> {t("expenses.table_mode")} </th>
+              <th className="px-6 py-4 whitespace-nowrap text-right"> {t("expenses.table_amount")} </th>
+              <th className="px-6 py-4 whitespace-nowrap"> {t("expenses.table_actions")} </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -465,7 +458,7 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
                       <button
                         onClick={() => onPrint(ex)}
                         className="p-2 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                        title="Print Cheque"
+                        title={t("expenses.print_cheque")}
                       >
                         <Printer size={16} />
                       </button>
@@ -473,14 +466,14 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
                     <button
                       onClick={() => onEdit(ex)}
                       className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                      title="Edit Expense"
+                      title={t("expenses.edit_expense")}
                     >
                       <Edit size={16} />
                     </button>
                     <button
                       onClick={() => onDelete(ex)}
                       className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                      title="Delete Expense"
+                      title={t("expenses.delete_expense", { defaultValue: "Delete Expense" })}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -497,20 +490,8 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              Showing{" "}
-              <span className="font-bold text-red-600 dark:text-red-400">
-                {startIndex + 1}
-              </span>{" "}
-              to{" "}
-              <span className="font-bold text-red-600 dark:text-red-400">
-                {Math.min(endIndex, expenses.length)}
-              </span>{" "}
-              of{" "}
-              <span className="font-bold text-gray-900 dark:text-white">
-                {expenses.length}
-              </span>{" "}
-              expenses
-            </span>
+                {t("expenses.showing")} <span className="font-bold text-red-600 dark:text-red-400">{startIndex + 1}</span> {t("expenses.to")} <span className="font-bold text-red-600 dark:text-red-400">{Math.min(endIndex, expenses.length)}</span> {t("expenses.of")} <span className="font-bold text-gray-900 dark:text-white">{expenses.length}</span> {t("expenses.expenses_count")}
+              </span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -574,6 +555,7 @@ function ExpensesList({ expenses, loading, onEdit, onDelete, onPrint }) {
 }
 
 function RecurringList({ expenses, loading, onEdit, onDelete, onPost }) {
+  const { t } = useTranslation();
   if (loading)
     return (
       <div className="p-8 text-center text-gray-500">Loading templates...</div>
@@ -655,8 +637,7 @@ function AddExpenseModal({
   defaultRecurring,
   existingCategories = [],
 }) {
-  if (!open) return null;
-
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     category: "Rent",
@@ -788,6 +769,8 @@ function AddExpenseModal({
       }
     }
   };
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
@@ -1193,9 +1176,9 @@ function AddExpenseModal({
                     })
                   }
                 >
-                  <option value="Monthly">Monthly</option>
-                  <option value="Weekly">Weekly</option>
-                  <option value="Yearly">Yearly</option>
+                  <option value="Monthly"> {t("expenses.monthly")} </option>
+                  <option value="Weekly"> {t("expenses.weekly")} </option>
+                  <option value="Yearly"> {t("expenses.yearly")} </option>
                 </select>
               </div>
             )}

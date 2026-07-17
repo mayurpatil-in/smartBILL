@@ -42,8 +42,10 @@ import {
   getFinancialYearStartDate,
   getFinancialYearEndDate,
 } from "../utils/dateUtils";
+import { useTranslation } from "react-i18next";
 
 export default function Reports() {
+  const { t } = useTranslation();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -721,7 +723,7 @@ export default function Reports() {
             Reports Center
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Comprehensive business insights and material tracking
+            {t("reports.subtitle")}
           </p>
         </div>
       </div>
@@ -730,16 +732,16 @@ export default function Reports() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
           {[
-            { id: "jobwork", label: "Job Work Register", icon: ClipboardList },
-            { id: "ledger", label: "Job Work Stock", icon: Package },
-            { id: "stock", label: "Stock Ledger", icon: Boxes },
+            { id: "jobwork", label: t("reports.tab_jobwork"), icon: ClipboardList },
+            { id: "ledger", label: t("reports.tab_ledger"), icon: Package },
+            { id: "stock", label: t("reports.tab_stock"), icon: Boxes },
             {
               id: "statement",
-              label: "Financial Statement",
+              label: t("reports.tab_statement"),
               icon: ReceiptIndianRupee,
             },
-            { id: "gst", label: "GST Report", icon: IndianRupee },
-            { id: "grn", label: "GRN Report", icon: FileText },
+            { id: "gst", label: t("reports.tab_gst"), icon: IndianRupee },
+            { id: "grn", label: t("reports.tab_grn"), icon: FileText },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -794,7 +796,7 @@ export default function Reports() {
                     {stats.totalJobs}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
-                    Total Jobs
+                    {t("reports.total_jobs")}
                   </p>
                 </div>
               </div>
@@ -811,7 +813,7 @@ export default function Reports() {
                     {stats.pendingJobs}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
-                    Pending Jobs
+                    {t("reports.pending_jobs")}
                   </p>
                 </div>
               </div>
@@ -828,7 +830,7 @@ export default function Reports() {
                     {stats.completedJobs}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
-                    Completed
+                    {t("reports.completed_jobs")}
                   </p>
                 </div>
               </div>
@@ -842,10 +844,12 @@ export default function Reports() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold text-purple-600 dark:text-purple-400 tabular-nums group-hover:scale-105 transition-transform duration-300 origin-left">
-                    {stats.totalPendingQty}
+                    {stats.totalPendingQty.toLocaleString("en-IN", {
+                      maximumFractionDigits: 3,
+                    })}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">
-                    Pending Qty
+                    {t("reports.total_pending_qty")}
                   </p>
                 </div>
               </div>
@@ -866,7 +870,7 @@ export default function Reports() {
                     type="text"
                     name="report_search"
                     id="report_search"
-                    placeholder="Search..."
+                    placeholder={t("reports.search_placeholder")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all dark:text-white"
@@ -886,7 +890,7 @@ export default function Reports() {
                   name="job_work_party_filter"
                   id="job_work_party_filter"
                 >
-                  <option value="">All Parties</option>
+                  <option value="">{t("reports.filter_all_parties")}</option>
                   {availableParties.map((party) => (
                     <option key={party} value={party}>
                       {party}
@@ -901,7 +905,7 @@ export default function Reports() {
                   name="job_work_item_filter"
                   id="job_work_item_filter"
                 >
-                  <option value="">All Items</option>
+                  <option value="">{t("reports.filter_all_items")}</option>
                   {availableItems.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -917,7 +921,7 @@ export default function Reports() {
                     }}
                     className="w-full md:w-auto px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all whitespace-nowrap"
                   >
-                    Clear Filter
+                    {t("reports.clear_filter")}
                   </button>
                 )}
               </div>
@@ -935,7 +939,7 @@ export default function Reports() {
                           : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                       }`}
                     >
-                      {status}
+                      {status === "all" ? t("reports.filter_all_status") : status === "pending" ? t("reports.filter_pending") : t("reports.filter_completed")}
                     </button>
                   ))}
                 </div>
@@ -947,7 +951,7 @@ export default function Reports() {
                     size={18}
                     className="group-hover:-translate-y-0.5 transition-transform duration-300"
                   />
-                  Export
+                  {t("reports.export")}
                 </button>
               </div>
             </div>
@@ -960,25 +964,25 @@ export default function Reports() {
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Date
+                      {t("reports.table_date")}
                     </th>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Party & Challan
+                      {t("reports.table_party_challan")}
                     </th>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Item Details
+                      {t("reports.table_item_details")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Inward
+                      {t("reports.table_inward")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Outward
+                      {t("reports.table_outward")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Balance
+                      {t("reports.table_balance")}
                     </th>
                     <th className="px-6 py-4 text-center whitespace-nowrap">
-                      Status
+                      {t("reports.table_status")}
                     </th>
                   </tr>
                 </thead>
@@ -989,7 +993,7 @@ export default function Reports() {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
                           <p className="text-gray-500 font-medium">
-                            Loading Report...
+                            {t("reports.loading")}
                           </p>
                         </div>
                       </td>
@@ -1002,7 +1006,7 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No records found
+                            {t("reports.no_records")}
                           </p>
                         </div>
                       </td>
@@ -1057,12 +1061,12 @@ export default function Reports() {
                           {row.status === "Completed" ? (
                             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
                               <CheckCircle size={14} />
-                              Completed
+                              {t("reports.completed")}
                             </div>
                           ) : (
                             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
                               <Clock size={14} />
-                              Pending
+                              {t("reports.pending")}
                             </div>
                           )}
                         </td>
@@ -1077,9 +1081,9 @@ export default function Reports() {
             {filteredData.length > itemsPerPage && (
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {indexOfFirstItem + 1} to{" "}
-                  {Math.min(indexOfLastItem, filteredData.length)} of{" "}
-                  {filteredData.length} entries
+                  {t("reports.showing")} {indexOfFirstItem + 1} {t("reports.to")}{" "}
+                  {Math.min(indexOfLastItem, filteredData.length)} {t("reports.of")}{" "}
+                  {filteredData.length} {t("reports.entries")}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1153,7 +1157,7 @@ export default function Reports() {
                   htmlFor="statement_party_id"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Select Party
+                  {t("reports.select_party")}
                 </label>
                 <select
                   name="statement_party_id"
@@ -1162,7 +1166,7 @@ export default function Reports() {
                   onChange={(e) => setSelectedStatementPartyId(e.target.value)}
                   className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
-                  <option value="">-- Select Party --</option>
+                  <option value="">-- {t("reports.select_party")} --</option>
                   {parties.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -1175,7 +1179,7 @@ export default function Reports() {
                   htmlFor="statement_start_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Start Date
+                  {t("reports.start_date")}
                 </label>
                 <input
                   type="date"
@@ -1196,7 +1200,7 @@ export default function Reports() {
                   htmlFor="statement_end_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  End Date
+                  {t("reports.end_date")}
                 </label>
                 <input
                   type="date"
@@ -1218,7 +1222,7 @@ export default function Reports() {
                   className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105"
                 >
                   <Printer size={20} />
-                  {pdfLoading ? "Generating..." : "Print Statement"}
+                  {pdfLoading ? t("reports.generating") : t("reports.print_statement")}
                 </button>
               )}
             </div>
@@ -1229,17 +1233,17 @@ export default function Reports() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Ref</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Description</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_date")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_ref")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_description")}</th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Debit
+                      {t("reports.debit")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Credit
+                      {t("reports.credit")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Balance
+                      {t("reports.balance")}
                     </th>
                   </tr>
                 </thead>
@@ -1250,7 +1254,7 @@ export default function Reports() {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                           <p className="text-gray-500 font-medium">
-                            Loading Statement...
+                            {t("reports.loading")}
                           </p>
                         </div>
                       </td>
@@ -1263,7 +1267,7 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No transactions found
+                            {t("reports.no_transactions")}
                           </p>
                         </div>
                       </td>
@@ -1326,7 +1330,7 @@ export default function Reports() {
                   htmlFor="jobwork_ledger_party"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Select Party for Ledger
+                  {t("reports.select_party_ledger")}
                 </label>
                 <select
                   name="jobwork_ledger_party"
@@ -1335,7 +1339,7 @@ export default function Reports() {
                   onChange={(e) => setSelectedJobWorkParty(e.target.value)}
                   className="w-full lg:w-96 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium"
                 >
-                  <option value="">All Parties</option>
+                  <option value="">{t("reports.filter_all_parties")}</option>
                   {availableParties.map((p) => (
                     <option key={p} value={p}>
                       {p}
@@ -1350,7 +1354,7 @@ export default function Reports() {
                     htmlFor="jobwork_start_date"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                   >
-                    Start Date
+                    {t("reports.start_date")}
                   </label>
                   <input
                     type="date"
@@ -1370,7 +1374,7 @@ export default function Reports() {
                     htmlFor="jobwork_end_date"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                   >
-                    End Date
+                    {t("reports.end_date")}
                   </label>
                   <input
                     type="date"
@@ -1394,7 +1398,7 @@ export default function Reports() {
                     size={18}
                     className="group-hover:rotate-12 transition-transform duration-300"
                   />
-                  {pdfLoading ? "Generating..." : "Print Summary"}
+                  {pdfLoading ? t("reports.generating") : t("reports.print_summary")}
                 </button>
               </div>
             </div>
@@ -1407,8 +1411,8 @@ export default function Reports() {
                   <ClipboardList size={20} />
                 </div>
                 {selectedJobWorkParty
-                  ? `${selectedJobWorkParty} - Stock Summary`
-                  : "All Parties Stock Summary"}
+                  ? `${selectedJobWorkParty} - ${t("reports.stock_summary")}`
+                  : t("reports.all_parties_stock_summary")}
               </h3>
             </div>
             <div className="overflow-x-auto">
@@ -1416,22 +1420,22 @@ export default function Reports() {
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Party Name
+                      {t("reports.table_party")}
                     </th>
                     <th className="px-6 py-4 text-left whitespace-nowrap">
-                      Item Name
+                      {t("reports.table_item")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Opening Balance
+                      {t("reports.opening_balance")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Total Inward
+                      {t("reports.total_inward")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Total Outward
+                      {t("reports.total_outward")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Closing Balance
+                      {t("reports.closing_balance")}
                     </th>
                   </tr>
                 </thead>
@@ -1442,7 +1446,7 @@ export default function Reports() {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                           <p className="text-gray-500 font-medium">
-                            Loading Stock Summary...
+                            {t("reports.loading")}
                           </p>
                         </div>
                       </td>
@@ -1455,7 +1459,7 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No stock records found for this period
+                            {t("reports.no_stock_records")}
                           </p>
                         </div>
                       </td>
@@ -1511,7 +1515,7 @@ export default function Reports() {
                   htmlFor="stock_ledger_party"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Select Party (Optional)
+                  {t("reports.select_party_optional")}
                 </label>
                 <select
                   name="stock_ledger_party"
@@ -1520,7 +1524,7 @@ export default function Reports() {
                   onChange={(e) => setSelectedStockParty(e.target.value)}
                   className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
-                  <option value="">-- All Parties --</option>
+                  <option value="">-- {t("reports.all_parties")} --</option>
                   {parties.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -1534,7 +1538,7 @@ export default function Reports() {
                   htmlFor="stock_ledger_item"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Select Item
+                  {t("reports.select_item")}
                 </label>
                 <select
                   name="stock_ledger_item"
@@ -1543,7 +1547,7 @@ export default function Reports() {
                   onChange={(e) => setSelectedItem(e.target.value)}
                   className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                 >
-                  <option value="">-- Select Item --</option>
+                  <option value="">-- {t("reports.select_item")} --</option>
                   {items
                     .filter((i) =>
                       selectedStockParty
@@ -1564,7 +1568,7 @@ export default function Reports() {
                   htmlFor="stock_start_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Start Date
+                  {t("reports.start_date")}
                 </label>
                 <input
                   type="date"
@@ -1585,7 +1589,7 @@ export default function Reports() {
                   htmlFor="stock_end_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  End Date
+                  {t("reports.end_date")}
                 </label>
                 <input
                   type="date"
@@ -1608,7 +1612,7 @@ export default function Reports() {
                   className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-700 hover:to-cyan-800 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 hover:scale-105"
                 >
                   <Printer size={20} />
-                  {pdfLoading ? "Generating..." : "Print Ledger"}
+                  {pdfLoading ? t("reports.generating") : t("reports.print_ledger")}
                 </button>
               )}
             </div>
@@ -1621,7 +1625,7 @@ export default function Reports() {
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
-                    Opening Balance
+                    {t("reports.opening_balance")}
                   </h3>
                   <div className="w-10 h-10 bg-blue-500 dark:bg-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-lg">📦</span>
@@ -1631,7 +1635,7 @@ export default function Reports() {
                   {stockLedgerSummary.opening_balance.toFixed(0)}
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  units
+                  {t("reports.units")}
                 </p>
               </div>
 
@@ -1639,7 +1643,7 @@ export default function Reports() {
               <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-2xl border-2 border-green-200 dark:border-green-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide">
-                    Inward Qty
+                    {t("reports.inward_qty")}
                   </h3>
                   <div className="w-10 h-10 bg-green-500 dark:bg-green-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-lg">📥</span>
@@ -1649,7 +1653,7 @@ export default function Reports() {
                   {stockLedgerSummary.total_inward.toFixed(0)}
                 </p>
                 <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                  units received
+                  {t("reports.units_received")}
                 </p>
               </div>
 
@@ -1657,7 +1661,7 @@ export default function Reports() {
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-6 rounded-2xl border-2 border-orange-200 dark:border-orange-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">
-                    Outward Qty
+                    {t("reports.outward_qty")}
                   </h3>
                   <div className="w-10 h-10 bg-orange-500 dark:bg-orange-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-lg">📤</span>
@@ -1667,7 +1671,7 @@ export default function Reports() {
                   {stockLedgerSummary.total_outward.toFixed(0)}
                 </p>
                 <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                  units dispatched
+                  {t("reports.units_dispatched")}
                 </p>
               </div>
 
@@ -1675,7 +1679,7 @@ export default function Reports() {
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-700 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
-                    Closing Balance
+                    {t("reports.closing_balance")}
                   </h3>
                   <div className="w-10 h-10 bg-purple-500 dark:bg-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-lg">✅</span>
@@ -1685,7 +1689,7 @@ export default function Reports() {
                   {stockLedgerSummary.closing_balance.toFixed(0)}
                 </p>
                 <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                  units in stock
+                  {t("reports.units_in_stock")}
                 </p>
               </div>
             </div>
@@ -1696,19 +1700,19 @@ export default function Reports() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Type</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Ref</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Description</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Party</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_date")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_type")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_ref")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_description")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_party")}</th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      In Qty
+                      {t("reports.table_in_qty")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Out Qty
+                      {t("reports.table_out_qty")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Balance
+                      {t("reports.table_balance")}
                     </th>
                   </tr>
                 </thead>
@@ -1719,7 +1723,7 @@ export default function Reports() {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                           <p className="text-gray-500 font-medium">
-                            Loading Stock Ledger...
+                            {t("reports.loading")}
                           </p>
                         </div>
                       </td>
@@ -1732,7 +1736,7 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No records found
+                            {t("reports.no_records")}
                           </p>
                         </div>
                       </td>
@@ -1811,7 +1815,7 @@ export default function Reports() {
                     htmlFor="gst_party"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                   >
-                    Select Party (Optional)
+                    {t("reports.select_party_optional")}
                   </label>
                   <select
                     name="gst_party"
@@ -1820,7 +1824,7 @@ export default function Reports() {
                     onChange={(e) => setSelectedGSTParty(e.target.value)}
                     className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                   >
-                    <option value="">-- All Parties --</option>
+                    <option value="">-- {t("reports.all_parties")} --</option>
                     {parties.map((p) => (
                       <option key={p.id} value={p.name}>
                         {p.name}
@@ -1833,7 +1837,7 @@ export default function Reports() {
                     htmlFor="gst_start_date"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                   >
-                    Start Date
+                    {t("reports.start_date")}
                   </label>
                   <input
                     type="date"
@@ -1853,7 +1857,7 @@ export default function Reports() {
                     htmlFor="gst_end_date"
                     className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                   >
-                    End Date
+                    {t("reports.end_date")}
                   </label>
                   <input
                     type="date"
@@ -1879,7 +1883,7 @@ export default function Reports() {
                     size={18}
                     className="group-hover:-translate-y-0.5 transition-transform duration-300"
                   />
-                  Export GSTR-1
+                  {t("reports.export_gstr")}
                 </button>
                 <button
                   onClick={handlePrintGSTReport}
@@ -1890,7 +1894,7 @@ export default function Reports() {
                     size={18}
                     className="group-hover:rotate-12 transition-transform duration-300"
                   />
-                  {pdfLoading ? "Generating..." : "Print PDF"}
+                  {pdfLoading ? t("reports.generating") : t("reports.print_pdf")}
                 </button>
               </div>
             </div>
@@ -1901,7 +1905,7 @@ export default function Reports() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
               <div className="relative">
                 <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider">
-                  Total Taxable Value
+                  {t("reports.total_taxable_value")}
                 </p>
                 <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tabular-nums">
                   ₹
@@ -1920,7 +1924,7 @@ export default function Reports() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
               <div className="relative">
                 <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">
-                  Total Tax (IGST+CGST+SGST)
+                  {t("reports.total_tax")}
                 </p>
                 <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tabular-nums">
                   ₹
@@ -1942,7 +1946,7 @@ export default function Reports() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-black/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
               <div className="relative">
                 <p className="text-sm text-indigo-600 dark:text-indigo-400 font-semibold uppercase tracking-wider">
-                  Invoice Count
+                  {t("reports.invoice_count")}
                 </p>
                 <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2 tabular-nums">
                   {
@@ -1962,24 +1966,24 @@ export default function Reports() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Invoice No</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
-                    <th className="px-6 py-4 whitespace-nowrap">GSTIN</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_date")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.invoice_number")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_party")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.gstin")}</th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Taxable
+                      {t("reports.taxable")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      SGST
+                      {t("reports.sgst")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      CGST
+                      {t("reports.cgst")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      IGST
+                      {t("reports.igst")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Total
+                      {t("reports.total")}
                     </th>
                   </tr>
                 </thead>
@@ -1990,7 +1994,7 @@ export default function Reports() {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                           <p className="text-gray-500 font-medium">
-                            Loading GST Data...
+                            {t("reports.loading")}
                           </p>
                         </div>
                       </td>
@@ -2007,7 +2011,7 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No records found
+                            {t("reports.no_records")}
                           </p>
                         </div>
                       </td>
@@ -2081,7 +2085,7 @@ export default function Reports() {
                   htmlFor="grn_party_id"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Select Party
+                  {t("reports.select_party")}
                 </label>
                 <select
                   name="grn_party_id"
@@ -2090,7 +2094,7 @@ export default function Reports() {
                   onChange={(e) => setSelectedGRNParty(e.target.value)}
                   className="w-full md:w-64 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium"
                 >
-                  <option value="">-- All Parties --</option>
+                  <option value="">-- {t("reports.all_parties")} --</option>
                   {parties.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -2103,7 +2107,7 @@ export default function Reports() {
                   htmlFor="grn_start_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  Start Date
+                  {t("reports.start_date")}
                 </label>
                 <input
                   type="date"
@@ -2124,7 +2128,7 @@ export default function Reports() {
                   htmlFor="grn_end_date"
                   className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300"
                 >
-                  End Date
+                  {t("reports.end_date")}
                 </label>
                 <input
                   type="date"
@@ -2147,7 +2151,7 @@ export default function Reports() {
                 className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-all duration-300"
               >
                 <Filter size={20} />
-                Filter
+                {t("reports.filter")}
               </button>
 
               <button
@@ -2158,7 +2162,7 @@ export default function Reports() {
                 className="w-full md:w-auto mt-4 md:mt-0 flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-purple-600/30 hover:shadow-xl hover:shadow-purple-600/40 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Printer size={20} />
-                {pdfLoading ? "Generating..." : "Print GRN Report"}
+                {pdfLoading ? t("reports.generating") : t("reports.print_grn_report")}
               </button>
             </div>
           </div>
@@ -2168,20 +2172,20 @@ export default function Reports() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
                   <tr>
-                    <th className="px-6 py-4 whitespace-nowrap">Date</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Invoice No</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Party Name</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Challan No</th>
-                    <th className="px-6 py-4 whitespace-nowrap">GRN No</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Item</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_date")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.invoice_number")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_party")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_challan_no")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_grn_no")}</th>
+                    <th className="px-6 py-4 whitespace-nowrap">{t("reports.table_item")}</th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Qty
+                      {t("reports.qty")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Rate
+                      {t("reports.rate")}
                     </th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Amount
+                      {t("reports.amount")}
                     </th>
                   </tr>
                 </thead>
@@ -2192,7 +2196,7 @@ export default function Reports() {
                         <div className="flex flex-col items-center justify-center gap-3">
                           <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
                           <p className="text-gray-500 font-medium">
-                            Loading GRN Data...
+                            {t("reports.loading")}
                           </p>
                         </div>
                       </td>
@@ -2205,7 +2209,7 @@ export default function Reports() {
                             <FileText className="text-gray-400" size={24} />
                           </div>
                           <p className="text-gray-500 font-medium">
-                            No GRN records found
+                            {t("reports.no_grn_records")}
                           </p>
                         </div>
                       </td>

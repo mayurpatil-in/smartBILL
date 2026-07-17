@@ -21,6 +21,7 @@ import {
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { usePermissions } from "../hooks/usePermissions";
+import { useTranslation } from "react-i18next";
 
 export default function Sidebar({
   open,
@@ -30,6 +31,7 @@ export default function Sidebar({
 }) {
   const { logout, isSuperAdmin, isCompanyAdmin, user, hasFeature } = useAuth();
   const { hasPermission } = usePermissions();
+  const { t } = useTranslation();
 
   return (
     <aside
@@ -111,14 +113,14 @@ export default function Sidebar({
           {!collapsed && (
             <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-100 dark:border-blue-900/30">
               <p className="text-xs font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent uppercase tracking-wider">
-                Operations
+                {t("sidebar.operations")}
               </p>
             </div>
           )}
           <MenuLink
             to="/"
             icon={LayoutDashboard}
-            label="Dashboard"
+            label={t("sidebar.dashboard")}
             collapsed={collapsed}
           />
           {!isSuperAdmin && (
@@ -127,7 +129,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/ai-insights"
                   icon={Sparkles}
-                  label="AI Insights"
+                  label={t("sidebar.ai_insights")}
                   collapsed={collapsed}
                 />
               )}
@@ -135,7 +137,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/parties"
                   icon={Users}
-                  label="Parties"
+                  label={t("sidebar.parties")}
                   collapsed={collapsed}
                 />
               )}
@@ -143,7 +145,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/items"
                   icon={Package}
-                  label="Stock"
+                  label={t("sidebar.stock")}
                   collapsed={collapsed}
                 />
               )}
@@ -152,14 +154,14 @@ export default function Sidebar({
                   <MenuLink
                     to="/party-challans"
                     icon={ClipboardList}
-                    label="Party Challans"
+                    label={t("sidebar.party_challans")}
                     collapsed={collapsed}
                   />
                   {hasFeature("DELIVERY_CHALLAN") && (
                     <MenuLink
                       to="/challans"
                       icon={Truck}
-                      label="Delivery Challans"
+                      label={t("sidebar.delivery_challans")}
                       collapsed={collapsed}
                     />
                   )}
@@ -176,7 +178,7 @@ export default function Sidebar({
               {!collapsed && (
                 <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-900/30">
                   <p className="text-xs font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent uppercase tracking-wider">
-                    Finance
+                    {t("sidebar.finance")}
                   </p>
                 </div>
               )}
@@ -184,7 +186,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/invoices"
                   icon={FileText}
-                  label="Invoices"
+                  label={t("sidebar.invoices")}
                   collapsed={collapsed}
                 />
               )}
@@ -192,7 +194,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/payments"
                   icon={WalletCards}
-                  label="Payments"
+                  label={t("sidebar.payments")}
                   collapsed={collapsed}
                 />
               )}
@@ -200,7 +202,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/expenses"
                   icon={Wallet}
-                  label="Expenses"
+                  label={t("sidebar.expenses")}
                   collapsed={collapsed}
                 />
               )}
@@ -212,7 +214,7 @@ export default function Sidebar({
                 {!collapsed && (
                   <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-100 dark:border-purple-900/30">
                     <p className="text-xs font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent uppercase tracking-wider">
-                      HR
+                      {t("sidebar.hr")}
                     </p>
                   </div>
                 )}
@@ -220,7 +222,7 @@ export default function Sidebar({
                   <MenuLink
                     to="/employees"
                     icon={Users}
-                    label="Employees"
+                    label={t("sidebar.employees")}
                     collapsed={collapsed}
                   />
                 )}
@@ -232,7 +234,7 @@ export default function Sidebar({
               {!collapsed && (
                 <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-100 dark:border-orange-900/30">
                   <p className="text-xs font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent uppercase tracking-wider">
-                    System
+                    {t("sidebar.system")}
                   </p>
                 </div>
               )}
@@ -240,7 +242,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/reports"
                   icon={FileText}
-                  label="Reports"
+                  label={t("sidebar.reports")}
                   collapsed={collapsed}
                 />
               )}
@@ -248,7 +250,7 @@ export default function Sidebar({
                 <MenuLink
                   to="/settings"
                   icon={Settings}
-                  label="Settings"
+                  label={t("sidebar.settings")}
                   collapsed={collapsed}
                 />
               )}
@@ -258,7 +260,7 @@ export default function Sidebar({
                   <MenuLink
                     to="/users"
                     icon={UserCog}
-                    label="User Management"
+                    label={t("sidebar.user_management")}
                     collapsed={collapsed}
                   />
                 )}
@@ -268,7 +270,7 @@ export default function Sidebar({
                   <MenuLink
                     to="/roles"
                     icon={Shield}
-                    label="Roles & Permissions"
+                    label={t("sidebar.roles_permissions")}
                     collapsed={collapsed}
                   />
                 )}
@@ -282,26 +284,26 @@ export default function Sidebar({
             {!collapsed && (
               <div className="px-3 py-1.5 mx-1 mb-2 rounded-lg bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-100 dark:border-red-900/30">
                 <p className="text-xs font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent uppercase tracking-wider">
-                  Administration
+                  {t("sidebar.administration")}
                 </p>
               </div>
             )}
             <MenuLink
               to="/roles"
               icon={Shield}
-              label="Roles & Permissions"
+              label={t("sidebar.roles_permissions")}
               collapsed={collapsed}
             />
             <MenuLink
               to="/audit-logs"
               icon={Activity}
-              label="Audit Logs"
+              label={t("sidebar.audit_logs")}
               collapsed={collapsed}
             />
             <MenuLink
               to="/backup"
               icon={Database}
-              label="Backup & Restore"
+              label={t("sidebar.backup_restore")}
               collapsed={collapsed}
             />
           </div>
@@ -336,10 +338,10 @@ export default function Sidebar({
             className="group-hover:scale-110 transition-transform duration-300"
           />
 
-          {!collapsed && <span className="text-sm font-medium">Logout</span>}
+          {!collapsed && <span className="text-sm font-medium">{t("sidebar.logout")}</span>}
 
           {/* Tooltip */}
-          {collapsed && <Tooltip label="Logout" />}
+          {collapsed && <Tooltip label={t("sidebar.logout")} />}
         </button>
       </div>
     </aside>
