@@ -9,6 +9,9 @@ import { initDesktop } from "./utils/desktop";
 import { waitForBackend } from "./utils/backendHealth";
 import { isTauri } from "@tauri-apps/api/core";
 
+// Cache bust for production deployment
+console.log('App version updated to bypass cache')
+
 initTheme();
 initDesktop();
 

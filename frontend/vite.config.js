@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import viteCompression from 'vite-plugin-compression'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -29,6 +30,19 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['lucide-react', 'react-hot-toast'],
+          'chart-vendor': ['recharts'],
+          'excel-vendor': ['xlsx'],
+          'pdf-vendor': ['react-pdf']
+        }
+      }
+    }
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
