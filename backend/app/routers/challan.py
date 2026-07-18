@@ -70,7 +70,7 @@ def create_challan(
 
     for item_data in data.items:
         # Get party challan item to find item_id
-        pc_item = db.query(PartyChallanItem).get(item_data.party_challan_item_id)
+        pc_item = db.get(PartyChallanItem, item_data.party_challan_item_id)
         if not pc_item:
             raise HTTPException(
                 status_code=404,
@@ -243,7 +243,7 @@ def update_challan(
     
     # Step 4: Add new items (same logic as create)
     for item_data in data.items:
-        pc_item = db.query(PartyChallanItem).get(item_data.party_challan_item_id)
+        pc_item = db.get(PartyChallanItem, item_data.party_challan_item_id)
         if not pc_item:
             raise HTTPException(
                 status_code=404,
@@ -638,7 +638,7 @@ def delete_challan(
         
         if linked_item:
             # Fetch the linked invoice to see its number
-            inv = db.query(Invoice).get(linked_item.invoice_id)
+            inv = db.get(Invoice, linked_item.invoice_id)
             inv_num = inv.invoice_number if inv else "Unknown"
             
             raise HTTPException(
@@ -649,7 +649,7 @@ def delete_challan(
     # Reverse party challan delivered quantities
     for item in challan.items:
         if item.party_challan_item_id:
-            pc_item = db.query(PartyChallanItem).get(item.party_challan_item_id)
+            pc_item = db.get(PartyChallanItem, item.party_challan_item_id)
             if pc_item:
                 pc_item.quantity_delivered -= Decimal(str(item.quantity))
                 
@@ -671,6 +671,10 @@ def delete_challan(
         StockTransaction.reference_type == "DELIVERY_CHALLAN",
         StockTransaction.reference_id == challan_id
     ).delete()
+    
+    # Delete PDI report if exists
+    from app.models.pdi_report import PDIReport
+    db.query(PDIReport).filter(PDIReport.challan_id == challan_id).delete()
     
     # Delete challan items
     db.query(DeliveryChallanItem).filter(

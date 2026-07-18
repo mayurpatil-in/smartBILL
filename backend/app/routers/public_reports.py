@@ -3,10 +3,12 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_
 from fastapi.responses import Response
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from playwright.sync_api import sync_playwright
-from starlette.concurrency import run_in_threadpool
 from datetime import datetime
 import os
+
+# [MIGRATED] Playwright removed — now uses shared pdf_service (browser-side rendering)
+# This eliminates Chromium dependency and Passenger/WSGI deadlock risk on shared hosting.
+from app.services.pdf_service import generate_pdf
 
 from app.database.session import get_db
 from app.models.company import Company
@@ -152,24 +154,15 @@ async def public_ledger_download(
         qr_code=None # Avoid recursive QR or just omit
     )
 
-    # 6. Generate PDF Sync
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(format="A4", margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"})
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # [MIGRATED] Generate via pdf_service (returns HTML bytes; browser handles print/save)
+    pdf_data = await generate_pdf(html_content)
     
     filename = f"Stock_Ledger_{party_name.replace(' ', '_')}.pdf" if party_name else "Stock_Ledger_All.pdf"
     
     return Response(
         content=pdf_data,
-        media_type="text/html",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
 # =========================================================
@@ -344,34 +337,16 @@ async def public_statement_download(
         qr_code=None
     )
     
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(
-                format="A4", 
-                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-                display_header_footer=True,
-                footer_template='''
-                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                    </div>
-                ''',
-                header_template="<div></div>"
-            )
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # [MIGRATED] Generate via pdf_service (returns HTML bytes; browser handles print/save)
+    pdf_data = await generate_pdf(html_content)
     
     safe_name = party.name.replace(' ', '_')
     filename = f"Statement_{safe_name}.pdf"
     
     return Response(
         content=pdf_data,
-        media_type="text/html",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
 
@@ -556,34 +531,16 @@ async def public_stock_download(
         transactions=formatted_transactions
     )
     
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(
-                format="A4", 
-                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-                display_header_footer=True,
-                footer_template='''
-                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                    </div>
-                ''',
-                header_template="<div></div>"
-            )
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # [MIGRATED] Generate via pdf_service (returns HTML bytes; browser handles print/save)
+    pdf_data = await generate_pdf(html_content)
     
     safe_item_name = "".join([c if c.isalnum() or c in (' ', '-', '_') else '_' for c in item.name]).strip()
     filename = f"StockLedger_{safe_item_name}.pdf"
     
     return Response(
         content=pdf_data,
-        media_type="text/html",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
 
@@ -747,32 +704,13 @@ async def public_gst_report_download(
         qr_code=qr_code_base64
     )
 
-    # 6. Generate PDF (Sync Playwright)
-    def _generate_pdf_sync(html: str) -> bytes:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.set_content(html)
-            pdf = page.pdf(
-                format="A4",
-                margin={"top": "15mm", "bottom": "15mm", "left": "10mm", "right": "10mm"},
-                display_header_footer=True,
-                footer_template="""
-                    <div style="font-size: 8px; font-family: sans-serif; width: 100%; text-align: center; color: #6b7280; padding-bottom: 5px;">
-                        Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-                    </div>
-                """,
-                header_template="<div></div>"
-            )
-            browser.close()
-            return pdf
-
-    pdf_data = await run_in_threadpool(_generate_pdf_sync, html_content)
+    # [MIGRATED] Generate via pdf_service (returns HTML bytes; browser handles print/save)
+    pdf_data = await generate_pdf(html_content)
     
     filename = f"GST_Report_{start.strftime('%d%m%y')}_{end.strftime('%d%m%y')}.pdf"
     
     return Response(
         content=pdf_data,
-        media_type="text/html",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
     )

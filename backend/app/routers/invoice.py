@@ -41,7 +41,11 @@ env = Environment(
 
 
 def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
-    """Generate next invoice number (e.g. 24-25/001) for the company and FY"""
+    """Generate next invoice number (e.g. INV/24-25/001) for the company and FY.
+    
+    Uses SELECT FOR UPDATE to lock the last invoice row, preventing race conditions
+    when two users create invoices simultaneously on multi-worker deployments.
+    """
     # 1. Get FY Short Name (e.g. 24-25)
     from app.models.financial_year import FinancialYear
     fy = db.query(FinancialYear).filter(FinancialYear.id == fy_id).first()
@@ -53,6 +57,9 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
     end_yy = fy.end_date.strftime("%y")
     fy_prefix = f"{start_yy}-{end_yy}" # e.g. "24-25"
 
+    # [FIX] SELECT FOR UPDATE: Locks the last invoice row until this transaction
+    # commits. If two requests hit simultaneously, the second one WAITS here
+    # instead of reading stale data — eliminating the duplicate number race condition.
     last_invoice = (
         db.query(Invoice)
         .filter(
@@ -60,6 +67,7 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
             Invoice.financial_year_id == fy_id
         )
         .order_by(Invoice.id.desc())
+        .with_for_update()   # ← DB-level lock: prevents concurrent reads
         .first()
     )
     
@@ -73,12 +81,12 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
             else:
                 # Handle migration from old format INV-001
                 next_num = 1 
-        except:
+        except (ValueError, IndexError):
             next_num = 1
     else:
         next_num = 1
         
-    # Robust generation: Check if it exists, if so, increment
+    # Safety loop: skip any number already taken (e.g. manually entered invoices)
     while True:
         next_invoice_num = f"INV/{fy_prefix}/{next_num:03d}"
         exists = db.query(Invoice).filter(
