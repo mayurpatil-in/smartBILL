@@ -27,6 +27,7 @@ import {
   deleteInvoice,
   getInvoiceStats,
   getInvoiceShareLink,
+  printBulkInvoices,
 } from "../api/invoices";
 import { getParties } from "../api/parties";
 import PdfPreviewModal from "../components/PdfPreviewModal";
@@ -66,6 +67,48 @@ export default function Invoices() {
 
   const [ewayBillModalOpen, setEwayBillModalOpen] = useState(false);
   const [selectedInvoiceForEway, setSelectedInvoiceForEway] = useState(null);
+
+  const [selectedInvoices, setSelectedInvoices] = useState(new Set());
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedInvoices.map((inv) => inv.id);
+      setSelectedInvoices(new Set(allIds));
+    } else {
+      setSelectedInvoices(new Set());
+    }
+  };
+
+  const handleSelectOne = (e, id) => {
+    const newSelected = new Set(selectedInvoices);
+    if (e.target.checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedInvoices(newSelected);
+  };
+
+  const handleBulkPrint = async () => {
+    if (selectedInvoices.size === 0) return;
+    try {
+      const loadToast = toast.loading("Generating Bulk PDF...");
+      setPreviewTitle(`Bulk Print (${selectedInvoices.size} Invoices)`);
+      
+      const blob = await printBulkInvoices(Array.from(selectedInvoices));
+      
+      toast.dismiss(loadToast);
+      
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewOpen(true);
+      setSelectedInvoices(new Set()); // Reset selection after print
+    } catch (error) {
+      console.error(error);
+      toast.dismiss();
+      toast.error("Failed to generate bulk print");
+    }
+  };
 
   useEffect(() => {
     fetchInvoices();
@@ -257,6 +300,8 @@ export default function Invoices() {
         </PermissionGuard>
       </div>
 
+
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
@@ -368,6 +413,19 @@ export default function Invoices() {
                 className="w-full sm:w-36 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               />
             </div>
+
+            {/* Print Selected Button */}
+            {selectedInvoices.size > 0 && (
+              <div className="w-full sm:w-auto">
+                <button
+                  onClick={handleBulkPrint}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-900 border-2 border-indigo-100 dark:border-indigo-900/50 hover:border-indigo-500 dark:hover:border-indigo-500 text-indigo-600 dark:text-indigo-400 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-sm hover:shadow-md animate-fade-in whitespace-nowrap"
+                >
+                  <Printer size={18} />
+                  <span>Print Selected ({selectedInvoices.size})</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -376,6 +434,14 @@ export default function Invoices() {
           <table className="w-full text-left text-sm">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-700/80 text-gray-600 dark:text-gray-300 uppercase tracking-wider text-xs font-bold sticky top-0 z-10 backdrop-blur-sm shadow-md">
               <tr>
+                <th className="px-6 py-4 whitespace-nowrap w-10">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                    checked={paginatedInvoices.length > 0 && selectedInvoices.size === paginatedInvoices.length}
+                    onChange={handleSelectAll}
+                  />
+                </th>
                 <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_invoice_no")}</th>
                 <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_date")}</th>
                 <th className="px-6 py-4 whitespace-nowrap">{t("invoices.table_party")}</th>
@@ -406,11 +472,20 @@ export default function Invoices() {
                 paginatedInvoices.map((inv, index) => (
                   <tr
                     key={inv.id}
-                    className="group hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 dark:hover:from-indigo-900/10 dark:hover:to-purple-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(99,102,241)]"
+                    className={`group hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 dark:hover:from-indigo-900/10 dark:hover:to-purple-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(99,102,241)] ${selectedInvoices.has(inv.id) ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : ''}`}
                     style={{
                       animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`,
                     }}
                   >
+                    <td className="px-6 py-5">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                        checked={selectedInvoices.has(inv.id)}
+                        onChange={(e) => handleSelectOne(e, inv.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
                         <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-md">

@@ -9,6 +9,7 @@ import qrcode
 import socket
 import os
 from num2words import num2words
+from pydantic import BaseModel
 
 from fastapi.responses import Response
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -285,7 +286,7 @@ def create_invoice(
         
         db.commit()
         db.refresh(invoice)
-        
+
         # [AUDIT]
         log_audit_action(
             db=db,
@@ -294,7 +295,28 @@ def create_invoice(
             company_id=company_id,
             details=f"Created Direct Invoice {invoice_number} for {grand_total}"
         )
-        
+
+        # [LOW STOCK ALERT] Check each invoiced item after commit
+        # Non-fatal: any failure here must NOT break the invoice creation response
+        try:
+            from app.models.item import Item as ItemModel
+            from app.services.notification_service import create_notification
+            for inv_item in invoice.items:
+                item_obj = db.query(ItemModel).filter(
+                    ItemModel.id == inv_item.item_id,
+                    ItemModel.company_id == company_id
+                ).first()
+                if item_obj and float(item_obj.current_stock) <= 5:
+                    create_notification(
+                        db=db,
+                        company_id=company_id,
+                        title=f"Low Stock: {item_obj.name}",
+                        message=f"Only {float(item_obj.current_stock):.0f} unit(s) remaining. Consider restocking.",
+                        type="warning",
+                    )
+        except Exception as notify_err:
+            print(f"[Invoice] Low stock notification failed (non-fatal): {notify_err}")
+
         return invoice
     except Exception as e:
         db.rollback()
@@ -689,6 +711,89 @@ def format_inr(number):
         return "".join([r] + d) if r else d[0]
     except:
         return str(number)
+
+class BulkPrintInvoiceRequest(BaseModel):
+    invoice_ids: list[int]
+
+@router.post("/bulk-print")
+async def bulk_print_invoices(
+    request: BulkPrintInvoiceRequest,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    try:
+        if not request.invoice_ids:
+            raise HTTPException(400, "No invoice IDs provided")
+
+        invoices = db.query(Invoice).options(
+            joinedload(Invoice.party),
+            joinedload(Invoice.challan),
+            joinedload(Invoice.items).joinedload(InvoiceItem.item),
+            joinedload(Invoice.items).joinedload(InvoiceItem.delivery_challan_item)
+        ).filter(
+            Invoice.id.in_(request.invoice_ids),
+            Invoice.company_id == company_id
+        ).all()
+    
+        if not invoices:
+            raise HTTPException(404, "No valid invoices found")
+
+        # Map to input order
+        inv_map = {inv.id: inv for inv in invoices}
+        ordered_invoices = [inv_map[cid] for cid in request.invoice_ids if cid in inv_map]
+
+        company = db.query(Company).filter(Company.id == company_id).first()
+        from app.core.config import get_backend_url
+        base_url = get_backend_url()
+
+        invoices_data = []
+        for invoice in ordered_invoices:
+            signature = create_url_signature(str(invoice.id))
+            download_url = f"{base_url}/public/invoice/{invoice.id}/download?token={signature}"
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(download_url)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffered = io.BytesIO()
+            img.save(buffered, format="PNG")
+            qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            
+            try:
+                grand_total_words = num2words(invoice.grand_total, lang='en_IN').title().replace(",", "") + " Only"
+            except:
+                grand_total_words = f"{invoice.grand_total} Only"
+                
+            invoices_data.append({
+                "invoice": invoice,
+                "items": invoice.items,
+                "company": company,
+                "party": invoice.party,
+                "qr_code": qr_code_b64,
+                "grand_total_words": grand_total_words
+            })
+
+        template = env.get_template("invoice_bulk.html")
+        html = template.render(
+            invoices=invoices_data,
+            format_currency=format_inr
+        )
+    
+        pdf_content = await generate_pdf(html)
+        return Response(
+            content=pdf_content,
+            media_type="text/html",
+            headers={"Content-Disposition": "inline; filename=bulk-invoices.pdf"}
+        )
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        try:
+            with open("debug_log.txt", "a") as f:
+                f.write(f"\n--- Invoice Bulk Print Error ---\n{error_msg}\n------------------------\n")
+        except:
+            pass
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/{invoice_id}/print")
 async def print_invoice(

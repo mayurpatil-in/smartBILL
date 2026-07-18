@@ -138,6 +138,9 @@
   },
   "reports": {
     "title": "Reports Center",
+    "print_summary": "Print Summary",
+    "total_inward": "Total Inward",
+    "total_outward": "Total Outward",
     "subtitle": "Comprehensive business insights and material tracking",
     "tab_jobwork": "Job Work Register",
     "tab_ledger": "Job Work Stock",

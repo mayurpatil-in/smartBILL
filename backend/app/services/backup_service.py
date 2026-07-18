@@ -65,22 +65,43 @@ class BackupManager:
 
         print(f"BACKUP_MANAGER: Starting Scheduler in PID {os.getpid()}")
         self.scheduler.add_job(
-            self.create_backup, 
-            'cron', 
-            hour=2, 
-            minute=0, 
-            id='daily_backup_dump', 
+            self.create_backup,
+            'cron',
+            hour=2,
+            minute=0,
+            id='daily_backup_dump',
             replace_existing=True,
             kwargs={"format": "dump"}
         )
+
+        # [NOTIFICATION] Daily overdue invoice scan — fires at 9:00 AM every day
+        self.scheduler.add_job(
+            self.scan_overdue_invoices,
+            'cron',
+            hour=9,
+            minute=0,
+            id='daily_overdue_scan',
+            replace_existing=True
+        )
+
+        # [NOTIFICATION] Daily subscription expiry scan — fires at 8:00 AM every day
+        self.scheduler.add_job(
+            self.scan_expiring_subscriptions,
+            'cron',
+            hour=8,
+            minute=0,
+            id='daily_subscription_scan',
+            replace_existing=True
+        )
+
         self.scheduler.start()
-        
+
         # [SMART BACKUP] Check if we missed today's backup (e.g. app was closed)
         # Run safely in background after 60s to avoid slowing down startup
         self.scheduler.add_job(
             self.check_and_run_missed_backup,
             'date',
-            run_date=datetime.now(), # Run "now" (async)
+            run_date=datetime.now(),  # Run "now" (async)
             id='smart_startup_check'
         )
 
@@ -110,36 +131,103 @@ class BackupManager:
         except Exception as e:
             print(f"BACKUP_MANAGER: Smart check failed: {e}")
 
-    def _create_notification(self, title: str, message: str, type: str):
-        """Helper to safely create a DB notification with deduplication"""
+    def _create_notification(self, title: str, message: str, type: str, company_id: int | None = None):
+        """Helper to safely create a DB notification (backup events).
+        Uses notification_service for deduplication and company scoping.
+        company_id=None → global notification visible to all companies.
+        """
         try:
-            # Lazy import to avoid circular dep if any
             from app.database.session import SessionLocal
-            from app.models.notification import Notification
-            from datetime import timedelta
-            
+            from app.services.notification_service import create_notification
             db = SessionLocal()
-            
-            # Deduplication: Check if similar notification exists from last 60s
-            # This handles cases where multiple workers might trigger the same scheduled job
-            cutoff = datetime.utcnow() - timedelta(seconds=60)
-            existing = db.query(Notification).filter(
-                Notification.title == title,
-                Notification.type == type,
-                Notification.created_at >= cutoff
-            ).first()
-            
-            if existing:
-                print(f"Skipping duplicate notification: {title}")
-                db.close()
-                return
-
-            notif = Notification(title=title, message=message, type=type)
-            db.add(notif)
-            db.commit()
+            create_notification(
+                db=db,
+                company_id=company_id,
+                title=title,
+                message=message,
+                type=type,
+            )
             db.close()
         except Exception as e:
-            print(f"Failed to create notification: {e}")
+            print(f"[BackupManager] Failed to create notification: {e}")
+
+    def scan_overdue_invoices(self):
+        """
+        Scheduled daily scan (9:00 AM) — finds overdue unpaid invoices and
+        creates one summary notification per company.
+        """
+        try:
+            from app.database.session import SessionLocal
+            from app.models.invoice import Invoice
+            from app.services.notification_service import create_notification
+            from datetime import date
+
+            db = SessionLocal()
+            today = date.today()
+
+            overdue = db.query(Invoice).filter(
+                Invoice.due_date < today,
+                Invoice.payment_status != "PAID",
+                Invoice.status != "CANCELLED",
+            ).all()
+
+            # Group by company so each company gets one summary notification
+            company_counts: dict[int, int] = {}
+            for inv in overdue:
+                company_counts[inv.company_id] = company_counts.get(inv.company_id, 0) + 1
+
+            for cid, count in company_counts.items():
+                label = "Invoice" if count == 1 else "Invoices"
+                create_notification(
+                    db=db,
+                    company_id=cid,
+                    title=f"{count} Overdue {label}",
+                    message=f"{count} invoice(s) are past their due date. Review your receivables.",
+                    type="error",
+                    dedup_seconds=3600,   # 1-hour dedup for daily scans
+                )
+            db.close()
+            print(f"[BackupManager] Overdue scan: {len(company_counts)} companies notified.")
+        except Exception as e:
+            print(f"[BackupManager] Overdue invoice scan failed: {e}")
+
+    def scan_expiring_subscriptions(self):
+        """
+        Scheduled daily scan (8:00 AM) — finds companies with subscriptions
+        expiring within 7 days and creates a warning notification for each.
+        """
+        try:
+            from app.database.session import SessionLocal
+            from app.models.company import Company
+            from app.services.notification_service import create_notification
+            from datetime import date
+
+            db = SessionLocal()
+            today = date.today()
+
+            companies = db.query(Company).filter(
+                Company.is_active == True
+            ).all()
+
+            notified = 0
+            for company in companies:
+                if not company.subscription_end:
+                    continue
+                days_left = (company.subscription_end - today).days
+                if 0 <= days_left <= 7:
+                    create_notification(
+                        db=db,
+                        company_id=company.id,
+                        title="Subscription Expiring Soon",
+                        message=f"Your subscription expires in {days_left} day(s). Please renew to avoid service interruption.",
+                        type="warning",
+                        dedup_seconds=3600,  # 1-hour dedup for daily scans
+                    )
+                    notified += 1
+            db.close()
+            print(f"[BackupManager] Subscription scan: {notified} companies notified.")
+        except Exception as e:
+            print(f"[BackupManager] Subscription expiry scan failed: {e}")
 
     # --- HELPER METHODS ---
     def _get_db_type(self):

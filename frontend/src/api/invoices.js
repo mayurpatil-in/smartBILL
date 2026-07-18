@@ -56,3 +56,12 @@ export const getInvoiceShareLink = async (id) => {
   const response = await api.get(`/invoice/${id}/share`);
   return response.data;
 };
+
+export const printBulkInvoices = async (invoice_ids) => {
+  const response = await api.post(
+    "/invoice/bulk-print",
+    { invoice_ids },
+    { responseType: "blob" }
+  );
+  return response.data;
+};

@@ -124,7 +124,34 @@ def create_challan(
         db.add(stock_tx)
 
     db.commit()
-    
+
+    # [LOW STOCK ALERT] Check each delivered item after commit
+    # Non-fatal: must NOT block challan creation response
+    try:
+        from app.models.item import Item as ItemModel
+        from app.services.notification_service import create_notification
+        # Collect unique item_ids from this challan's items
+        item_ids_to_check = set()
+        for item_data in data.items:
+            pc_item_check = db.get(PartyChallanItem, item_data.party_challan_item_id)
+            if pc_item_check:
+                item_ids_to_check.add(pc_item_check.item_id)
+        for item_id_check in item_ids_to_check:
+            item_obj = db.query(ItemModel).filter(
+                ItemModel.id == item_id_check,
+                ItemModel.company_id == company_id
+            ).first()
+            if item_obj and float(item_obj.current_stock) <= 5:
+                create_notification(
+                    db=db,
+                    company_id=company_id,
+                    title=f"Low Stock: {item_obj.name}",
+                    message=f"Only {float(item_obj.current_stock):.0f} unit(s) remaining after delivery. Consider restocking.",
+                    type="warning",
+                )
+    except Exception as notify_err:
+        print(f"[Challan] Low stock notification failed (non-fatal): {notify_err}")
+
     # Reload with relationships
     challan = db.query(DeliveryChallan).options(
         joinedload(DeliveryChallan.party),
