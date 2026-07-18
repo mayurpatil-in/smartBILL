@@ -28,7 +28,6 @@ def create_party(
     party_data = data.dict(exclude={"portal_username", "portal_password"})
     party = Party(
         company_id=company_id,
-        financial_year_id=fy.id,
         **party_data
     )
 

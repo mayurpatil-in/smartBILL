@@ -17,11 +17,6 @@ class Party(Base):
         nullable=False
     )
 
-    financial_year_id = Column(
-        Integer,
-        ForeignKey("financial_year.id", ondelete="CASCADE"),
-        nullable=False
-    )
 
     name = Column(String(255), nullable=False)
     gst_number = Column(String(20), nullable=True)
@@ -32,7 +27,7 @@ class Party(Base):
     is_active = Column(Boolean, default=True)
 
     company = relationship(Company)
-    financial_year = relationship(FinancialYear)
+
     client_login = relationship("ClientLogin", back_populates="party", uselist=False)
 
 
