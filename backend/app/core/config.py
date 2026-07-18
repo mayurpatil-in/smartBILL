@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     # ================= TOKEN EXPIRY =================
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60       # 1 hour
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440       # 24 hours
     ACCESS_TOKEN_REMEMBER_MINUTES: int = 10080   # 7 days
 
     # ================= SYSTEM =================
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     )
     
     # ================= CORS =================
-    cors_origins: list[str] | str = ["*"]
+    cors_origins: list[str] | str = []
 
     @field_validator("cors_origins", mode="before")
     @classmethod
