@@ -46,6 +46,8 @@ export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [partyFilter, setPartyFilter] = useState("ALL");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [parties, setParties] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [invoicesPerPage] = useState(10);
@@ -188,7 +190,10 @@ export default function Invoices() {
     const matchesParty =
       partyFilter === "ALL" || Number(inv.party_id) === Number(partyFilter);
 
-    return matchesSearch && matchesStatus && matchesParty;
+    const matchesStartDate = startDate ? new Date(inv.invoice_date) >= new Date(startDate) : true;
+    const matchesEndDate = endDate ? new Date(inv.invoice_date) <= new Date(endDate) : true;
+
+    return matchesSearch && matchesStatus && matchesParty && matchesStartDate && matchesEndDate;
   });
 
   // Calculate dynamic stats based on filtered invoices
@@ -224,7 +229,7 @@ export default function Invoices() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, partyFilter]);
+  }, [searchTerm, statusFilter, partyFilter, startDate, endDate]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -345,6 +350,23 @@ export default function Invoices() {
                 <option value="PARTIAL">{t("invoices.status_partial")}</option>
                 <option value="PAID">{t("invoices.status_paid")}</option>
               </select>
+            </div>
+
+            <div className="w-full sm:w-auto flex gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                title="Start Date"
+                className="w-full sm:w-36 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                title="End Date"
+                className="w-full sm:w-36 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+              />
             </div>
           </div>
         </div>
