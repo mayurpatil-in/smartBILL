@@ -3,13 +3,16 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
 from app.database.session import get_db
 from app.models.expense import Expense
 from app.models.party import Party
+from app.models.user import User
 from app.schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse, ExpenseStats
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user
+from app.services.audit_service import log_audit_action
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -23,7 +26,9 @@ def get_expenses(
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Expense).filter(
+    query = db.query(Expense).options(
+        joinedload(Expense.party)
+    ).filter(
         Expense.company_id == company_id,
         Expense.financial_year_id == fy.id,
         Expense.is_recurring == is_recurring 
@@ -88,6 +93,7 @@ def get_expense_stats(
 @router.post("/", response_model=ExpenseResponse)
 def create_expense(
     expense_data: ExpenseCreate,
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -96,11 +102,19 @@ def create_expense(
         **expense_data.dict(),
         company_id=company_id,
         financial_year_id=fy.id
-        # created_by user id to be added if we inject user dependency
     )
     db.add(expense)
     db.commit()
     db.refresh(expense)
+    
+    # Audit Log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="EXPENSE_CREATE",
+        company_id=company_id,
+        details=f"Created expense of {expense.amount} for category {expense.category}"
+    )
     
     # Fetch party name if exists
     resp = ExpenseResponse.from_orm(expense)
@@ -115,6 +129,7 @@ def create_expense(
 def update_expense(
     expense_id: int,
     expense_data: ExpenseUpdate,
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -128,6 +143,15 @@ def update_expense(
     db.commit()
     db.refresh(expense)
     
+    # Audit Log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="EXPENSE_UPDATE",
+        company_id=company_id,
+        details=f"Updated expense #{expense.id}"
+    )
+    
     resp = ExpenseResponse.from_orm(expense)
     if expense.party:
         resp.party_name = expense.party.name
@@ -136,6 +160,7 @@ def update_expense(
 @router.delete("/{expense_id}")
 def delete_expense(
     expense_id: int,
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -145,6 +170,16 @@ def delete_expense(
         
     db.delete(expense)
     db.commit()
+    
+    # Audit Log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="EXPENSE_DELETE",
+        company_id=company_id,
+        details=f"Deleted expense #{expense_id} ({expense.amount})"
+    )
+    
     return {"message": "Expense deleted successfully"}
 
 # Recurring Specific Endpoints
@@ -182,11 +217,9 @@ def post_recurring_expense(
     
     # Update next due date for template
     if template.recurring_frequency == "Monthly":
-        # Add 30 days roughly or ideally strict month logic
-        # Simple implementation: Same day next month
-        # For MVP, let's just add 30 days
+        # Add 1 strict month to date
         if template.next_due_date:
-            template.next_due_date = template.next_due_date + timedelta(days=30)
+            template.next_due_date = template.next_due_date + relativedelta(months=1)
             
     db.add(new_expense)
     db.commit()

@@ -9,7 +9,8 @@ from app.models.user import User, UserRole
 from app.models.invoice import Invoice
 from app.models.payment_allocation import PaymentAllocation
 from app.schemas.payment import PaymentCreate, PaymentUpdate, PaymentResponse
-from app.core.dependencies import get_company_id, get_active_financial_year, require_role
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role, get_current_user
+from app.services.audit_service import log_audit_action
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -66,6 +67,16 @@ def create_payment(
 
     db.commit()
     db.refresh(payment)
+    
+    # Audit Log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="PAYMENT_CREATE",
+        company_id=company_id,
+        details=f"Created {payment.payment_type} payment of {payment.amount} for Party {payment.party_id}"
+    )
+    
     return payment
 
 @router.get("/", response_model=List[PaymentResponse])
@@ -129,12 +140,67 @@ def update_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
         
-    update_data = data.dict(exclude_unset=True)
+    update_data = data.dict(exclude_unset=True, exclude={"allocations"})
     for key, value in update_data.items():
         setattr(payment, key, value)
         
+    # Handle Allocation Updates if provided
+    if data.allocations is not None:
+        # 1. Reverse Old Allocations
+        for old_alloc in payment.allocations:
+            invoice = old_alloc.invoice
+            if invoice:
+                current_paid = float(invoice.paid_amount or 0) - float(old_alloc.amount)
+                invoice.paid_amount = max(0, current_paid)
+                if invoice.paid_amount >= float(invoice.grand_total):
+                    invoice.payment_status = "PAID"
+                    invoice.status = "PAID"
+                elif invoice.paid_amount > 0:
+                    invoice.payment_status = "PARTIAL"
+                    invoice.status = "PARTIAL"
+                else:
+                    invoice.payment_status = None
+                    invoice.status = "BILLED"
+            db.delete(old_alloc)
+            
+        db.flush()
+        
+        # 2. Apply New Allocations
+        for alloc in data.allocations:
+            invoice = db.query(Invoice).filter(Invoice.id == alloc.invoice_id).first()
+            if invoice:
+                new_alloc_record = PaymentAllocation(
+                    payment_id=payment.id,
+                    invoice_id=invoice.id,
+                    amount=alloc.amount
+                )
+                db.add(new_alloc_record)
+                
+                current_paid = float(invoice.paid_amount or 0) + float(alloc.amount)
+                invoice.paid_amount = current_paid
+                if current_paid >= float(invoice.grand_total):
+                    invoice.payment_status = "PAID"
+                    invoice.status = "PAID"
+                elif current_paid > 0:
+                    invoice.payment_status = "PARTIAL"
+                    invoice.status = "PARTIAL"
+                else:
+                    invoice.payment_status = "PENDING"
+                    if invoice.status in ["PAID", "PARTIAL"]:
+                        invoice.status = "BILLED"
+
     db.commit()
     db.refresh(payment)
+    
+    # Audit Log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="PAYMENT_UPDATE",
+        company_id=company_id,
+        details=f"Updated payment #{payment.id}"
+    )
+    
     return payment
 
 @router.delete("/{id}")
@@ -171,4 +237,14 @@ def delete_payment(
 
     db.delete(payment)
     db.commit()
+    
+    # Audit Log
+    log_audit_action(
+        db=db,
+        user_id=current_user.id,
+        action="PAYMENT_DELETE",
+        company_id=company_id,
+        details=f"Deleted payment #{id} ({payment.amount})"
+    )
+    
     return {"message": "Payment deleted successfully"}

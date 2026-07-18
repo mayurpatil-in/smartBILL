@@ -28,15 +28,8 @@ def get_financial_years(
     db: Session = Depends(get_db)
 ):
     """Get all financial years for the client's company"""
-    # Get company_id from the first invoice (all invoices belong to same company)
-    sample_invoice = db.query(Invoice).filter(
-        Invoice.party_id == client.party_id
-    ).first()
-    
-    if not sample_invoice:
-        return []
-    
-    company_id = sample_invoice.company_id
+    # Get company_id directly from the Party linked to this ClientLogin
+    company_id = client.party.company_id
     
     financial_years = db.query(FinancialYear).filter(
         FinancialYear.company_id == company_id

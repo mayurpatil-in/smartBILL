@@ -15,10 +15,20 @@ from app.core.paths import BACKUP_DIR
 # PostgreSQL Binaries Path
 # Dynamic path resolution for cross-platform support
 if os.name == 'nt':  # Windows
-    PG_BIN_PATH = r"C:\Program Files\PostgreSQL\18\bin"
-    PG_DUMP_EXE = os.path.join(PG_BIN_PATH, "pg_dump.exe")
-    PSQL_EXE = os.path.join(PG_BIN_PATH, "psql.exe")
-    PG_RESTORE_EXE = os.path.join(PG_BIN_PATH, "pg_restore.exe")
+    def find_pg_tool_win(tool_name):
+        tool_path = shutil.which(tool_name)
+        if tool_path: return tool_path
+        
+        # Check standard Postgres paths for versions 12 to 18
+        for version in range(18, 11, -1):
+            p = rf"C:\Program Files\PostgreSQL\{version}\bin\{tool_name}.exe"
+            if os.path.exists(p):
+                return p
+        return tool_name + ".exe"
+
+    PG_DUMP_EXE = find_pg_tool_win("pg_dump")
+    PSQL_EXE = find_pg_tool_win("psql")
+    PG_RESTORE_EXE = find_pg_tool_win("pg_restore")
 else:  # Linux / VPS
     def find_pg_tool(tool_name):
         tool_path = shutil.which(tool_name)

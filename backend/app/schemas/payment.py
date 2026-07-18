@@ -25,6 +25,7 @@ class PaymentUpdate(PaymentBase):
     amount: Optional[Decimal] = None
     payment_type: Optional[str] = None
     payment_mode: Optional[str] = None
+    allocations: Optional[List[AllocationCreate]] = None
 
 class PartySummary(BaseModel):
     id: int
