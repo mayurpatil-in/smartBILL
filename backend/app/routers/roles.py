@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.role import Role
 from app.models.permission import Permission
 from app.models.role_permission import RolePermission
+from app.core.permissions import require_permission
 from app.services.permission_service import PermissionService
 
 router = APIRouter(
@@ -63,13 +64,12 @@ class RoleUpdate(BaseModel):
 
 # Endpoints
 @router.get("/", response_model=List[RoleResponse])
+@require_permission("roles.view")
 def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get all roles"""
-    # TODO: Add permission check - require_permission("roles.view")
-    
     # If Super Admin, return all roles
     if current_user.legacy_role == "SUPER_ADMIN":
         roles = db.query(Role).filter(Role.is_active == True).all()
@@ -91,13 +91,13 @@ def get_roles(
 
 
 @router.get("/{role_id}", response_model=RoleWithPermissions)
+@require_permission("roles.view")
 def get_role(
     role_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get role with permissions"""
-    # TODO: Add permission check - require_permission("roles.view")
     
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
@@ -113,6 +113,7 @@ def get_role(
 
 
 @router.post("/", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
+@require_permission("roles.create")
 def create_role(
     role_data: RoleCreate,
     db: Session = Depends(get_db),
@@ -120,8 +121,6 @@ def create_role(
 ):
     from app.services.audit_service import log_audit_action
     """Create a new role"""
-    # TODO: Add permission check - require_permission("roles.create")
-    
     # Check if role name already exists
     existing = db.query(Role).filter(Role.name == role_data.name).first()
     if existing:
@@ -159,6 +158,7 @@ def create_role(
 
 
 @router.put("/{role_id}", response_model=RoleResponse)
+@require_permission("roles.edit")
 def update_role(
     role_id: int,
     role_data: RoleUpdate,
@@ -167,8 +167,6 @@ def update_role(
 ):
     from app.services.audit_service import log_audit_action
     """Update a role"""
-    # TODO: Add permission check - require_permission("roles.edit")
-    
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -211,6 +209,7 @@ def update_role(
 
 
 @router.delete("/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+@require_permission("roles.delete")
 def delete_role(
     role_id: int,
     db: Session = Depends(get_db),
@@ -218,8 +217,6 @@ def delete_role(
 ):
     from app.services.audit_service import log_audit_action
     """Delete a role"""
-    # TODO: Add permission check - require_permission("roles.delete")
-    
     role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -254,13 +251,12 @@ def delete_role(
 
 # Permission endpoints
 @router.get("/permissions/all", response_model=List[PermissionResponse])
+@require_permission("roles.view")
 def get_all_permissions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get all available permissions"""
-    # TODO: Add permission check - require_permission("roles.view")
-    
     permissions = db.query(Permission).order_by(Permission.module, Permission.action).all()
     return permissions
 

@@ -51,4 +51,4 @@ class Expense(Base):
     company = relationship("Company")
     financial_year = relationship("FinancialYear")
     party = relationship("Party")
-    # user = relationship("User")
+    user = relationship("User")

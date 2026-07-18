@@ -1,7 +1,10 @@
 import api from "./axios";
 
-export const getInvoices = async () => {
-  const response = await api.get("/invoice/");
+export const getInvoices = async (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== "" && v != null)
+  );
+  const response = await api.get("/invoice/", { params: cleanParams });
   return response.data;
 };
 

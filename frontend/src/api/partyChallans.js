@@ -1,11 +1,10 @@
 import api from './axios';
 
-export const getPartyChallans = async (partyId = null, status = null) => {
-  const params = {};
-  if (partyId) params.party_id = partyId;
-  if (status) params.status = status;
-  
-  const response = await api.get('/party-challan/', { params });
+export const getPartyChallans = async (params = {}) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== "" && v != null)
+  );
+  const response = await api.get('/party-challan/', { params: cleanParams });
   return response.data;
 };
 

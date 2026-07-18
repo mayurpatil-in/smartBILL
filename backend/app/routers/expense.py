@@ -119,7 +119,7 @@ def create_expense(
     # Fetch party name if exists
     resp = ExpenseResponse.from_orm(expense)
     if expense.party_id:
-        p = db.query(Party).get(expense.party_id)
+        p = db.get(Party, expense.party_id)
         if p:
             resp.party_name = p.name
             

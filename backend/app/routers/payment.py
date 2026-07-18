@@ -85,6 +85,8 @@ def list_payments(
     payment_type: Optional[str] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -106,7 +108,7 @@ def list_payments(
     if end_date:
         query = query.filter(Payment.payment_date <= end_date)
         
-    return query.order_by(Payment.payment_date.desc(), Payment.id.desc()).all()
+    return query.order_by(Payment.payment_date.desc(), Payment.id.desc()).offset(skip).limit(limit).all()
 
 @router.get("/{id}", response_model=PaymentResponse)
 def get_payment(

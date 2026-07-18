@@ -7,9 +7,6 @@ from app.database.session import get_db
 from app.schemas.super_admin import (
     CompanyCreate,
     CompanyResponse,
-    CompanyCreate,
-    CompanyResponse,
-    CreateCompanyAdmin,
     CreateCompanyAdmin,
     CompanyUpdate,
     ResetPasswordRequest,
@@ -27,17 +24,13 @@ from app.services.super_admin_service import (
     create_company,
     create_company_admin,
     extend_subscription,
-    extend_subscription,
     toggle_company_status,
-    toggle_company_status,
-    update_company,
-    update_company,
     update_company,
     reset_admin_password,
     delete_company_safely,
     get_plans,
     create_plan,
-    update_plan,
+    update_plan
 )
 from app.models.company import Company
 from app.models.user import User, UserRole

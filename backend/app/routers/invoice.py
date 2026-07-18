@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import List, Optional
@@ -658,6 +658,8 @@ def create_invoice_from_challan(
 
 @router.get("/", response_model=List[InvoiceResponse])
 def list_invoices(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -673,6 +675,8 @@ def list_invoices(
             Invoice.financial_year_id == fy.id
         )
         .order_by(Invoice.id.desc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
     return invoices

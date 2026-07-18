@@ -125,18 +125,13 @@ def run_migrations():
         logger.error(f"Migration failed: {e}")
         # We don't raise here to allow app to start even if migration fails (though risky)
 
-app = FastAPI(title=settings.PROJECT_NAME)
-
-# [SECURITY] Rate Limiting
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+from contextlib import asynccontextmanager
 
 # [NEW] Import init_db for fallback table creation
 from app.database.init_db import init_db
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
     logger.info("Startup event triggered.")
     print("STARTUP: Event triggered.") # Logs to backend_entry.log
     
@@ -146,41 +141,49 @@ async def startup_event():
     if os.getenv("SERVER_ENV") == "passenger":
         logger.info("Passenger environment detected. Bypassing background tasks on startup to prevent deadlocks.")
         print("STARTUP: Running on Passenger. Bypassing background threads.")
-        return
-        
-    try:
-        import asyncio
-        
-        # Define a synchronous function to run all the DB setup
-        def sync_db_setup():
-            print("STARTUP: Running init_db() to create tables...")
-            init_db()
-            print("STARTUP: init_db() completed.")
+    else:
+        try:
+            import asyncio
             
-            print("STARTUP: Running migrations...")
-            run_migrations()
-            print("STARTUP: Migrations completed.")
+            # Define a synchronous function to run all the DB setup
+            def sync_db_setup():
+                print("STARTUP: Running init_db() to create tables...")
+                init_db()
+                print("STARTUP: init_db() completed.")
+                
+                print("STARTUP: Running migrations...")
+                run_migrations()
+                print("STARTUP: Migrations completed.")
+                
+                print("STARTUP: Creating default Super Admin...")
+                create_default_super_admin()
+                print("STARTUP: Super Admin creation step done.")
+
+            # 1 & 2 & 4. Run synchronous DB tasks in a background thread 
+            # so they don't block the a2wsgi event loop on Passenger!
+            await asyncio.to_thread(sync_db_setup)
+
+            # 3. Start Services
+            await pdf_manager.start()
+            backup_manager.start_scheduler()
             
-            print("STARTUP: Creating default Super Admin...")
-            create_default_super_admin()
-            print("STARTUP: Super Admin creation step done.")
+            logger.info("Startup complete.")
+        except Exception as e:
+            logger.error(f"Startup error: {e}")
+            print(f"STARTUP ERROR: {e}")
 
-        # 1 & 2 & 4. Run synchronous DB tasks in a background thread 
-        # so they don't block the a2wsgi event loop on Passenger!
-        await asyncio.to_thread(sync_db_setup)
+    yield
 
-        # 3. Start Services
-        await pdf_manager.start()
-        backup_manager.start_scheduler()
-        
-        logger.info("Startup complete.")
-    except Exception as e:
-        logger.error(f"Startup error: {e}")
-        print(f"STARTUP ERROR: {e}")
-
-@app.on_event("shutdown")
-async def shutdown_event():
     await pdf_manager.stop()
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=app_lifespan)
+
+# [SECURITY] Rate Limiting
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Removed deprecated on_event
 
 # ===================== PNA MIDDLEWARE =====================
 from starlette.middleware.base import BaseHTTPMiddleware

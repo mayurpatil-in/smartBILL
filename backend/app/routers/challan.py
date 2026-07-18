@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from decimal import Decimal
@@ -357,6 +357,8 @@ def list_challans(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -384,7 +386,7 @@ def list_challans(
     if end_date:
         query = query.filter(DeliveryChallan.challan_date <= end_date)
     
-    challans = query.order_by(DeliveryChallan.id.desc()).all()
+    challans = query.order_by(DeliveryChallan.id.desc()).offset(skip).limit(limit).all()
     
     
     # Manual serialization

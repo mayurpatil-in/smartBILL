@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
@@ -170,6 +170,8 @@ def create_party_challan(
 def list_party_challans(
     party_id: int = None,
     status: str = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -189,7 +191,7 @@ def list_party_challans(
     if status:
         query = query.filter(PartyChallan.status == status)
     
-    challans = query.order_by(PartyChallan.challan_date.desc()).all()
+    challans = query.order_by(PartyChallan.challan_date.desc()).offset(skip).limit(limit).all()
     
     # Convert to dict to avoid serialization issues
     response_data = []
