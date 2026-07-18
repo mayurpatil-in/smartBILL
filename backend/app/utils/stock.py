@@ -1,21 +1,8 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.models.stock_transaction import StockTransaction
+from app.models.item import Item
 
 
 def get_current_stock(db: Session, company_id: int, fy_id: int, item_id: int):
-    in_qty = db.query(func.coalesce(func.sum(StockTransaction.quantity), 0)).filter(
-        StockTransaction.company_id == company_id,
-        StockTransaction.financial_year_id == fy_id,
-        StockTransaction.item_id == item_id,
-        StockTransaction.transaction_type == "IN"
-    ).scalar()
-
-    out_qty = db.query(func.coalesce(func.sum(StockTransaction.quantity), 0)).filter(
-        StockTransaction.company_id == company_id,
-        StockTransaction.financial_year_id == fy_id,
-        StockTransaction.item_id == item_id,
-        StockTransaction.transaction_type == "OUT"
-    ).scalar()
-
-    return float(in_qty - out_qty)
+    item = db.query(Item).filter(Item.id == item_id).first()
+    return float(item.current_stock) if item else 0.0

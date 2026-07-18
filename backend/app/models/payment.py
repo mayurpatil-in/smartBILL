@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, Enum, Index
 from sqlalchemy.orm import relationship
 from app.database.base import Base
 from app.models.company import Company
@@ -20,6 +20,11 @@ class PaymentMode(str, enum.Enum):
 
 class Payment(Base):
     __tablename__ = "payments"
+
+    __table_args__ = (
+        Index("idx_payment_company_party", "company_id", "party_id"),
+        Index("idx_payment_date", "payment_date"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     

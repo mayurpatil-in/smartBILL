@@ -4,6 +4,13 @@ import io
 import base64
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
+from decimal import Decimal
+import calendar
+from collections import defaultdict
+from cachetools import TTLCache
+
+# Dashboard Cache: 5 mins TTL, max 100 companies
+dashboard_cache = TTLCache(maxsize=100, ttl=300)
 from typing import List, Optional
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -1378,6 +1385,10 @@ def get_dashboard_stats(
     6. Expense Breakdown (Pie Chart)
     7. Cash Flow Trend (Income vs Exp)
     """
+    cache_key = f"{company_id}_{fy.id}"
+    if cache_key in dashboard_cache:
+        return dashboard_cache[cache_key]
+
     from app.models.payment import Payment
     from app.models.expense import Expense
     from sqlalchemy import func, extract
@@ -1515,7 +1526,7 @@ def get_dashboard_stats(
                 "net": inc - exp
             })
 
-    return {
+    result = {
         "revenue": float(total_revenue),
         "receivables": float(receivables),
         "expenses": float(total_expenses),
@@ -1525,6 +1536,8 @@ def get_dashboard_stats(
         "expense_breakdown": expense_breakdown,
         "monthly_cashflow": monthly_cashflow
     }
+    dashboard_cache[cache_key] = result
+    return result
 
 
 @router.get("/gst")

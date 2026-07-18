@@ -18,17 +18,11 @@ router = APIRouter(prefix="/ai-insights", tags=["AI Insights"])
 # ─── Helper: calculate current stock for a company ───────────────────────────
 def _stock_subquery(db: Session, company_id: int):
     return db.query(
-        StockTransaction.item_id,
-        func.sum(
-            case(
-                (StockTransaction.transaction_type == "IN", StockTransaction.quantity),
-                (StockTransaction.transaction_type == "OUT", -StockTransaction.quantity),
-                else_=0,
-            )
-        ).label("current_stock"),
+        Item.id.label("item_id"),
+        Item.current_stock
     ).filter(
-        StockTransaction.company_id == company_id
-    ).group_by(StockTransaction.item_id).subquery()
+        Item.company_id == company_id
+    ).subquery()
 
 
 # ─── Helper: outstanding balance for a party ─────────────────────────────────
