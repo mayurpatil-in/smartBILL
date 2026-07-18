@@ -16,6 +16,33 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.logger import logger, RequestLoggingMiddleware
 
+# ===================== SENTRY ERROR MONITORING =====================
+# Reads SENTRY_DSN from .env — if not set, Sentry is silently disabled.
+# Set SENTRY_DSN in your .env to enable crash reporting in production.
+_sentry_dsn = os.getenv("SENTRY_DSN", "").strip()
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[
+            FastApiIntegration(),          # Captures FastAPI request context
+            SqlalchemyIntegration(),       # Captures slow/failed DB queries
+            LoggingIntegration(
+                level=logging.WARNING,     # Captures WARNING+ logs as breadcrumbs
+                event_level=logging.ERROR, # Sends ERROR+ logs as Sentry events
+            ),
+        ],
+        traces_sample_rate=0.1,           # 10% of requests → performance tracing
+        environment=os.getenv("ENV", "development"),
+        release=os.getenv("APP_VERSION", "unknown"),
+    )
+    logger.info("✅ Sentry error monitoring initialized.")
+else:
+    logger.info("ℹ️ Sentry DSN not configured — error monitoring disabled.")
+# ==================================================================
 
 from app.core.config import settings
 from app.auth.auth_router import router as auth_router
