@@ -69,6 +69,7 @@ class BackupManager:
             'cron',
             hour=2,
             minute=0,
+            timezone='Asia/Kolkata',
             id='daily_backup_dump',
             replace_existing=True,
             kwargs={"format": "dump"}
@@ -80,6 +81,7 @@ class BackupManager:
             'cron',
             hour=9,
             minute=0,
+            timezone='Asia/Kolkata',
             id='daily_overdue_scan',
             replace_existing=True
         )
@@ -90,6 +92,7 @@ class BackupManager:
             'cron',
             hour=8,
             minute=0,
+            timezone='Asia/Kolkata',
             id='daily_subscription_scan',
             replace_existing=True
         )
