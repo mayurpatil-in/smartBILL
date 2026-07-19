@@ -254,15 +254,6 @@
         <div class="summary-grid">
             <!-- MODERN PAYMENT ZONE -->
             <div class="payment-zone">
-                <div class="bank-details">
-                    <div class="box-title" style="color: #6b7280; font-size: 8px;">Bank Information</div>
-                    <div style="font-size: 11px; line-height: 1.6;">
-                        <strong>{{ company.bank_name or 'HDFC Bank' }}</strong><br>
-                        A/C No: {{ company.account_number or 'XXXXXXXXXX' }}<br>
-                        IFSC Code: {{ company.ifsc_code or 'HDFC000123' }}<br>
-                        Branch: {{ company.branch_name or 'Main Branch' }}
-                    </div>
-                </div>
                 <!-- QR NEXT TO BANK -->
                 <div class="qr-container">
                     <img src="data:image/png;base64,{{ qr_code }}" class="qr-img" alt="QR Code">
