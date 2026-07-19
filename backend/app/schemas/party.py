@@ -7,6 +7,8 @@ class PartyCreate(BaseModel):
     gst_number: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
+    state_code: Optional[str] = None   # GST state code — needed for E-Way Bill
+    pincode: Optional[str] = None       # Pincode — needed for E-Way Bill
     opening_balance: float = 0
     is_active: bool = True
     

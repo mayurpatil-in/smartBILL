@@ -22,6 +22,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
     phone: "",
     gst_number: "",
     address: "",
+    state_code: "",
+    pincode: "",
     opening_balance: 0,
     is_active: true,
     portal_username: "",
@@ -36,10 +38,12 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
         phone: party.phone || "",
         gst_number: party.gst_number || "",
         address: party.address || "",
+        state_code: party.state_code || "",
+        pincode: party.pincode || "",
         opening_balance: party.opening_balance || 0,
         is_active: party.is_active,
-        portal_username: party.client_login?.username || "", // Show existing username
-        portal_password: "", // Leave empty for security
+        portal_username: party.client_login?.username || "",
+        portal_password: "",
       });
     } else {
       setForm({
@@ -48,6 +52,8 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
         phone: "",
         gst_number: "",
         address: "",
+        state_code: "",
+        pincode: "",
         opening_balance: 0,
         is_active: true,
         portal_username: "",
@@ -189,6 +195,37 @@ export default function AddPartyModal({ open, onClose, onSuccess, party }) {
               placeholder="Enter complete address"
               isTextarea
             />
+          </div>
+
+          {/* GST & E-Way Bill Details */}
+          <div className="space-y-4 pt-2 border-t border-dashed border-orange-200 dark:border-orange-800/40">
+            <h3 className="text-sm font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wide flex items-center gap-2">
+              <span>🚚</span>
+              GST &amp; E-Way Bill Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="GST State Code"
+                name="state_code"
+                id="state_code"
+                icon={MapPin}
+                value={form.state_code}
+                onChange={(v) => setForm({ ...form, state_code: v })}
+                placeholder="e.g. 27 (Maharashtra)"
+              />
+              <Input
+                label="Pincode"
+                name="pincode"
+                id="pincode"
+                icon={MapPin}
+                value={form.pincode}
+                onChange={(v) => setForm({ ...form, pincode: v })}
+                placeholder="e.g. 400001"
+              />
+            </div>
+            <p className="text-xs text-orange-600 dark:text-orange-400">
+              Required for E-Way Bill generation via NIC API.
+            </p>
           </div>
 
           {/* Financial Information */}

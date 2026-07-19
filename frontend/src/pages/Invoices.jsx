@@ -166,28 +166,9 @@ export default function Invoices() {
     setDeleteConfirmOpen(true);
   };
 
-  const handleEWayBill = async (invoiceId) => {
-    try {
-      // Check eligibility first
-      const response = await api.get(
-        `/invoice/${invoiceId}/eway-bill/check-eligibility`,
-      );
-
-      if (!response.data.eligible) {
-        toast.error(response.data.message);
-        return;
-      }
-
-      // Find the invoice data
-      const invoice = invoices.find((inv) => inv.id === invoiceId);
-
-      // Open the modal
-      setSelectedInvoiceForEway(invoice);
-      setEwayBillModalOpen(true);
-    } catch (error) {
-      console.error("Failed to check e-way bill eligibility", error);
-      toast.error("Failed to check e-way bill eligibility");
-    }
+  const handleEWayBill = (invoice) => {
+    setSelectedInvoiceForEway(invoice);
+    setEwayBillModalOpen(true);
   };
 
   const handleWhatsAppShare = async (invoiceId) => {
@@ -612,11 +593,18 @@ export default function Invoices() {
                         {/* E-Way Bill Button - Only show for invoices >= 50000 */}
                         {Number(inv.grand_total) >= 50000 && (
                           <button
-                            onClick={() => handleEWayBill(inv.id)}
-                            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-                            title="Generate E-Way Bill"
+                            onClick={() => handleEWayBill(inv)}
+                            className={`relative p-2 rounded-lg transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md ${
+                              inv.eway_bill_number
+                                ? "bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60 text-orange-600 dark:text-orange-400"
+                                : "bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+                            }`}
+                            title={inv.eway_bill_number ? `EWB: ${inv.eway_bill_number}` : "Generate E-Way Bill"}
                           >
                             <Truck size={16} />
+                            {inv.eway_bill_number && (
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
+                            )}
                           </button>
                         )}
                         <PermissionGuard permission="invoices.delete">
@@ -764,6 +752,10 @@ export default function Invoices() {
         }}
         invoiceId={selectedInvoiceForEway?.id}
         invoiceData={selectedInvoiceForEway}
+        onSuccess={() => {
+          fetchInvoices();
+          setSelectedInvoiceForEway(null);
+        }}
       />
     </div>
   );

@@ -345,6 +345,7 @@ export default function AddDeliveryChallanModal({
       cr_qty: "",
       mr_qty: "",
       rate: "",
+      party_rate: "",
       total_qty: 0,
     });
     setPartyChallansByItem([]);

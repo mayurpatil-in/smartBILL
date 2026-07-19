@@ -12,3 +12,5 @@ class CompanyProfileUpdate(BaseModel):
     address: str | None = None
     phone: str | None = None
     email: str | None = None
+    state_code: str | None = None   # GST state code — needed for E-Way Bill
+    pincode: str | None = None       # Pincode — needed for E-Way Bill

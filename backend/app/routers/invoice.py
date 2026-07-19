@@ -1008,7 +1008,13 @@ async def share_invoice(
 # E-Way Bill Endpoints
 # ===============================
 
-from app.schemas.eway_bill import EWayBillCreate, EWayBillResponse, EWayBillPreviewRequest
+from app.schemas.eway_bill import (
+    EWayBillCreate,
+    EWayBillManualCreate,
+    EWayBillResponse,
+    EWayBillPreviewRequest,
+    EWayCancelRequest,
+)
 from app.utils.eway_bill_utils import (
     validate_eway_bill_eligibility,
     calculate_eway_bill_validity,
@@ -1221,3 +1227,378 @@ async def print_eway_bill(
         traceback.print_exc()
         raise HTTPException(500, f"Failed to generate E-Way Bill PDF: {str(e)}")
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# E-WAY BILL — ONLINE (NIC API Auto-Generate)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/{invoice_id}/eway-bill/generate", response_model=EWayBillResponse)
+async def generate_eway_bill_online(
+    invoice_id: int,
+    data: EWayBillCreate,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    ONLINE MODE — Generate E-Way Bill automatically via NIC API.
+
+    Steps:
+      1. Validates invoice eligibility (>= ₹50,000)
+      2. Authenticates with NIC EWB portal using credentials from .env
+      3. Builds the EWB JSON payload from invoice, party, company & items
+      4. Calls NIC API → receives EWB number
+      5. Saves EWB number + transport details to the Invoice record
+
+    Requires: EWAY_BILL_USERNAME, EWAY_BILL_PASSWORD, EWAY_BILL_GSTIN in .env
+    """
+    from app.services.eway_bill_service import eway_bill_service
+
+    # ── 1. Fetch invoice with relations ──────────────────────────────────────
+    invoice = (
+        db.query(Invoice)
+        .options(
+            joinedload(Invoice.items).joinedload(InvoiceItem.item),
+            joinedload(Invoice.party),
+            joinedload(Invoice.company),
+        )
+        .filter(Invoice.id == invoice_id, Invoice.company_id == company_id)
+        .first()
+    )
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+
+    # ── 2. Guard: already has an EWB number ──────────────────────────────────
+    if invoice.eway_bill_number:
+        raise HTTPException(
+            400,
+            f"E-Way Bill already exists for this invoice: {invoice.eway_bill_number}. "
+            "Cancel it first before generating a new one."
+        )
+
+    # ── 3. Eligibility check ─────────────────────────────────────────────────
+    if not validate_eway_bill_eligibility(invoice.grand_total):
+        raise HTTPException(
+            400,
+            f"E-Way Bill not required for invoices below ₹50,000. "
+            f"Current amount: ₹{invoice.grand_total}"
+        )
+
+    # ── 4. Company GST required ──────────────────────────────────────────────
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company or not company.gst_number:
+        raise HTTPException(400, "Company GSTIN is required to generate an E-Way Bill.")
+
+    # ── 5. Build NIC payload ─────────────────────────────────────────────────
+    transport_dict = data.model_dump()
+    try:
+        payload = eway_bill_service.build_ewb_payload(
+            invoice=invoice,
+            company=company,
+            party=invoice.party,
+            items=invoice.items,
+            transport_data=transport_dict,
+        )
+    except Exception as e:
+        raise HTTPException(400, f"Could not build EWB payload: {str(e)}")
+
+    # ── 6. Call NIC API ──────────────────────────────────────────────────────
+    try:
+        result = await eway_bill_service.generate_eway_bill(payload)
+    except ValueError as e:
+        # Business errors from NIC (wrong GSTIN, HSN, etc.)
+        raise HTTPException(422, str(e))
+    except Exception as e:
+        raise HTTPException(503, f"NIC EWB API unreachable: {str(e)}")
+
+    ewb_number = str(result.get("ewbNo", ""))
+    if not ewb_number:
+        raise HTTPException(502, "NIC API returned success but no EWB number. Please retry.")
+
+    # ── 7. Save to invoice ───────────────────────────────────────────────────
+    invoice.eway_bill_number    = ewb_number
+    invoice.eway_bill_date      = date.today()
+    invoice.transport_mode      = data.transport_mode
+    invoice.vehicle_number      = data.vehicle_number
+    invoice.transporter_id      = data.transporter_id
+    invoice.transport_distance  = data.transport_distance
+    invoice.vehicle_type        = data.vehicle_type or "Regular"
+    invoice.transporter_doc_no  = data.transporter_doc_no
+    invoice.transporter_doc_date = data.transporter_doc_date
+    db.commit()
+    db.refresh(invoice)
+
+    # ── 8. Build response ────────────────────────────────────────────────────
+    validity_days, validity_desc = calculate_eway_bill_validity(data.transport_distance)
+
+    return EWayBillResponse(
+        eway_bill_number=invoice.eway_bill_number,
+        eway_bill_date=invoice.eway_bill_date,
+        transport_mode=invoice.transport_mode,
+        vehicle_number=invoice.vehicle_number,
+        transporter_id=invoice.transporter_id,
+        transport_distance=invoice.transport_distance,
+        vehicle_type=invoice.vehicle_type,
+        transporter_doc_no=invoice.transporter_doc_no,
+        transporter_doc_date=invoice.transporter_doc_date,
+        validity_days=validity_days,
+        validity_description=validity_desc,
+        eway_bill_mode="online",
+        message=f"E-Way Bill {ewb_number} generated successfully via NIC portal.",
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# E-WAY BILL — OFFLINE/MANUAL (Client fills on NIC portal, enters number here)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/{invoice_id}/eway-bill/manual", response_model=EWayBillResponse)
+def save_eway_bill_manual(
+    invoice_id: int,
+    data: EWayBillManualCreate,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    OFFLINE/MANUAL MODE — Client generated EWB on NIC portal manually.
+    Just saves the EWB number + transport details to the Invoice record.
+
+    No NIC API call is made. No credentials required.
+    The 12-digit EWB number is validated for format only.
+    """
+    # ── 1. Fetch invoice ─────────────────────────────────────────────────────
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+
+    # ── 2. Guard: already has EWB ────────────────────────────────────────────
+    if invoice.eway_bill_number:
+        raise HTTPException(
+            400,
+            f"This invoice already has E-Way Bill: {invoice.eway_bill_number}. "
+            "Use the update endpoint to change it."
+        )
+
+    # ── 3. Eligibility check ─────────────────────────────────────────────────
+    if not validate_eway_bill_eligibility(invoice.grand_total):
+        raise HTTPException(
+            400,
+            f"E-Way Bill not required for invoices below ₹50,000. "
+            f"Current amount: ₹{invoice.grand_total}"
+        )
+
+    # ── 4. Save EWB + transport details ─────────────────────────────────────
+    invoice.eway_bill_number     = data.eway_bill_number
+    invoice.eway_bill_date       = data.eway_bill_date
+    invoice.transport_mode       = data.transport_mode
+    invoice.vehicle_number       = data.vehicle_number
+    invoice.transporter_id       = data.transporter_id
+    invoice.transport_distance   = data.transport_distance
+    invoice.vehicle_type         = data.vehicle_type or "Regular"
+    invoice.transporter_doc_no   = data.transporter_doc_no
+    invoice.transporter_doc_date = data.transporter_doc_date
+    db.commit()
+    db.refresh(invoice)
+
+    # ── 5. Build response ────────────────────────────────────────────────────
+    validity_days, validity_desc = calculate_eway_bill_validity(data.transport_distance)
+
+    return EWayBillResponse(
+        eway_bill_number=invoice.eway_bill_number,
+        eway_bill_date=invoice.eway_bill_date,
+        transport_mode=invoice.transport_mode,
+        vehicle_number=invoice.vehicle_number,
+        transporter_id=invoice.transporter_id,
+        transport_distance=invoice.transport_distance,
+        vehicle_type=invoice.vehicle_type,
+        transporter_doc_no=invoice.transporter_doc_no,
+        transporter_doc_date=invoice.transporter_doc_date,
+        validity_days=validity_days,
+        validity_description=validity_desc,
+        eway_bill_mode="manual",
+        message=f"E-Way Bill {data.eway_bill_number} saved successfully (manual entry).",
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# E-WAY BILL — UPDATE (change transport details on existing EWB)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.put("/{invoice_id}/eway-bill/update", response_model=EWayBillResponse)
+def update_eway_bill_details(
+    invoice_id: int,
+    data: EWayBillManualCreate,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Update transport details + EWB number on an existing EWB record.
+    Used when client wants to correct vehicle number, distance, etc.
+    Works for BOTH online and manual EWBs.
+    """
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    if not invoice.eway_bill_number:
+        raise HTTPException(400, "No E-Way Bill found. Generate one first.")
+
+    invoice.eway_bill_number     = data.eway_bill_number
+    invoice.eway_bill_date       = data.eway_bill_date
+    invoice.transport_mode       = data.transport_mode
+    invoice.vehicle_number       = data.vehicle_number
+    invoice.transporter_id       = data.transporter_id
+    invoice.transport_distance   = data.transport_distance
+    invoice.vehicle_type         = data.vehicle_type or "Regular"
+    invoice.transporter_doc_no   = data.transporter_doc_no
+    invoice.transporter_doc_date = data.transporter_doc_date
+    db.commit()
+    db.refresh(invoice)
+
+    validity_days, validity_desc = calculate_eway_bill_validity(data.transport_distance)
+
+    return EWayBillResponse(
+        eway_bill_number=invoice.eway_bill_number,
+        eway_bill_date=invoice.eway_bill_date,
+        transport_mode=invoice.transport_mode,
+        vehicle_number=invoice.vehicle_number,
+        transporter_id=invoice.transporter_id,
+        transport_distance=invoice.transport_distance,
+        vehicle_type=invoice.vehicle_type,
+        transporter_doc_no=invoice.transporter_doc_no,
+        transporter_doc_date=invoice.transporter_doc_date,
+        validity_days=validity_days,
+        validity_description=validity_desc,
+        eway_bill_mode="manual",
+        message="E-Way Bill details updated successfully.",
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# E-WAY BILL — CANCEL via NIC API (online only, within 24 hours)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.delete("/{invoice_id}/eway-bill/cancel-api")
+async def cancel_eway_bill_via_api(
+    invoice_id: int,
+    data: EWayCancelRequest,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Cancel E-Way Bill via NIC API (must be within 24 hours of generation).
+    Clears EWB number from the invoice after successful cancellation.
+    """
+    from app.services.eway_bill_service import eway_bill_service
+
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    if not invoice.eway_bill_number:
+        raise HTTPException(400, "No E-Way Bill found for this invoice.")
+
+    try:
+        result = await eway_bill_service.cancel_eway_bill(
+            ewb_number=invoice.eway_bill_number,
+            cancel_reason=data.cancel_reason,
+            cancel_remark=data.cancel_remark or "Cancelled",
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except Exception as e:
+        raise HTTPException(503, f"NIC EWB API Error: {str(e)}")
+
+    # Clear EWB fields
+    cancelled_ewb = invoice.eway_bill_number
+    invoice.eway_bill_number  = None
+    invoice.eway_bill_date    = None
+    db.commit()
+
+    return {
+        "message": f"E-Way Bill {cancelled_ewb} cancelled successfully via NIC API.",
+        "api_response": result,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# E-WAY BILL — CLEAR (remove EWB from invoice locally, no NIC API call)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.delete("/{invoice_id}/eway-bill/clear")
+def clear_eway_bill_local(
+    invoice_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Locally remove EWB details from the invoice (no NIC API call).
+    Use this for manual EWBs or when NIC API cancel is not needed.
+    """
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    if not invoice.eway_bill_number:
+        raise HTTPException(400, "No E-Way Bill to clear on this invoice.")
+
+    cleared_ewb = invoice.eway_bill_number
+    invoice.eway_bill_number     = None
+    invoice.eway_bill_date       = None
+    invoice.transport_mode       = None
+    invoice.vehicle_number       = None
+    invoice.transporter_id       = None
+    invoice.transport_distance   = None
+    invoice.vehicle_type         = None
+    invoice.transporter_doc_no   = None
+    invoice.transporter_doc_date = None
+    db.commit()
+
+    return {"message": f"E-Way Bill {cleared_ewb} cleared from invoice (local only)."}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# E-WAY BILL — STATUS CHECK via NIC API
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/{invoice_id}/eway-bill/api-status")
+async def get_eway_bill_api_status(
+    invoice_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Fetch live EWB status from NIC portal.
+    Returns full EWB details including valid-upto date.
+    """
+    from app.services.eway_bill_service import eway_bill_service
+
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.company_id == company_id
+    ).first()
+    if not invoice:
+        raise HTTPException(404, "Invoice not found")
+    if not invoice.eway_bill_number:
+        raise HTTPException(400, "No E-Way Bill found for this invoice.")
+
+    try:
+        result = await eway_bill_service.get_eway_bill_status(invoice.eway_bill_number)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except Exception as e:
+        raise HTTPException(503, f"NIC EWB API Error: {str(e)}")
+
+    return {
+        "eway_bill_number": invoice.eway_bill_number,
+        "nic_status": result,
+    }

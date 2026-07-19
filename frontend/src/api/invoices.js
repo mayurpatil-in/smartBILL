@@ -65,3 +65,57 @@ export const printBulkInvoices = async (invoice_ids) => {
   );
   return response.data;
 };
+
+// ─── E-Way Bill API helpers ──────────────────────────────────────────────────
+
+/** Auto-generate EWB via NIC API */
+export const generateEWayBillOnline = async (invoiceId, data) => {
+  const response = await api.post(
+    `/invoice/${invoiceId}/eway-bill/generate`,
+    data
+  );
+  return response.data;
+};
+
+/** Save manually entered EWB number (offline/client generated) */
+export const saveEWayBillManual = async (invoiceId, data) => {
+  const response = await api.post(
+    `/invoice/${invoiceId}/eway-bill/manual`,
+    data
+  );
+  return response.data;
+};
+
+/** Update transport details on existing EWB */
+export const updateEWayBill = async (invoiceId, data) => {
+  const response = await api.put(
+    `/invoice/${invoiceId}/eway-bill/update`,
+    data
+  );
+  return response.data;
+};
+
+/** Cancel EWB via NIC API (within 24 hours) */
+export const cancelEWayBillViaAPI = async (invoiceId, data) => {
+  const response = await api.delete(
+    `/invoice/${invoiceId}/eway-bill/cancel-api`,
+    { data }
+  );
+  return response.data;
+};
+
+/** Remove EWB details from invoice locally (no NIC API call) */
+export const clearEWayBillLocal = async (invoiceId) => {
+  const response = await api.delete(
+    `/invoice/${invoiceId}/eway-bill/clear`
+  );
+  return response.data;
+};
+
+/** Fetch live EWB status from NIC portal */
+export const getEWayBillStatus = async (invoiceId) => {
+  const response = await api.get(
+    `/invoice/${invoiceId}/eway-bill/api-status`
+  );
+  return response.data;
+};

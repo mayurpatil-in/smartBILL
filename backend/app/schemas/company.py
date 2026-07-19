@@ -11,6 +11,8 @@ class CompanyBase(BaseModel):
     email: Optional[EmailStr] = None
     logo: Optional[str] = None
     off_days: Optional[List[int]] = []
+    state_code: Optional[str] = None   # GST state code — needed for E-Way Bill
+    pincode: Optional[str] = None       # Pincode — needed for E-Way Bill
 
 
 class CompanyCreate(CompanyBase):

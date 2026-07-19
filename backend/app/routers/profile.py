@@ -104,6 +104,8 @@ def update_company_profile(
     if data.address: company.address = data.address
     if data.phone: company.phone = data.phone
     if data.email: company.email = data.email
+    if data.state_code is not None: company.state_code = data.state_code
+    if data.pincode is not None: company.pincode = data.pincode
 
     db.commit()
     db.refresh(company)

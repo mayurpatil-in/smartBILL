@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     # ================= SYSTEM =================
     BACKEND_URL: str | None = None
 
+    # ================= E-WAY BILL =================
+    EWAY_BILL_USERNAME: str = ""
+    EWAY_BILL_PASSWORD: str = ""
+    EWAY_BILL_GSTIN: str = ""
+    # Sandbox: https://sandboxapi.einvoice1.gst.gov.in
+    # Production: https://api.einvoice1.gst.gov.in
+    EWAY_BILL_API_URL: str = "https://sandboxapi.einvoice1.gst.gov.in"
+
     # ✅ REQUIRED FOR PYDANTIC v2
     model_config = SettingsConfigDict(
         env_file=_ENV_FILE,

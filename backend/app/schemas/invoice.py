@@ -95,5 +95,17 @@ class InvoiceResponse(BaseModel):
     
     items: List[InvoiceItemResponse]
 
+    # E-Way Bill fields
+    eway_bill_number: Optional[str] = None
+    eway_bill_date: Optional[date] = None
+    transport_mode: Optional[str] = None
+    vehicle_number: Optional[str] = None
+    transport_distance: Optional[int] = None
+    transporter_id: Optional[str] = None
+    vehicle_type: Optional[str] = None
+    transporter_doc_no: Optional[str] = None
+    transporter_doc_date: Optional[date] = None
+
     class Config:
         from_attributes = True
+

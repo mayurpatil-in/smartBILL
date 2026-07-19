@@ -49,6 +49,8 @@ export default function ProfileModal({ open, onClose }) {
     address: "",
     phone: "",
     email: "",
+    state_code: "",
+    pincode: "",
   });
 
   const [logo, setLogo] = useState(null);
@@ -82,6 +84,8 @@ export default function ProfileModal({ open, onClose }) {
           address: data.company.address || "",
           phone: data.company.phone || "",
           email: data.company.email || "",
+          state_code: data.company.state_code || "",
+          pincode: data.company.pincode || "",
         });
         setLogo(data.company.logo);
       }
@@ -461,6 +465,41 @@ export default function ProfileModal({ open, onClose }) {
                     />
                   </div>
 
+                  {/* E-Way Bill Fields */}
+                  <div className="pt-4 border-t-2 border-dashed border-orange-200 dark:border-orange-800/40">
+                    <h3 className="text-sm font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wide mb-4 flex items-center gap-2">
+                      <span className="text-base">🚚</span>
+                      GST &amp; E-Way Bill Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <EnhancedInput
+                        label="GST State Code"
+                        name="company_state_code"
+                        icon={MapPin}
+                        value={companyForm.state_code}
+                        onChange={(v) =>
+                          setCompanyForm({ ...companyForm, state_code: v })
+                        }
+                        placeholder="e.g. 27 (Maharashtra)"
+                        maxLength={2}
+                      />
+                      <EnhancedInput
+                        label="Pincode"
+                        name="company_pincode"
+                        icon={MapPin}
+                        value={companyForm.pincode}
+                        onChange={(v) =>
+                          setCompanyForm({ ...companyForm, pincode: v })
+                        }
+                        placeholder="e.g. 400001"
+                        maxLength={6}
+                      />
+                    </div>
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                      Required for E-Way Bill generation via NIC API.
+                    </p>
+                  </div>
+
                   <div className="flex justify-end pt-6">
                     <button
                       type="submit"
@@ -491,6 +530,8 @@ function EnhancedInput({
   autoComplete,
   icon: Icon,
   rightIcon,
+  placeholder = "",
+  maxLength,
 }) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -534,6 +575,8 @@ function EnhancedInput({
             }
             outline-none placeholder-gray-400 dark:placeholder-gray-500
           `}
+          placeholder={placeholder}
+          maxLength={maxLength}
         />
         {rightIcon && (
           <div className="absolute right-4 top-1/2 -translate-y-1/2">
