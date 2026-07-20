@@ -213,7 +213,7 @@ export default function ClientLayout() {
                   }`}>
                     <Icon className={`w-5 h-5 ${isActive ? "text-white" : ""} ${isActive ? "scale-110" : ""} transition-transform`} />
                   </div>
-                  {item.label}
+                  <span className="truncate w-full text-center px-1">{item.label.split(' ').pop()}</span>
                 </Link>
               );
             })}

@@ -58,6 +58,8 @@ def login_access_token(
             "type": "client",
             "client_login_id": client.id,
             "party_id": client.party_id,
+            "party_name": client.party.name,
+            "username": client.username,
             "sub": str(client.id) # Standard claim
         }
     )

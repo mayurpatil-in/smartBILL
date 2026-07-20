@@ -188,7 +188,7 @@ const NotificationDropdown = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden animate-fade-in origin-top-right">
+        <div className="absolute -right-14 sm:right-0 mt-2 w-[300px] sm:w-80 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden animate-fade-in origin-top-right">
           {/* Gradient Header */}
           <div className="relative p-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
             <div className="flex justify-between items-center mb-3">
@@ -390,16 +390,18 @@ export default function Navbar({ onMenuClick }) {
           <Menu size={20} />
         </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1 flex flex-col justify-center overflow-hidden">
+          <div className="hidden sm:flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shrink-0">
               <LayoutDashboard size={14} className="text-white sm:w-4 sm:h-4" />
             </div>
-            <h1 className="hidden sm:block text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent truncate">
+            <h1 className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent truncate">
               Dashboard
             </h1>
           </div>
-          <Breadcrumbs />
+          <div className="w-full mt-0 sm:mt-0.5 overflow-hidden">
+            <Breadcrumbs />
+          </div>
         </div>
       </div>
 

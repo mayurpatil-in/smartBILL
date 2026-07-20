@@ -285,9 +285,9 @@ export default function ClientInvoices() {
           </div>
 
           {/* Filter Button */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full md:w-auto">
             {/* Financial Year Dropdown */}
-            <div className="relative flex-1 sm:flex-none">
+            <div className="relative col-span-2 sm:col-span-1 flex-1 sm:flex-none">
               <button
                 onClick={() => setShowFYDropdown(!showFYDropdown)}
                 className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-xl font-medium transition-all w-full text-sm ${
@@ -308,7 +308,7 @@ export default function ClientInvoices() {
               </button>
 
               {showFYDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                <div className="absolute right-0 mt-2 w-full sm:w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
                   <button
                     onClick={() => {
                       setSelectedFinancialYear("");
@@ -349,26 +349,26 @@ export default function ClientInvoices() {
 
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
+              className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-3 rounded-xl font-medium transition-all text-xs sm:text-sm ${
                 showFilters || statusFilter !== "ALL"
                   ? "bg-blue-600 text-white shadow-lg"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
-              <Filter size={20} />
-              Filters
+              <Filter size={18} className="sm:w-5 sm:h-5" />
+              <span className="whitespace-nowrap">Filters</span>
               {statusFilter !== "ALL" && (
-                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs">
                   1
                 </span>
               )}
             </button>
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-800/40"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-3 rounded-xl font-medium transition-all bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 text-xs sm:text-sm"
             >
-              <Download size={20} />
-              Export CSV
+              <Download size={18} className="sm:w-5 sm:h-5" />
+              <span className="whitespace-nowrap">Export CSV</span>
             </button>
           </div>
         </div>

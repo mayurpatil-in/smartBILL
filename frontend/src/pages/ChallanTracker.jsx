@@ -63,9 +63,9 @@ function PartyChallanCard({ challan, onEdit, onDelete }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-      <div className="flex items-center justify-between p-5">
-        <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => setExpanded(!expanded)}>
-          <div className="p-2.5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-4 sm:gap-0">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 cursor-pointer flex-1" onClick={() => setExpanded(!expanded)}>
+          <div className="p-2 sm:p-2.5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-sm shrink-0">
             <Package className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -91,8 +91,8 @@ function PartyChallanCard({ challan, onEdit, onDelete }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
+        <div className="flex items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-700">
+          <div className="text-right hidden sm:block mr-2">
             <p className="text-xs text-gray-400 dark:text-gray-500">Dispatches</p>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{challan.delivery_challan_count || 0}</p>
           </div>
@@ -184,9 +184,9 @@ function DeliveryChallanCard({ challan, onEdit, onDelete, onPrint, onWhatsApp, o
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-      <div className="flex items-center justify-between p-5">
-        <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => setExpanded(!expanded)}>
-          <div className="p-2.5 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-4 sm:gap-0">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 cursor-pointer flex-1" onClick={() => setExpanded(!expanded)}>
+          <div className="p-2 sm:p-2.5 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl shadow-sm shrink-0">
             <Truck className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -212,7 +212,7 @@ function DeliveryChallanCard({ challan, onEdit, onDelete, onPrint, onWhatsApp, o
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-0 border-gray-100 dark:border-gray-700">
           <button 
             onClick={() => onPDI(challan)} 
             className={`p-2 rounded-lg transition-colors ${
@@ -230,7 +230,7 @@ function DeliveryChallanCard({ challan, onEdit, onDelete, onPrint, onWhatsApp, o
           <button onClick={() => onPrint(challan)} className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Print PDF">
             <Printer className="w-4 h-4" />
           </button>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block"></div>
           <button onClick={() => onEdit(challan)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Edit">
             <Edit className="w-4 h-4" />
           </button>
@@ -614,19 +614,21 @@ export default function ChallanTracker() {
           {searchTerm && <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>}
         </div>
 
-        <select value={partyFilter} onChange={(e) => setPartyFilter(e.target.value)} className="px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-400 dark:text-gray-200 transition-colors max-w-[200px]">
-          <option value="">All Parties</option>
-          {parties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        <div className="grid grid-cols-[1fr_1fr_auto] sm:flex gap-2 sm:gap-3">
+          <select value={partyFilter} onChange={(e) => setPartyFilter(e.target.value)} className="w-full px-2 sm:px-4 py-2.5 text-xs sm:text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-400 dark:text-gray-200 transition-colors sm:max-w-[200px]">
+            <option value="">All Parties</option>
+            {parties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
 
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-400 dark:text-gray-200 transition-colors max-w-[150px]">
-          <option value="">All Status</option>
-          {statusOptions.map((s) => <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>)}
-        </select>
-        
-        <button onClick={fetchData} className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400">
-          <RefreshCw className="w-4 h-4" />
-        </button>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-2 sm:px-4 py-2.5 text-xs sm:text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-blue-400 dark:text-gray-200 transition-colors sm:max-w-[150px]">
+            <option value="">All Status</option>
+            {statusOptions.map((s) => <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>)}
+          </select>
+          
+          <button onClick={fetchData} className="p-2.5 sm:px-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400 flex items-center justify-center">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
         {loading ? (

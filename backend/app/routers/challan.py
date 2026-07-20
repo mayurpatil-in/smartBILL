@@ -1135,35 +1135,45 @@ async def share_challan(
     # Pure ASCII message — works on ALL WhatsApp versions and devices
     challan_date_str = challan.challan_date.strftime('%d %b %Y') if challan.challan_date else "N/A"
 
+    # Calculate totals from challan items
+    total_qty = sum(float(item.quantity or 0) for item in challan.items)
+    total_amount = sum(float(item.quantity or 0) * float(item.rate or 0) for item in challan.items)
+
     lines = [
-        f"*Delivery Challan from {company_name}*",
-        "-" * 32,
-        f"Hello {party_name},",
+        f"*{company_name}*",
+        "_"*32,
+        f"Dear {party_name},",
         "",
-        f"Please find your *Delivery Challan {challan.challan_number}* details below.",
+        "Your delivery challan has been successfully generated.",
         "",
-        f"*Challan Date  :* {challan_date_str}",
-        f"*Vehicle No.   :* {challan.vehicle_number or 'N/A'}",
+        f"*Challan No:* {challan.challan_number}",
+        f"*Date:* {challan_date_str}",
+        f"*Vehicle No:* {challan.vehicle_number or 'N/A'}",
+        f"*Total Qty:* {total_qty:g}",
+        f"*Total Amount:* Rs. {total_amount:,.2f}",
         "",
-        "*Download Challan:*",
+        "*Download PDF:*",
         short_download_url,
         "",
-        "Thank you for your business!",
-        "For any queries, feel free to reply to this message.",
+        "Thank you for your business.",
+        "Have a great day!",
+        "",
+        "Powered by SmartBill",
     ]
-    message = "\n".join(lines)
+    # Use CRLF (\r\n) for newlines as WhatsApp Web strictly requires it for proper line breaks
+    message = "\r\n".join(lines)
 
     # Create the whatsapp deep link (explicit utf-8, safe='' to encode everything)
     encoded_message = urllib.parse.quote(message, safe="", encoding="utf-8")
     whatsapp_url = f"https://wa.me/?text={encoded_message}"
     
-    if challan.party and challan.party.phone:
-        # naive cleanup of phone number for deep link
-        phone = ''.join(filter(str.isdigit, challan.party.phone))
-        # Ensure country code is present if typical 10 digit Indian number
-        if len(phone) == 10:
-            phone = f"91{phone}"
-        whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
+    # The user requested NOT to pre-fill the phone number so they can manually pick the contact.
+    # Therefore, we only use https://wa.me/?text=... which prompts for contact selection.
+    # if challan.party and challan.party.phone:
+    #     phone = ''.join(filter(str.isdigit, challan.party.phone))
+    #     if len(phone) == 10:
+    #         phone = f"91{phone}"
+    #     whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
         
     return {
         "challan_id": challan.id,

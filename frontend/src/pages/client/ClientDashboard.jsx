@@ -52,7 +52,7 @@ export default function ClientDashboard() {
   const greeting = getGreeting();
   const GreetingIcon = greeting.icon;
 
-  const clientName = client?.partyName || client?.username || "Client";
+  const clientName = client?.partyName || client?.username || stats?.party_name || "Client";
   const initials = clientName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   const handleDownload = async (invoiceId, invoiceNumber) => {
