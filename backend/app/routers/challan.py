@@ -341,6 +341,8 @@ def update_challan(
         "vehicle_number": challan.vehicle_number,
         "notes": challan.notes,
         "status": challan.status,
+        "client_status": challan.client_status or "pending",
+        "client_notes": challan.client_notes,
         "is_active": challan.is_active,
         "party": {
             "id": challan.party.id,
@@ -378,6 +380,26 @@ def update_challan(
     }
 
 
+@router.post("/{challan_id}/resolve-issue")
+def resolve_delivery_issue(
+    challan_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    challan = db.query(DeliveryChallan).filter(
+        DeliveryChallan.id == challan_id,
+        DeliveryChallan.company_id == company_id
+    ).first()
+
+    if not challan:
+        raise HTTPException(status_code=404, detail="Delivery challan not found")
+
+    challan.client_status = "resolved"
+    db.commit()
+    
+    return {"message": "Issue resolved successfully", "client_status": challan.client_status}
+
+
 @router.get("/", response_model=List[ChallanResponse])
 def list_challans(
     party_id: int = None,
@@ -392,6 +414,7 @@ def list_challans(
 ):
     query = db.query(DeliveryChallan).options(
         joinedload(DeliveryChallan.party),
+        joinedload(DeliveryChallan.pdi_report),
         joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
         joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
         joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.process),
@@ -429,7 +452,10 @@ def list_challans(
             "vehicle_number": challan.vehicle_number,
             "notes": challan.notes,
             "status": challan.status,
+            "client_status": challan.client_status or "pending",
+            "client_notes": challan.client_notes,
             "is_active": challan.is_active,
+            "has_pdi_report": len(challan.pdi_report) > 0 if hasattr(challan, "pdi_report") and challan.pdi_report else False,
             "party": {
                 "id": challan.party.id,
                 "name": challan.party.name
@@ -482,11 +508,13 @@ def get_challan_stats(
     total = base_query.count()
     sent = base_query.filter(DeliveryChallan.status == "sent").count()
     delivered = base_query.filter(DeliveryChallan.status == "delivered").count()
+    pending_discrepancies = base_query.filter(DeliveryChallan.client_status == "discrepancy").count()
     
     return {
         "total": total,
         "sent": sent,
-        "delivered": delivered
+        "delivered": delivered,
+        "pending_discrepancies": pending_discrepancies
     }
 
 
@@ -1068,6 +1096,37 @@ async def share_challan(
     signature = create_url_signature(str(challan.id))
     download_url = f"{base_url}/public/challan/{challan.id}/download?token={signature}"
     
+    # Generate Short Link (with fallback to long link if DB fails)
+    short_download_url = download_url
+    try:
+        import string
+        import random
+        from datetime import datetime, timedelta, timezone
+        from app.models.short_link import ShortLink
+        
+        # Generate a unique 10-character code
+        chars = string.ascii_letters + string.digits
+        while True:
+            short_code = ''.join(random.choice(chars) for _ in range(10))
+            if not db.query(ShortLink).filter(ShortLink.code == short_code).first():
+                break
+                
+        # Save the short link (expires in 30 days)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        short_link = ShortLink(
+            code=short_code,
+            target_url=download_url,
+            expires_at=expires_at
+        )
+        db.add(short_link)
+        db.commit()
+        
+        # If successful, use the short URL
+        short_download_url = f"{base_url}/public/challan/dl/{short_code}"
+    except Exception as e:
+        print(f"Failed to generate short link (DB issue?): {e}")
+        db.rollback()
+        # It will gracefully fallback to the original long download_url
     # Format the message
     company = db.query(Company).filter(Company.id == company_id).first()
     company_name = company.name if company else "Our Company"
@@ -1087,7 +1146,7 @@ async def share_challan(
         f"*Vehicle No.   :* {challan.vehicle_number or 'N/A'}",
         "",
         "*Download Challan:*",
-        download_url,
+        short_download_url,
         "",
         "Thank you for your business!",
         "For any queries, feel free to reply to this message.",
@@ -1110,5 +1169,5 @@ async def share_challan(
         "challan_id": challan.id,
         "whatsapp_url": whatsapp_url,
         "message": message,
-        "download_url": download_url
+        "download_url": short_download_url
     }

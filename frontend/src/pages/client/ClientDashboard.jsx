@@ -11,6 +11,13 @@ import {
   AlertCircle,
   CheckCircle,
   ChevronDown,
+  Truck,
+  Wallet,
+  Zap,
+  ArrowRight,
+  Sun,
+  Sunset,
+  Moon,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -22,15 +29,31 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export default function ClientDashboard() {
   const { client } = useClientAuth();
+  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [financialYears, setFinancialYears] = useState([]);
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState(""); // "" means all years
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState("");
   const [showFYDropdown, setShowFYDropdown] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+
+  // Time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { text: "Good Morning", icon: Sun, color: "text-amber-400" };
+    if (hour < 18) return { text: "Good Afternoon", icon: Sunset, color: "text-orange-400" };
+    return { text: "Good Evening", icon: Moon, color: "text-indigo-300" };
+  };
+  const greeting = getGreeting();
+  const GreetingIcon = greeting.icon;
+
+  const clientName = client?.partyName || client?.username || "Client";
+  const initials = clientName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   const handleDownload = async (invoiceId, invoiceNumber) => {
     setDownloadingId(invoiceId);
@@ -145,90 +168,139 @@ export default function ClientDashboard() {
 
   if (!stats) return null;
 
-  return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
-              Welcome back, {stats.party_name}!
-            </h1>
-            <p className="text-blue-100 text-sm sm:text-base md:text-lg">
-              Here's your account overview
-            </p>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            {/* Financial Year Dropdown */}
-            <div className="relative flex-1 md:flex-none">
-              <button
-                onClick={() => setShowFYDropdown(!showFYDropdown)}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/20 w-full md:w-auto text-sm"
-              >
-                <Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="font-medium truncate">
-                  {selectedFinancialYear
-                    ? financialYears.find(
-                        (fy) => fy.id === selectedFinancialYear,
-                      )?.year_name
-                    : "All Years"}
-                </span>
-                <ChevronDown size={14} className="sm:w-4 sm:h-4" />
-              </button>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
 
-              {showFYDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
-                  <button
-                    onClick={() => {
-                      setSelectedFinancialYear("");
-                      setShowFYDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                      selectedFinancialYear === ""
-                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    All Years
-                  </button>
-                  {financialYears.map((fy) => (
-                    <button
-                      key={fy.id}
-                      onClick={() => {
-                        setSelectedFinancialYear(fy.id);
-                        setShowFYDropdown(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                        selectedFinancialYear === fy.id
-                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      {fy.year_name}
-                      {fy.is_active && (
-                        <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
-                          Active
-                        </span>
-                      )}
-                    </button>
-                  ))}
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  return (
+    <motion.div 
+      className="space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+    >
+      {/* Hero Section — animated gradient banner */}
+      <motion.div variants={itemVariants} className="relative rounded-2xl overflow-hidden text-white shadow-2xl">
+        {/* Background gradient */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4f46e5 65%, #7c3aed 100%)",
+            backgroundSize: "400% 400%",
+            animation: "gradientShift 8s ease infinite",
+          }}
+        />
+        {/* Decorative circles */}
+        <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
+        <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-purple-400/10 rounded-full blur-2xl" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-indigo-300/5 rounded-full blur-xl" />
+
+        <div className="relative z-10 p-5 sm:p-7 md:p-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+            {/* Greeting */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl font-bold text-white shadow-xl flex-shrink-0">
+                {initials}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <GreetingIcon className={`w-4 h-4 ${greeting.color}`} />
+                  <span className={`text-sm font-medium ${greeting.color}`}>{greeting.text}</span>
                 </div>
-              )}
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight">
+                  {clientName}!
+                </h1>
+                <p className="text-indigo-200 text-sm mt-0.5">{t("client_dashboard.overview", "Here's your account overview")}</p>
+              </div>
             </div>
 
-            <button
-              onClick={fetchStats}
-              className="p-2 sm:p-3 hover:bg-white/20 rounded-xl transition-all duration-200 hover:scale-105"
-              aria-label="Refresh data"
-            >
-              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+            {/* Controls */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:flex-none">
+                <button
+                  onClick={() => setShowFYDropdown(!showFYDropdown)}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/20 w-full md:w-auto text-sm font-medium"
+                >
+                  <Calendar size={16} />
+                  <span className="truncate">
+                    {selectedFinancialYear
+                      ? financialYears.find((fy) => fy.id === selectedFinancialYear)?.year_name
+                      : t("client_dashboard.all_years", "All Years")}
+                  </span>
+                  <ChevronDown size={14} />
+                </button>
+                {showFYDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-xl shadow-2xl border border-white/10 py-2 z-50">
+                    <button onClick={() => { setSelectedFinancialYear(""); setShowFYDropdown(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                        selectedFinancialYear === ""
+                          ? "bg-indigo-600/30 text-indigo-300 font-medium"
+                          : "text-gray-300 hover:bg-white/5"
+                      }`}>
+                      {t("client_dashboard.all_years", "All Years")}
+                    </button>
+                    {financialYears.map((fy) => (
+                      <button key={fy.id}
+                        onClick={() => { setSelectedFinancialYear(fy.id); setShowFYDropdown(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                          selectedFinancialYear === fy.id
+                            ? "bg-indigo-600/30 text-indigo-300 font-medium"
+                            : "text-gray-300 hover:bg-white/5"
+                        }`}>
+                        {fy.year_name}
+                        {fy.is_active && (
+                          <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Active</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={fetchStats}
+                className="p-2.5 hover:bg-white/20 rounded-xl transition-all duration-200 hover:scale-105 border border-white/10"
+                aria-label="Refresh data">
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick action chips */}
+          <div className="flex flex-wrap gap-2 mt-5">
+            {[
+              { to: "/portal/invoices", label: t("client_dashboard.view_invoices", "View Invoices"), icon: FileText },
+              { to: "/portal/challans", label: t("client_dashboard.track_challans", "Track Challans"), icon: Truck },
+              { to: "/portal/ledger", label: t("client_dashboard.my_statement", "My Statement"), icon: Wallet },
+            ].map(({ to, label, icon: Icon }) => (
+              <Link key={to} to={to}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg text-sm font-medium text-white transition-all hover:scale-105 hover:shadow-lg">
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+                <ArrowRight className="w-3 h-3 opacity-60" />
+              </Link>
+            ))}
           </div>
         </div>
-      </div>
+
+        <style>{`
+          @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+        `}</style>
+      </motion.div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Outstanding Balance */}
         <div className="group bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -240,7 +312,7 @@ export default function ClientDashboard() {
             </span>
           </div>
           <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-            Total Outstanding
+            {t("client_dashboard.total_outstanding", "Total Outstanding")}
           </p>
           <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             ₹{stats.total_outstanding.toLocaleString("en-IN")}
@@ -256,7 +328,7 @@ export default function ClientDashboard() {
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
           </div>
           <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-            Last Payment
+            {t("client_dashboard.last_payment", "Last Payment")}
           </p>
           <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
             ₹{stats.last_payment_amount.toLocaleString("en-IN")}
@@ -264,7 +336,7 @@ export default function ClientDashboard() {
           <p className="text-xs text-gray-400">
             {stats.last_payment_date
               ? new Date(stats.last_payment_date).toLocaleDateString("en-IN")
-              : "No payments yet"}
+              : t("client_dashboard.no_payments_yet", "No payments yet")}
           </p>
         </div>
 
@@ -277,7 +349,7 @@ export default function ClientDashboard() {
             <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
           </div>
           <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-            Open Invoices
+            {t("client_dashboard.open_invoices", "Open Invoices")}
           </p>
           <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {stats.open_invoices_count}
@@ -286,22 +358,22 @@ export default function ClientDashboard() {
             to="/portal/invoices"
             className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium inline-flex items-center group-hover:translate-x-1 transition-transform"
           >
-            View All →
+            {t("client_dashboard.view_all", "View All →")}
           </Link>
         </div>
-      </div>
+      </motion.div>
 
       {/* Charts & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Spending Chart */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Monthly Spending Trend
+              {t("client_dashboard.monthly_spending", "Monthly Spending Trend")}
             </h3>
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded"></div>
-              <span>Amount (₹)</span>
+              <span>{t("client_dashboard.amount", "Amount (₹)")}</span>
             </div>
           </div>
           <div className="w-full h-[300px] min-h-[300px]">
@@ -354,13 +426,13 @@ export default function ClientDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Recent Invoices
+              {t("client_dashboard.recent_invoices", "Recent Invoices")}
             </h3>
             <Link
               to="/portal/invoices"
               className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
             >
-              View All
+              {t("client_dashboard.view_all_link", "View All")}
             </Link>
           </div>
 
@@ -439,7 +511,7 @@ export default function ClientDashboard() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

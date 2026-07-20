@@ -12,6 +12,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion";
+import { exportToCSV } from "../../utils/csvExport";
 
 export default function ClientInvoices() {
   const { client } = useClientAuth();
@@ -135,8 +137,43 @@ export default function ClientInvoices() {
     overdue: invoices.filter((inv) => inv.status === "OVERDUE").length,
   };
 
+  const handleExportCSV = () => {
+    if (!filteredInvoices.length) {
+      toast.error("No invoices to export.");
+      return;
+    }
+    // Prepare data for export
+    const exportData = filteredInvoices.map(inv => ({
+      "Invoice Number": inv.invoice_number,
+      "Date": new Date(inv.invoice_date).toLocaleDateString("en-IN"),
+      "Due Date": inv.due_date ? new Date(inv.due_date).toLocaleDateString("en-IN") : "N/A",
+      "Status": inv.status,
+      "Total Amount": inv.grand_total,
+      "Total IGST": inv.total_igst,
+      "Total CGST": inv.total_cgst,
+      "Total SGST": inv.total_sgst,
+    }));
+    exportToCSV(exportData, `Invoices_Export_${new Date().toISOString().split('T')[0]}`);
+    toast.success("Invoices exported to CSV!");
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {/* Header with Stats */}
       <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 md:p-8 text-white shadow-xl">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -326,6 +363,13 @@ export default function ClientInvoices() {
                 </span>
               )}
             </button>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-800/40"
+            >
+              <Download size={20} />
+              Export CSV
+            </button>
           </div>
         </div>
 
@@ -363,7 +407,7 @@ export default function ClientInvoices() {
                       <span className="ml-1.5 inline-block w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
                     )}
                   </button>
-                ),
+                )
               )}
             </div>
           </div>
@@ -389,19 +433,21 @@ export default function ClientInvoices() {
             ))}
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="text-center py-16">
-            <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl">
+            <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center">
+              <FileText className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               No invoices found
             </h3>
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
               {searchTerm || statusFilter !== "ALL"
-                ? "Try adjusting your search or filters"
-                : "You don't have any invoices yet"}
+                ? "Try adjusting your search or filters to find what you're looking for."
+                : "You don't have any invoices yet. When invoices are generated, they will appear here."}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {filteredInvoices.map((inv, index) => (
               <div
                 key={inv.id}
@@ -568,6 +614,6 @@ export default function ClientInvoices() {
           Showing {filteredInvoices.length} of {invoices.length} invoices
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

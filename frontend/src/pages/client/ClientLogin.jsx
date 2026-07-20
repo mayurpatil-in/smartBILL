@@ -78,7 +78,7 @@ export default function ClientLogin() {
         localStorage.removeItem("client_remembered_username");
       }
 
-      login(data.access_token, data.client);
+      login(data.access_token, data.party_name);
       toast.success("Welcome back!");
       navigate("/portal/dashboard");
     } catch (err) {

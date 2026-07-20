@@ -15,11 +15,12 @@ const AIInsights = lazy(() => import("./pages/AIInsights")); // [NEW]
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
 const SuperAdminAuditLogs = lazy(() => import("./pages/SuperAdminAuditLogs"));
 const Invoices = lazy(() => import("./pages/Invoices"));
+const Challans = lazy(() => import("./pages/Challans"));
+const PartyChallans = lazy(() => import("./pages/PartyChallans"));
+const ChallanTracker = lazy(() => import("./pages/ChallanTracker"));
 const InvoiceForm = lazy(() => import("./pages/InvoiceForm"));
 const Parties = lazy(() => import("./pages/Parties"));
 const Items = lazy(() => import("./pages/Items"));
-const Challans = lazy(() => import("./pages/Challans"));
-const PartyChallans = lazy(() => import("./pages/PartyChallans"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Payments = lazy(() => import("./pages/PaymentList"));
@@ -40,6 +41,7 @@ const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard"));
 const ClientInvoices = lazy(() => import("./pages/client/ClientInvoices"));
 const ClientLedger = lazy(() => import("./pages/client/ClientLedger")); // [New Feature]
 const ClientSettings = lazy(() => import("./pages/client/ClientSettings")); // [New Feature]
+const ClientChallans = lazy(() => import("./pages/client/ClientChallans")); // [Challan Tracking]
 
 function FeatureGuard({ flag, children }) {
   const { user, isSuperAdmin } = useAuth();
@@ -129,6 +131,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="challan-tracker"
+            element={
+              <FeatureGuard flag="DELIVERY_CHALLAN">
+                <ChallanTracker />
+              </FeatureGuard>
+            }
+          />
+          <Route
             path="employees"
             element={
               <FeatureGuard flag="EMPLOYEE_MANAGEMENT">
@@ -177,6 +187,7 @@ function AppRoutes() {
             <Route path="invoices" element={<ClientInvoices />} />
             <Route path="ledger" element={<ClientLedger />} />
             <Route path="settings" element={<ClientSettings />} />
+            <Route path="challans" element={<ClientChallans />} />
             {/* Redirect /portal to /portal/dashboard or login */}
             <Route index element={<Navigate to="dashboard" replace />} />
           </Route>

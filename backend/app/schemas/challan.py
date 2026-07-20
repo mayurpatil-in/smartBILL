@@ -62,6 +62,10 @@ class ChallanResponse(BaseModel):
     vehicle_number: Optional[str] = None
     notes: Optional[str] = None
     status: str
+    client_status: Optional[str] = "pending"
+    client_notes: Optional[str] = None
     is_active: bool
+    
     party: Optional[Any] = None
     items: List[ChallanItemResponse] = []
+    has_pdi_report: Optional[bool] = False

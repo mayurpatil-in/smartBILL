@@ -25,6 +25,7 @@
     "stock": "स्टॉक",
     "party_challans": "पार्टी चलने",
     "delivery_challans": "वितरण चलने",
+    "challan_tracker": "चलन ट्रॅकर",
     "finance": "फायनान्स",
     "invoices": "इन्व्हॉइस",
     "payments": "पेमेंट्स",
@@ -581,5 +582,21 @@
     "to": "ते",
     "of": "पैकी",
     "expenses_count": "खर्च"
+  },
+  "client_dashboard": {
+    "overview": "येथे तुमचे खाते विहंगावलोकन आहे",
+    "view_invoices": "इन्व्हॉइस पहा",
+    "track_challans": "चलान ट्रॅक करा",
+    "my_statement": "माझे विवरण",
+    "total_outstanding": "एकूण थकीत",
+    "last_payment": "शेवटचे पेमेंट",
+    "no_payments_yet": "अद्याप कोणतेही पेमेंट नाही",
+    "open_invoices": "खुल्या इन्व्हॉइस",
+    "view_all": "सर्व पहा →",
+    "monthly_spending": "मासिक खर्चाचा कल",
+    "recent_invoices": "अलीकडील इन्व्हॉइस",
+    "all_years": "सर्व वर्षे",
+    "amount": "रक्कम (₹)",
+    "view_all_link": "सर्व पहा"
   }
 }

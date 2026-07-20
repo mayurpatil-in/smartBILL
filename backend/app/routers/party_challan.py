@@ -340,6 +340,21 @@ def update_party_challan(
     
     # Update items if provided
     if data.items is not None:
+        # Check if any existing items are linked to delivery challans
+        from app.models.delivery_challan_item import DeliveryChallanItem
+        existing_item_ids = [item.id for item in challan.items]
+        
+        if existing_item_ids:
+            linked_deliveries = db.query(DeliveryChallanItem).filter(
+                DeliveryChallanItem.party_challan_item_id.in_(existing_item_ids)
+            ).first()
+            
+            if linked_deliveries:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot modify Party Challan: It has associated Delivery Challans. Please delete the associated Delivery Challans first."
+                )
+
         # 1. Delete Stock Transactions for this challan (Restore Stock conceptually, but we are overwriting)
         db.query(StockTransaction).filter(
             StockTransaction.reference_type == "PARTY_CHALLAN",

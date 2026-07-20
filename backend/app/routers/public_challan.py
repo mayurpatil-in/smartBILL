@@ -319,3 +319,24 @@ def public_challan_summary(
         import traceback
         traceback.print_exc()
         return Response(content=f"Error rendering summary: {str(e)}", status_code=500)
+
+@router.get("/dl/{code}")
+async def redirect_short_link(
+    code: str,
+    db: Session = Depends(get_db)
+):
+    """Redirect a short link code to its original secure URL"""
+    from app.models.short_link import ShortLink
+    from datetime import datetime
+    from fastapi.responses import RedirectResponse
+    
+    short_link = db.query(ShortLink).filter(ShortLink.code == code).first()
+    
+    if not short_link:
+        raise HTTPException(status_code=404, detail="Link not found")
+        
+    if short_link.expires_at and short_link.expires_at < datetime.now(short_link.expires_at.tzinfo if short_link.expires_at.tzinfo else None):
+        raise HTTPException(status_code=410, detail="This link has expired")
+        
+    # Redirect to the target URL
+    return RedirectResponse(url=short_link.target_url, status_code=307)

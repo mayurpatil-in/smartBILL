@@ -158,12 +158,20 @@ export default function Sidebar({
                     collapsed={collapsed}
                   />
                   {hasFeature("DELIVERY_CHALLAN") && (
-                    <MenuLink
-                      to="/challans"
-                      icon={Truck}
-                      label={t("sidebar.delivery_challans")}
-                      collapsed={collapsed}
-                    />
+                    <>
+                      <MenuLink
+                        to="/challans"
+                        icon={Truck}
+                        label={t("sidebar.delivery_challans")}
+                        collapsed={collapsed}
+                      />
+                      <MenuLink
+                        to="/challan-tracker"
+                        icon={ClipboardList}
+                        label={t("sidebar.challan_tracker") || "Challan Tracker"}
+                        collapsed={collapsed}
+                      />
+                    </>
                   )}
                 </>
               )}

@@ -25,6 +25,7 @@
     "stock": "Stock",
     "party_challans": "Party Challans",
     "delivery_challans": "Delivery Challans",
+    "challan_tracker": "Challan Tracker",
     "finance": "Finance",
     "invoices": "Invoices",
     "payments": "Payments",
@@ -581,5 +582,21 @@
     "to": "to",
     "of": "of",
     "expenses_count": "expenses"
+  },
+  "client_dashboard": {
+    "overview": "Here's your account overview",
+    "view_invoices": "View Invoices",
+    "track_challans": "Track Challans",
+    "my_statement": "My Statement",
+    "total_outstanding": "Total Outstanding",
+    "last_payment": "Last Payment",
+    "no_payments_yet": "No payments yet",
+    "open_invoices": "Open Invoices",
+    "view_all": "View All →",
+    "monthly_spending": "Monthly Spending Trend",
+    "recent_invoices": "Recent Invoices",
+    "all_years": "All Years",
+    "amount": "Amount (₹)",
+    "view_all_link": "View All"
   }
 }

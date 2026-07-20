@@ -869,8 +869,12 @@ function ChallanRow({
             onClick={() => {
               onEditPDI(challan);
             }}
-            className="p-2 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="PDI Report"
+            className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md ${
+              challan.has_pdi_report
+                ? "bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700"
+                : "bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400"
+            }`}
+            title={challan.has_pdi_report ? "View/Edit PDI Report" : "Create PDI Report"}
           >
             <ClipboardCheck size={16} />
           </button>

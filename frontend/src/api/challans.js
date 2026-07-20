@@ -28,6 +28,11 @@ export const deleteDeliveryChallan = async (id) => {
   return response.data;
 };
 
+export const resolveDeliveryChallanIssue = async (id) => {
+  const response = await api.post(`/challan/${id}/resolve-issue`);
+  return response.data;
+};
+
 export const getNextDeliveryChallanNumber = async (partyId = null) => {
   const params = {};
   if (partyId) params.party_id = partyId;

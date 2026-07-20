@@ -23,6 +23,7 @@ from app.models.payment_allocation import PaymentAllocation
 from app.models.expense import Expense
 from app.models.stock_transaction import StockTransaction
 from app.models.attendance import Attendance
+from app.models.short_link import ShortLink
 from app.models.salary_advance import SalaryAdvance
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
