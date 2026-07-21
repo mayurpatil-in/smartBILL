@@ -1,7 +1,7 @@
 import axios from "./axios";
 
-export const getProcesses = async () => {
-  const { data } = await axios.get("/process/");
+export const getProcesses = async (config = {}) => {
+  const { data } = await axios.get("/process/", config);
   return data;
 };
 

@@ -10,14 +10,16 @@ from app.models.invoice import Invoice
 from app.models.payment_allocation import PaymentAllocation
 from app.schemas.payment import PaymentCreate, PaymentUpdate, PaymentResponse
 from app.core.dependencies import get_company_id, get_active_financial_year, require_role, get_current_user
+from app.core.permissions import require_permission
 from app.services.audit_service import log_audit_action
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 @router.post("/", response_model=PaymentResponse)
+@require_permission("payments.create")
 def create_payment(
     data: PaymentCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -80,6 +82,7 @@ def create_payment(
     return payment
 
 @router.get("/", response_model=List[PaymentResponse])
+@require_permission("payments.view")
 def list_payments(
     party_id: Optional[int] = None,
     payment_type: Optional[str] = None,
@@ -89,7 +92,8 @@ def list_payments(
     limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Payment).options(
         joinedload(Payment.party),
@@ -111,10 +115,12 @@ def list_payments(
     return query.order_by(Payment.payment_date.desc(), Payment.id.desc()).offset(skip).limit(limit).all()
 
 @router.get("/{id}", response_model=PaymentResponse)
+@require_permission("payments.view")
 def get_payment(
     id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     payment = db.query(Payment).options(
         joinedload(Payment.allocations).joinedload(PaymentAllocation.invoice)
@@ -127,10 +133,11 @@ def get_payment(
     return payment
 
 @router.put("/{id}", response_model=PaymentResponse)
+@require_permission("payments.edit")
 def update_payment(
     id: int,
     data: PaymentUpdate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -206,9 +213,10 @@ def update_payment(
     return payment
 
 @router.delete("/{id}")
+@require_permission("payments.delete")
 def delete_payment(
     id: int,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):

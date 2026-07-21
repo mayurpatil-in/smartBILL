@@ -10,16 +10,18 @@ from app.models.payment import Payment
 from app.models.payment import Payment
 from app.models.client_login import ClientLogin
 from app.schemas.party import PartyCreate, PartyResponse
-from app.core.dependencies import get_company_id, get_active_financial_year, require_role
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role, get_current_user
+from app.core.permissions import require_permission, require_any_permission
 from app.core.security import get_password_hash
 
 router = APIRouter(prefix="/party", tags=["Party"])
 
 
 @router.post("/", response_model=PartyResponse)
+@require_permission("parties.create")
 def create_party(
     data: PartyCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -66,9 +68,18 @@ def create_party(
 
 
 @router.get("/", response_model=list[PartyResponse])
+@require_any_permission(
+    "parties.view", 
+    "party_challans.view", "party_challans.create", "party_challans.edit",
+    "challans.view", "challans.create", "challans.edit",
+    "invoices.view", "invoices.create", "invoices.edit",
+    "payments.view", "payments.create", "payments.edit",
+    "items.view", "items.create", "items.edit"
+)
 def list_parties(
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     from sqlalchemy.orm import joinedload
     
@@ -111,10 +122,11 @@ def list_parties(
 
 
 @router.put("/{party_id}", response_model=PartyResponse)
+@require_permission("parties.edit")
 def update_party(
     party_id: int,
     data: PartyCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -171,9 +183,10 @@ def update_party(
 
 
 @router.delete("/{party_id}", status_code=status.HTTP_204_NO_CONTENT)
+@require_permission("parties.delete")
 def delete_party(
     party_id: int,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):

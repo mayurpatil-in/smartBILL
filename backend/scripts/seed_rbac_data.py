@@ -107,6 +107,12 @@ def seed_rbac_data():
             ('employee_portal', 'view_salary', 'employee_portal.view_salary', 'View own salary slips'),
             ('employee_portal', 'download_salary', 'employee_portal.download_salary', 'Download own salary slips'),
             ('employee_portal', 'view_profile', 'employee_portal.view_profile', 'View own profile'),
+            
+            # AI Insights
+            ('ai_insights', 'view', 'ai_insights.view', 'View AI insights'),
+            
+            # Challan Tracker
+            ('challan_tracker', 'view', 'challan_tracker.view', 'View Challan Tracker'),
         ]
         
         for module, action, code, description in permissions_data:

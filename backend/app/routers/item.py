@@ -14,7 +14,8 @@ from app.models.delivery_challan_item import DeliveryChallanItem
 from app.models.invoice_item import InvoiceItem
 from app.schemas.item import ItemCreate, ItemResponse
 from app.services.pdf_service import generate_pdf
-from app.core.dependencies import get_company_id, get_active_financial_year, require_role
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role, get_current_user
+from app.core.permissions import require_permission, require_any_permission
 
 # Set up Jinja2
 templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
@@ -24,9 +25,10 @@ router = APIRouter(prefix="/item", tags=["Item"])
 
 
 @router.post("/", response_model=ItemResponse)
+@require_permission("items.create")
 def create_item(
     data: ItemCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -55,11 +57,19 @@ def create_item(
 
 
 @router.get("/", response_model=list[ItemResponse])
+@require_any_permission(
+    "items.view",
+    "party_challans.view", "party_challans.create", "party_challans.edit",
+    "challans.view", "challans.create", "challans.edit",
+    "invoices.view", "invoices.create", "invoices.edit",
+    "stock.create", "stock.edit"
+)
 def list_items(
     party_id: int = None,
     barcode: str = None,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Item).options(
         joinedload(Item.process)
@@ -77,10 +87,12 @@ def list_items(
 
 
 @router.get("/{item_id}", response_model=ItemResponse)
+@require_permission("items.view")
 def get_item(
     item_id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     item = db.query(Item).options(
         joinedload(Item.process)
@@ -98,10 +110,11 @@ def get_item(
 
 
 @router.put("/{item_id}", response_model=ItemResponse)
+@require_permission("items.edit")
 def update_item(
     item_id: int,
     data: ItemCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -136,9 +149,10 @@ def update_item(
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@require_permission("items.delete")
 def delete_item(
     item_id: int,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -192,13 +206,15 @@ def delete_item(
 
 
 @router.get("/{item_id}/print-barcode")
+@require_permission("items.view")
 async def print_item_barcode(
     item_id: int,
     count: int = 1,
     format: str = "thermal",
     date: str = None,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     try:
         item = db.query(Item).options(

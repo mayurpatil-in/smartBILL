@@ -1,7 +1,7 @@
 import axios from "./axios";
 
-export const getParties = async () => {
-  const { data } = await axios.get("/party/");
+export const getParties = async (config = {}) => {
+  const { data } = await axios.get("/party/", config);
   return data;
 };
 

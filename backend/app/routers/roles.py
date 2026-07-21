@@ -12,7 +12,7 @@ from app.models.user import User
 from app.models.role import Role
 from app.models.permission import Permission
 from app.models.role_permission import RolePermission
-from app.core.permissions import require_permission
+from app.core.permissions import require_permission, require_any_permission
 from app.services.permission_service import PermissionService
 
 router = APIRouter(
@@ -64,7 +64,7 @@ class RoleUpdate(BaseModel):
 
 # Endpoints
 @router.get("/", response_model=List[RoleResponse])
-@require_permission("roles.view")
+@require_any_permission("roles.view", "users.view", "users.assign_role")
 def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

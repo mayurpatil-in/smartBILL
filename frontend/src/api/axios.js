@@ -57,7 +57,10 @@ api.interceptors.response.use(
 
     // ⛔ Forbidden (role / company missing)
     if (status === 403) {
-      if (error.config.url.includes("/auth/login")) {
+      if (error.config?.url?.includes("/auth/login")) {
+        return Promise.reject(error);
+      }
+      if (error.config?.ignoreGlobal403) {
         return Promise.reject(error);
       }
       window.location.replace("/unauthorized");

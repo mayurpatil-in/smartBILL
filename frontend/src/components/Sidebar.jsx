@@ -125,7 +125,7 @@ export default function Sidebar({
           />
           {!isSuperAdmin && (
             <>
-              {hasFeature("AI_INSIGHTS") && (
+              {hasFeature("AI_INSIGHTS") && (isCompanyAdmin || hasPermission("ai_insights.view")) && (
                 <MenuLink
                   to="/ai-insights"
                   icon={Sparkles}
@@ -149,29 +149,31 @@ export default function Sidebar({
                   collapsed={collapsed}
                 />
               )}
-              {(isCompanyAdmin || hasPermission("challans.view")) && (
+              {(isCompanyAdmin || hasPermission("party_challans.view")) && (
+                <MenuLink
+                  to="/party-challans"
+                  icon={ClipboardList}
+                  label={t("sidebar.party_challans")}
+                  collapsed={collapsed}
+                />
+              )}
+              {hasFeature("DELIVERY_CHALLAN") && (
                 <>
-                  <MenuLink
-                    to="/party-challans"
-                    icon={ClipboardList}
-                    label={t("sidebar.party_challans")}
-                    collapsed={collapsed}
-                  />
-                  {hasFeature("DELIVERY_CHALLAN") && (
-                    <>
-                      <MenuLink
-                        to="/challans"
-                        icon={Truck}
-                        label={t("sidebar.delivery_challans")}
-                        collapsed={collapsed}
-                      />
-                      <MenuLink
-                        to="/challan-tracker"
-                        icon={ClipboardList}
-                        label={t("sidebar.challan_tracker") || "Challan Tracker"}
-                        collapsed={collapsed}
-                      />
-                    </>
+                  {(isCompanyAdmin || hasPermission("challans.view")) && (
+                    <MenuLink
+                      to="/challans"
+                      icon={Truck}
+                      label={t("sidebar.delivery_challans")}
+                      collapsed={collapsed}
+                    />
+                  )}
+                  {(isCompanyAdmin || hasPermission("challan_tracker.view")) && (
+                    <MenuLink
+                      to="/challan-tracker"
+                      icon={ClipboardList}
+                      label={t("sidebar.challan_tracker") || "Challan Tracker"}
+                      collapsed={collapsed}
+                    />
                   )}
                 </>
               )}

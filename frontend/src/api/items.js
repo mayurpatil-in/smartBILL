@@ -1,7 +1,7 @@
 import axios from "./axios";
 
-export const getItems = async () => {
-  const { data } = await axios.get("/item/");
+export const getItems = async (config = {}) => {
+  const { data } = await axios.get("/item/", config);
   return data;
 };
 

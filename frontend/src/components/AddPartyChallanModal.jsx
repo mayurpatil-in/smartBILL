@@ -96,13 +96,11 @@ export default function AddPartyChallanModal({
         stockResponse,
         challanNumberData,
       ] = await Promise.all([
-        getParties(),
-        getItems(),
-        getProcesses(),
-        getStock(),
-        partyChallan
-          ? Promise.resolve({ next_challan_number: "" })
-          : getNextPartyChallanNumber(),
+        getParties({ ignoreGlobal403: true }).catch(() => []),
+        getItems({ ignoreGlobal403: true }).catch(() => []),
+        getProcesses({ ignoreGlobal403: true }).catch(() => []),
+        getStock({ ignoreGlobal403: true }).catch(() => ({})),
+        partyChallan ? null : getNextPartyChallanNumber(),
       ]);
       setParties(partiesData.filter((p) => p.is_active) || []);
       setItems(itemsData.filter((i) => i.is_active) || []);

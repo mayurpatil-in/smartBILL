@@ -14,7 +14,9 @@ from app.schemas.party_challan import (
     PartyChallanUpdate,
     DeliveryProgress
 )
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user
+from app.core.permissions import require_permission
+from app.models.user import User
 
 router = APIRouter(prefix="/party-challan", tags=["Party Challan"])
 
@@ -44,11 +46,13 @@ def generate_party_challan_number(db: Session, company_id: int, fy_id: int) -> s
 
 
 @router.post("/", response_model=PartyChallanResponse)
+@require_permission("party_challans.create")
 def create_party_challan(
     data: PartyChallanCreate,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Check if challan number already exists for this party in this financial year
     if data.challan_number:
@@ -167,6 +171,7 @@ def create_party_challan(
 
 
 @router.get("/", response_model=List[PartyChallanResponse])
+@require_permission("party_challans.view")
 def list_party_challans(
     party_id: int = None,
     status: str = None,
@@ -174,7 +179,8 @@ def list_party_challans(
     limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(PartyChallan).options(
         joinedload(PartyChallan.party),
@@ -236,10 +242,12 @@ def list_party_challans(
 
 
 @router.get("/{challan_id}", response_model=PartyChallanResponse)
+@require_permission("party_challans.view")
 def get_party_challan(
     challan_id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     challan = db.query(PartyChallan).options(
         joinedload(PartyChallan.party),
@@ -292,11 +300,13 @@ def get_party_challan(
 
 
 @router.put("/{challan_id}", response_model=PartyChallanResponse)
+@require_permission("party_challans.edit")
 def update_party_challan(
     challan_id: int,
     data: PartyChallanUpdate,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     challan = db.query(PartyChallan).filter(
         PartyChallan.id == challan_id,
@@ -442,10 +452,12 @@ def update_party_challan(
 
 
 @router.delete("/{challan_id}")
+@require_permission("party_challans.delete")
 def delete_party_challan(
     challan_id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     challan = db.query(PartyChallan).filter(
         PartyChallan.id == challan_id,
@@ -494,10 +506,12 @@ def delete_party_challan(
 
 
 @router.get("/{challan_id}/delivery-progress", response_model=DeliveryProgress)
+@require_permission("party_challans.view")
 def get_delivery_progress(
     challan_id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get delivery progress for a party challan"""
     challan = db.query(PartyChallan).options(
@@ -543,10 +557,12 @@ def get_delivery_progress(
 
 
 @router.get("/next-number/preview")
+@require_permission("party_challans.create")
 def get_next_party_challan_number(
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get the next party challan number that will be generated"""
     next_number = generate_party_challan_number(db, company_id, fy.id)
@@ -554,12 +570,14 @@ def get_next_party_challan_number(
 
 
 @router.get("/by-item/{party_id}/{item_id}")
+@require_permission("party_challans.view")
 def get_party_challans_by_item(
     party_id: int,
     item_id: int,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get all party challans for a specific party and item with pending quantities"""
     challans = db.query(PartyChallan).options(

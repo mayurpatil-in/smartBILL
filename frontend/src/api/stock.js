@@ -1,7 +1,7 @@
 import axios from "./axios";
 
-export const getStock = async () => {
-  const { data } = await axios.get("/stock/");
+export const getStock = async (config = {}) => {
+  const { data } = await axios.get("/stock/", config);
   return data;
 };
 

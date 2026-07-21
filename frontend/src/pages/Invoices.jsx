@@ -120,7 +120,7 @@ export default function Invoices() {
       const [invoicesData, statsData, partiesData] = await Promise.all([
         getInvoices(),
         getInvoiceStats(),
-        getParties(),
+        getParties({ ignoreGlobal403: true }).catch(() => []),
       ]);
       setInvoices(invoicesData.sort((a, b) => b.id - a.id));
       setStats(statsData);

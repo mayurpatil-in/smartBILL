@@ -102,10 +102,10 @@ export default function InvoiceForm() {
     const fetchData = async () => {
       try {
         const [partiesData, fyData] = await Promise.all([
-          getParties(),
+          getParties({ ignoreGlobal403: true }).catch(() => []),
           getActiveFinancialYear(),
         ]);
-        setParties(partiesData.filter((p) => p.is_active));
+        setParties((partiesData || []).filter((p) => p.is_active));
         setActiveFY(fyData);
 
         if (isEditMode) {

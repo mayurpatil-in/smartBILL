@@ -10,7 +10,9 @@ from app.models.party_challan import PartyChallan
 from app.models.party_challan_item import PartyChallanItem
 from app.models.stock_transaction import StockTransaction
 from app.schemas.challan import ChallanCreate, ChallanResponse, ChallanUpdate
-from app.core.dependencies import get_company_id, get_active_financial_year, require_feature
+from app.core.dependencies import get_company_id, get_active_financial_year, require_feature, get_current_user
+from app.core.permissions import require_permission
+from app.models.user import User
 from app.utils.stock import get_current_stock
 
 router = APIRouter(prefix="/challan", tags=["Delivery Challan"])
@@ -45,11 +47,13 @@ def generate_challan_number(db: Session, company_id: int, fy_id: int, party_id: 
 
 
 @router.post("/", response_model=ChallanResponse)
+@require_permission("challans.create")
 def create_challan(
     data: ChallanCreate,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Generate challan number (Party Wise)
     challan_number = generate_challan_number(db, company_id, fy.id, data.party_id)
@@ -211,12 +215,14 @@ def create_challan(
 
 
 @router.put("/{challan_id}", response_model=ChallanResponse)
+@require_permission("challans.edit")
 def update_challan(
     challan_id: int,
     data: ChallanCreate,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Get existing challan
     challan = db.query(DeliveryChallan).options(
@@ -381,10 +387,12 @@ def update_challan(
 
 
 @router.post("/{challan_id}/resolve-issue")
+@require_permission("challans.edit")
 def resolve_delivery_issue(
     challan_id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     challan = db.query(DeliveryChallan).filter(
         DeliveryChallan.id == challan_id,
@@ -401,6 +409,7 @@ def resolve_delivery_issue(
 
 
 @router.get("/", response_model=List[ChallanResponse])
+@require_permission("challans.view")
 def list_challans(
     party_id: int = None,
     status: str = None,
@@ -410,7 +419,8 @@ def list_challans(
     limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(DeliveryChallan).options(
         joinedload(DeliveryChallan.party),
@@ -494,10 +504,12 @@ def list_challans(
 
 
 @router.get("/stats")
+@require_permission("challans.view")
 def get_challan_stats(
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get statistics for delivery challans"""
     base_query = db.query(DeliveryChallan).filter(
@@ -519,11 +531,13 @@ def get_challan_stats(
 
 
 @router.get("/next-number/preview")
+@require_permission("challans.create")
 def get_next_challan_number(
     party_id: int,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get the next challan number that will be generated"""
     next_number = generate_challan_number(db, company_id, fy.id, party_id)
@@ -531,13 +545,14 @@ def get_next_challan_number(
 
 
 @router.get("/pending-items/{party_id}")
-
+@require_permission("challans.create")
 def get_pending_challan_items(
     party_id: int,
     invoice_id: int = None,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get all delivery challan items that are not yet billed"""
     from app.models.invoice_item import InvoiceItem
@@ -945,10 +960,12 @@ def prepare_challan_print_data(challan) -> Dict[str, Any]:
     }
 
 @router.post("/bulk-print")
+@require_permission("challans.view")
 async def bulk_print_challans(
     request: BulkPrintRequest,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Generate a single PDF containing multiple delivery challans"""
     try:
@@ -1016,11 +1033,13 @@ async def bulk_print_challans(
         raise HTTPException(status_code=400, detail=f"Bulk Print Error: {str(e)}")
 
 @router.get("/{challan_id}/print")
+@require_permission("challans.view")
 async def print_challan(
     challan_id: int,
     request: Request,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Fetch challan
     challan = db.query(DeliveryChallan).options(
@@ -1071,10 +1090,12 @@ async def print_challan(
 
 
 @router.get("/{challan_id}/share")
+@require_permission("challans.view")
 async def share_challan(
     challan_id: int,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     _ = Depends(require_feature("WHATSAPP_SHARE"))
 ):
     """Generate a WhatsApp-ready sharing link and message for a delivery challan"""
@@ -1181,3 +1202,24 @@ async def share_challan(
         "message": message,
         "download_url": short_download_url
     }
+
+@router.delete("/{challan_id}")
+@require_permission("challans.delete")
+def delete_challan(
+    challan_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    challan = db.query(DeliveryChallan).filter(
+        DeliveryChallan.id == challan_id,
+        DeliveryChallan.company_id == company_id
+    ).first()
+    
+    if not challan:
+        raise HTTPException(status_code=404, detail="Delivery Challan not found")
+        
+    db.delete(challan)
+    db.commit()
+    
+    return {"message": "Delivery Challan deleted successfully"}

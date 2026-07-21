@@ -30,6 +30,7 @@ const Backup = lazy(() => import("./pages/Backup")); // [Backup]
 const RoleManagement = lazy(() => import("./pages/RoleManagement")); // [RBAC]
 const UserManagement = lazy(() => import("./pages/UserManagement")); // [RBAC]
 const VerifyID = lazy(() => import("./pages/VerifyID"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized")); // [NEW]
 const EmployeeDashboard = lazy(
   () => import("./pages/employee/EmployeeDashboard"),
 ); // [Employee Portal]
@@ -64,6 +65,7 @@ function AppRoutes() {
         {/* Public */}
         <Route path="/login" element={<Login />} />
         <Route path="/maintenance" element={<Maintenance />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/verify-id/:id" element={<VerifyID />} />
 
         {/* Employee Portal */}

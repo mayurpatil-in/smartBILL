@@ -73,8 +73,8 @@ export default function AddDeliveryChallanModal({
   const fetchData = async () => {
     try {
       const [partiesData, itemsData] = await Promise.all([
-        getParties(),
-        getItems(),
+        getParties({ ignoreGlobal403: true }).catch(() => []),
+        getItems({ ignoreGlobal403: true }).catch(() => []),
       ]);
       setParties(partiesData.filter((p) => p.is_active) || []);
       setItems(itemsData.filter((i) => i.is_active) || []);

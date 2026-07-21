@@ -26,10 +26,20 @@ import AddPartyChallanModal from "../components/AddPartyChallanModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "../utils/dateUtils";
+import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 import { useTranslation } from "react-i18next";
 
 export default function PartyChallans() {
   const { t } = useTranslation();
+  const { hasFeature, isCompanyAdmin } = useAuth();
+  const { hasPermission } = usePermissions();
+  
+  const canCreate = isCompanyAdmin || hasPermission("party_challans.create");
+  const canEdit = isCompanyAdmin || hasPermission("party_challans.edit");
+  const canDelete = isCompanyAdmin || hasPermission("party_challans.delete");
+  const canCreateDelivery = isCompanyAdmin || hasPermission("challans.create");
+  
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
   const [items, setItems] = useState([]);
@@ -53,8 +63,8 @@ export default function PartyChallans() {
       setLoading(true);
       const [challansData, partiesData, itemsData] = await Promise.all([
         getPartyChallans(),
-        getParties(),
-        getItems(),
+        getParties({ ignoreGlobal403: true }).catch(() => []),
+        getItems({ ignoreGlobal403: true }).catch(() => []),
       ]);
       setChallans(challansData);
       setParties(partiesData);
@@ -172,19 +182,21 @@ export default function PartyChallans() {
             {t("party_challans.subtitle")}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingChallan(null);
-            setShowAddModal(true);
-          }}
-          className="group flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-purple-600/30 hover:shadow-xl hover:shadow-purple-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
-        >
-          <Plus
-            size={18}
-            className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
-          />
-          {t("party_challans.create_challan")}
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => {
+              setEditingChallan(null);
+              setShowAddModal(true);
+            }}
+            className="group flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-purple-600/30 hover:shadow-xl hover:shadow-purple-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
+          >
+            <Plus
+              size={18}
+              className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
+            />
+            {t("party_challans.create_challan")}
+          </button>
+        )}
       </div>
 
       {/* Stats Row */}
@@ -362,6 +374,9 @@ export default function PartyChallans() {
                     }
                     getStatusColor={getStatusColor}
                     calculateProgress={calculateProgress}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                    canCreateDelivery={canCreateDelivery}
                   />
                 ))
               )}
@@ -494,6 +509,9 @@ function PartyChallanRow({
   onCreateDelivery,
   getStatusColor,
   calculateProgress,
+  canEdit,
+  canDelete,
+  canCreateDelivery,
 }) {
   const { t } = useTranslation();
   const progress = calculateProgress(challan);
@@ -628,31 +646,37 @@ function PartyChallanRow({
       <td className="px-6 py-5">
         <div className="flex items-center justify-end gap-2">
           {/* View/Create Delivery Button */}
-          <button
-            onClick={onCreateDelivery}
-            className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Create Delivery"
-          >
-            <Truck size={16} />
-          </button>
+          {canCreateDelivery && (
+            <button
+              onClick={onCreateDelivery}
+              className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Create Delivery"
+            >
+              <Truck size={16} />
+            </button>
+          )}
 
           {/* Edit Button */}
-          <button
-            onClick={onEdit}
-            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Edit Challan"
-          >
-            <Edit size={16} />
-          </button>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Edit Challan"
+            >
+              <Edit size={16} />
+            </button>
+          )}
 
           {/* Delete Button */}
-          <button
-            onClick={onDelete}
-            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Delete Challan"
-          >
-            <Trash2 size={16} />
-          </button>
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Delete Challan"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </td>
     </tr>

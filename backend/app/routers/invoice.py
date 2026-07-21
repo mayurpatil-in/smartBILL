@@ -26,7 +26,8 @@ import os
 from app.models.user import User, UserRole
 
 from app.schemas.invoice import InvoiceResponse, InvoiceCreate
-from app.core.dependencies import get_company_id, get_active_financial_year, require_role, require_feature
+from app.core.dependencies import get_company_id, get_active_financial_year, require_role, require_feature, get_current_user
+from app.core.permissions import require_permission
 from app.core.security import create_url_signature, verify_url_signature
 from app.utils.gst import calculate_gst
 from app.services.pdf_service import generate_pdf
@@ -101,20 +102,24 @@ def generate_invoice_number(db: Session, company_id: int, fy_id: int) -> str:
 
 
 @router.get("/next-number")
+@require_permission("invoices.view")
 def get_next_invoice_number(
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     next_num = generate_invoice_number(db, company_id, fy.id)
     return {"next_invoice_number": next_num}
 
 
 @router.get("/stats")
+@require_permission("invoices.view")
 def get_invoice_stats(
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     stats = {
         "total": {"count": 0, "amount": 0},
@@ -150,11 +155,13 @@ def get_invoice_stats(
 
 
 @router.get("/pending", response_model=List[InvoiceResponse])
+@require_permission("invoices.view")
 def get_pending_invoices(
     party_id: Optional[int] = None,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = db.query(Invoice).filter(
         Invoice.company_id == company_id,
@@ -169,9 +176,10 @@ def get_pending_invoices(
 
 
 @router.post("/", response_model=InvoiceResponse)
+@require_permission("invoices.create")
 def create_invoice(
     data: InvoiceCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -324,10 +332,12 @@ def create_invoice(
 
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
+@require_permission("invoices.view")
 def get_invoice(
     invoice_id: int,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     invoice = (
         db.query(Invoice)
@@ -350,10 +360,11 @@ def get_invoice(
 
 
 @router.put("/{invoice_id}", response_model=InvoiceResponse)
+@require_permission("invoices.edit")
 def update_invoice(
     invoice_id: int,
     data: InvoiceCreate,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -525,9 +536,10 @@ def update_invoice(
 
 
 @router.delete("/{invoice_id}")
+@require_permission("invoices.delete")
 def delete_invoice(
     invoice_id: int,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -609,9 +621,10 @@ def delete_invoice(
 
 
 @router.post("/from-challan/{challan_id}", response_model=InvoiceResponse)
+@require_permission("invoices.create")
 def create_invoice_from_challan(
     challan_id: int,
-    current_user: User = Depends(require_role(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)),
+    current_user: User = Depends(get_current_user),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -679,12 +692,14 @@ def create_invoice_from_challan(
 
 
 @router.get("/", response_model=List[InvoiceResponse])
+@require_permission("invoices.view")
 def list_invoices(
     skip: int = Query(0, ge=0),
     limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     invoices = (
         db.query(Invoice)
@@ -716,10 +731,12 @@ class BulkPrintInvoiceRequest(BaseModel):
     invoice_ids: list[int]
 
 @router.post("/bulk-print")
+@require_permission("invoices.view")
 async def bulk_print_invoices(
     request: BulkPrintInvoiceRequest,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     try:
         if not request.invoice_ids:
@@ -796,11 +813,13 @@ async def bulk_print_invoices(
 
 
 @router.get("/{invoice_id}/print")
+@require_permission("invoices.view")
 async def print_invoice(
     invoice_id: int,
     request: Request,
     company_id: int = Depends(get_company_id),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     invoice = db.query(Invoice).options(
         joinedload(Invoice.party),
@@ -921,10 +940,12 @@ async def public_download_invoice(
 
 
 @router.get("/{invoice_id}/share")
+@require_permission("invoices.view")
 async def share_invoice(
     invoice_id: int,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     _ = Depends(require_feature("WHATSAPP_SHARE"))
 ):
     """Generate a WhatsApp-ready sharing link and message for an invoice"""
@@ -982,13 +1003,13 @@ async def share_invoice(
         encoded_message = urllib.parse.quote(message, safe="", encoding="utf-8")
         whatsapp_url = f"https://wa.me/?text={encoded_message}"
         
-        if invoice.party and invoice.party.phone:
-            # naive cleanup of phone number for deep link
-            phone = ''.join(filter(str.isdigit, invoice.party.phone))
-            # Ensure country code is present if typical 10 digit Indian number
-            if len(phone) == 10:
-                phone = f"91{phone}"
-            whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
+        # The user requested NOT to pre-fill the phone number so they can manually pick the contact.
+        # Therefore, we only use https://wa.me/?text=... which prompts for contact selection.
+        # if invoice.party and invoice.party.phone:
+        #     phone = ''.join(filter(str.isdigit, invoice.party.phone))
+        #     if len(phone) == 10:
+        #         phone = f"91{phone}"
+        #     whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
             
         return {
             "invoice_id": invoice.id,

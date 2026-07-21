@@ -38,11 +38,18 @@ import PDIReportModal from "../components/PDIReportModal";
 const PdfPreviewModal = lazy(() => import("../components/PdfPreviewModal"));
 import { formatDate } from "../utils/dateUtils";
 import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
+import PermissionGuard from "../components/PermissionGuard";
 import { useTranslation } from "react-i18next";
 
 export default function Challans() {
   const { t } = useTranslation();
-  const { hasFeature } = useAuth();
+  const { hasFeature, isCompanyAdmin } = useAuth();
+  const { hasPermission } = usePermissions();
+  
+  const canCreate = isCompanyAdmin || hasPermission("challans.create");
+  const canEdit = isCompanyAdmin || hasPermission("challans.edit");
+  const canDelete = isCompanyAdmin || hasPermission("challans.delete");
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
   const [items, setItems] = useState([]);
@@ -85,8 +92,8 @@ export default function Challans() {
           end_date: dateRange.end,
         }),
         getChallanStats(),
-        getParties(),
-        getItems(),
+        getParties({ ignoreGlobal403: true }).catch(() => []),
+        getItems({ ignoreGlobal403: true }).catch(() => []),
       ]);
       setChallans(data);
       setStats(statsData);
@@ -325,19 +332,21 @@ export default function Challans() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           {/* Print Button Moved to Filters */}
-          <button
-            onClick={() => {
-              setEditingChallan(null);
-              setShowAddModal(true);
-            }}
-            className="group flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
-          >
-            <Plus
-              size={18}
-              className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
-            />
-            {t("challans.create_challan")}
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setEditingChallan(null);
+                setShowAddModal(true);
+              }}
+              className="group flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 hover:scale-105 text-sm sm:text-base w-full md:w-auto"
+            >
+              <Plus
+                size={18}
+                className="group-hover:rotate-90 transition-transform duration-300 sm:w-5 sm:h-5"
+              />
+              {t("challans.create_challan")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -572,6 +581,8 @@ export default function Challans() {
                     getStatusColor={getStatusColor}
                     selected={selectedChallans.has(challan.id)}
                     onSelect={() => toggleSelect(challan.id)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
                   />
                 ))
               )}
@@ -730,6 +741,8 @@ function ChallanRow({
   getStatusColor,
   selected,
   onSelect,
+  canEdit,
+  canDelete,
 }) {
   const { t } = useTranslation();
   return (
@@ -899,22 +912,26 @@ function ChallanRow({
           )}
 
           {/* Edit Button */}
-          <button
-            onClick={onEdit}
-            className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Edit Challan"
-          >
-            <Edit size={16} />
-          </button>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Edit Challan"
+            >
+              <Edit size={16} />
+            </button>
+          )}
 
           {/* Delete Button */}
-          <button
-            onClick={onDelete}
-            className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
-            title="Delete Challan"
-          >
-            <Trash2 size={16} />
-          </button>
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+              title="Delete Challan"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </td>
     </tr>
