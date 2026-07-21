@@ -1,10 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
     remember: bool = False
+    totp_code: str | None = None  # Added for 2FA validation
 
 
 class TokenResponse(BaseModel):

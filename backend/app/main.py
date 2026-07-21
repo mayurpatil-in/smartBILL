@@ -46,6 +46,7 @@ else:
 
 from app.core.config import settings
 from app.auth.auth_router import router as auth_router
+from app.auth.two_factor_router import router as two_factor_router
 from app.services.pdf_service import pdf_manager
 from app.services.backup_service import backup_manager
 from app.core.paths import APP_DATA_DIR, UPLOAD_DIR, LOG_DIR, BACKUP_DIR, DB_PATH, DATABASE_URL
@@ -279,6 +280,7 @@ from app.routers.users import router as users_router
 
 # ===================== ROUTERS =====================
 app.include_router(auth_router)
+app.include_router(two_factor_router)
 app.include_router(fy_router)
 app.include_router(party_router)
 app.include_router(item_router)

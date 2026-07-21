@@ -132,7 +132,32 @@ def list_companies(
     db: Session = Depends(get_db),
     _=Depends(require_super_admin),
 ):
-    return db.query(Company).all()
+    companies = db.query(Company).all()
+    result = []
+    for company in companies:
+        # Fetch the actual login email of the Company Admin (may differ from company.email)
+        admin_user = db.query(User).filter(
+            User.company_id == company.id,
+            User.legacy_role == UserRole.COMPANY_ADMIN.value,
+            User.is_active == True
+        ).first()
+        
+        user_count = db.query(User).filter(User.company_id == company.id).count()
+        
+        company_dict = {
+            "id": company.id,
+            "name": company.name,
+            "email": company.email,
+            "phone": company.phone,
+            "gst_number": company.gst_number,
+            "is_active": company.is_active,
+            "subscription_start": company.subscription_start,
+            "subscription_end": company.subscription_end,
+            "admin_email": admin_user.email if admin_user else company.email,
+            "user_count": user_count,
+        }
+        result.append(company_dict)
+    return result
 
 
 @router.get("/audit-logs", response_model=list[AuditLogResponse])
@@ -173,11 +198,19 @@ def get_platform_analytics(
 ):
     # Base Stats
     total_companies = db.query(Company).count()
-    active_companies = db.query(Company).filter(Company.is_active == True).count()
+    active_companies = db.query(Company).filter(Company.is_active == True).all()
+    active_companies_count = len(active_companies)
     total_users = db.query(User).count()
     
-    # MRR Estimate (rough average of ₹833/month per active company)
-    total_mrr = active_companies * 833
+    # MRR Estimate (Calculate from actual plan prices)
+    total_mrr = 0
+    for company in active_companies:
+        if company.plan and company.plan.price and company.plan.duration_days:
+            # Convert plan price to monthly (e.g. 365 days = / 12)
+            months = company.plan.duration_days / 30.0
+            if months > 0:
+                total_mrr += company.plan.price / months
+    total_mrr = int(total_mrr)
     
     # Top Usage Companies (by Invoice Count)
     top_companies_query = (
@@ -192,7 +225,10 @@ def get_platform_analytics(
 
     # Growth Trends (last 6 months)
     six_months_ago = datetime.utcnow() - timedelta(days=180)
-    recent_companies = db.query(Company.created_at).filter(Company.created_at >= six_months_ago).all()
+    
+    # Use coalesce to fallback to subscription_start if created_at is NULL
+    date_column = func.coalesce(Company.created_at, Company.subscription_start)
+    recent_companies = db.query(date_column).filter(date_column >= six_months_ago).all()
     
     months_dict = {}
     # Pre-fill last 6 months
@@ -212,7 +248,7 @@ def get_platform_analytics(
     return {
         "summary": {
             "total_companies": total_companies,
-            "active_companies": active_companies,
+            "active_companies": active_companies_count,
             "total_mrr": total_mrr,
             "total_users": total_users,
         },

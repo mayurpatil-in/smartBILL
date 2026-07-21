@@ -12,6 +12,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(null);
 
+  // 🔐 2FA State
+  const [is2FaStep, setIs2FaStep] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
+
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark"),
   );
@@ -75,6 +79,7 @@ export default function Login() {
         email,
         password,
         remember,
+        totp_code: is2FaStep ? totpCode : null,
       });
 
       const token = res.data.access_token;
@@ -117,6 +122,9 @@ export default function Login() {
     } catch (err) {
       if (err.response?.status === 429) {
         setError("Too many login attempts. Please try again in a minute.");
+      } else if (err.response?.status === 403 && err.response?.data?.detail === "2FA_REQUIRED") {
+        setIs2FaStep(true);
+        setError("");
       } else {
         setError(
           err.response?.data?.detail ||
@@ -189,75 +197,100 @@ export default function Login() {
 
         {/* ✅ FORM START */}
         <form onSubmit={login}>
-          {/* Email */}
-          <input
-            type="email"
-            name="email"
-            id="email"
-            autoFocus
-            autoComplete="username"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (error) setError("");
-            }}
-            className="w-full px-4 py-3 mb-4 rounded-lg border border-gray-200
-              bg-white text-gray-900
-              dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
-              focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          />
-
-          {/* Password */}
-          <div className="relative mb-3">
-            <input
-              type={showPwd ? "text" : "password"}
-              name="password"
-              id="password"
-              autoComplete="current-password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (error) setError("");
-              }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200
-                bg-white text-gray-900
-                dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
-                focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPwd(!showPwd)}
-              className="absolute right-3 top-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            >
-              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {/* Remember */}
-          <div className="flex justify-between items-center mb-5">
-            <label
-              htmlFor="remember"
-              className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"
-            >
+          {!is2FaStep ? (
+            <>
+              {/* Email */}
               <input
-                type="checkbox"
-                name="remember"
-                id="remember"
-                checked={remember}
-                onChange={() => setRemember(!remember)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
+                type="email"
+                name="email"
+                id="email"
+                autoFocus
+                autoComplete="username"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
+                className="w-full px-4 py-3 mb-4 rounded-lg border border-gray-200
+                  bg-white text-gray-900
+                  dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
+                  focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
               />
-              Remember me
-            </label>
-            <a
-              href="#"
-              className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
-            >
-              Forgot password?
-            </a>
-          </div>
+
+              {/* Password */}
+              <div className="relative mb-3">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  name="password"
+                  id="password"
+                  autoComplete="current-password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError("");
+                  }}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200
+                    bg-white text-gray-900
+                    dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
+                    focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(!showPwd)}
+                  className="absolute right-3 top-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                >
+                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {/* Remember */}
+              <div className="flex justify-between items-center mb-5">
+                <label
+                  htmlFor="remember"
+                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"
+                >
+                  <input
+                    type="checkbox"
+                    name="remember"
+                    id="remember"
+                    checked={remember}
+                    onChange={() => setRemember(!remember)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
+                  />
+                  Remember me
+                </label>
+                <a
+                  href="#"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                >
+                  Forgot password?
+                </a>
+              </div>
+            </>
+          ) : (
+            <div className="animate-fade-in mb-5">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 text-center">
+                Enter the 6-digit code from your authenticator app
+              </p>
+              <input
+                type="text"
+                maxLength={6}
+                autoFocus
+                placeholder="000000"
+                value={totpCode}
+                onChange={(e) => {
+                  setTotpCode(e.target.value.replace(/\D/g, ""));
+                  if (error) setError("");
+                }}
+                className="w-full px-4 py-3 text-center tracking-widest text-xl rounded-lg border border-gray-200
+                  bg-white text-gray-900
+                  dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400
+                  focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
@@ -266,10 +299,24 @@ export default function Login() {
               bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 
               dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600
               text-white transition-all
-              disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled:opacity-60 disabled:cursor-not-allowed flex justify-center gap-2 items-center"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (is2FaStep ? "Verifying..." : "Signing in...") : (is2FaStep ? "Verify Code" : "Sign In")}
           </button>
+
+          {is2FaStep && !loading && (
+            <button
+              type="button"
+              onClick={() => {
+                setIs2FaStep(false);
+                setTotpCode("");
+                setError("");
+              }}
+              className="w-full mt-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition"
+            >
+              Back to Login
+            </button>
+          )}
 
           <div className="mt-6 text-center">
             <a

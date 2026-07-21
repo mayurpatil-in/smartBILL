@@ -11,8 +11,9 @@ import {
 } from "../api/financialYear";
 import { getProfile } from "../api/profile";
 import SubscriptionCard from "../components/SubscriptionCard";
-import { Settings as SettingsIcon, Database, LayoutGrid } from "lucide-react";
+import { Settings as SettingsIcon, Database, LayoutGrid, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import TwoFactorSetupModal from "../components/TwoFactorSetupModal";
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -22,9 +23,11 @@ export default function Settings() {
   const [activeFY, setActiveFY] = useState(null);
   const [allFY, setAllFY] = useState([]);
   const [company, setCompany] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [show2faModal, setShow2faModal] = useState(false);
 
   // 🔄 Load Data
   const loadData = async () => {
@@ -37,6 +40,9 @@ export default function Settings() {
       ]);
       setActiveFY(active);
       setAllFY(all);
+      if (profileData?.user) {
+        setProfile(profileData.user);
+      }
       if (profileData?.company) {
         setCompany(profileData.company);
       }
@@ -144,6 +150,22 @@ export default function Settings() {
               </span>
             </div>
           </button>
+          
+          <button
+            onClick={() => setActiveTab("security")}
+            className={`flex-1 py-3 px-3 sm:px-6 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 ${
+              activeTab === "security"
+                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <ShieldCheck size={18} />
+              <span className="hidden xs:inline sm:inline">
+                Security
+              </span>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -165,6 +187,37 @@ export default function Settings() {
         )}
 
         {activeTab === "backup" && <BackupTab />}
+        
+        {activeTab === "security" && (
+          <div className="max-w-6xl animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-2xl text-blue-600 dark:text-blue-400">
+                  <ShieldCheck size={28} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account Security</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Manage two-factor authentication and account protection.</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 gap-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Two-Factor Authentication (2FA)</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Add an extra layer of security to your account by requiring a 6-digit code when you log in.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShow2faModal(true)}
+                  className="shrink-0 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm"
+                >
+                  Configure 2FA
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL */}
@@ -178,6 +231,15 @@ export default function Settings() {
         onSelectFY={handleSelectFY}
         onDeleteFY={handleDeleteFY}
       />
+      
+      {show2faModal && (
+        <TwoFactorSetupModal 
+          onClose={() => {
+            setShow2faModal(false);
+            loadData(); // Refresh to potentially show new 2FA state if needed
+          }} 
+        />
+      )}
     </div>
   );
 }

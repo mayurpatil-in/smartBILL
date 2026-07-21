@@ -32,6 +32,10 @@ class User(Base):
     # 👇 LEGACY: Keep for backward compatibility during migration
     legacy_role = Column(String(50), nullable=True)  # "SUPER_ADMIN", "COMPANY_ADMIN", "USER"
 
+    # 👇 2FA Fields
+    totp_secret = Column(String(255), nullable=True)
+    is_2fa_enabled = Column(Boolean, default=False)
+
     is_active = Column(Boolean, default=True)
 
     # 🔁 Relationships

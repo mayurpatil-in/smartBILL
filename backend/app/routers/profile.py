@@ -46,6 +46,7 @@ def get_profile(user: User = Depends(get_current_user)):
             "name": user.name,
             "email": user.email,
             "role": user.role,
+            "is_2fa_enabled": getattr(user, 'is_2fa_enabled', False),
         },
         "company": user.company,
         "plan": plan_info

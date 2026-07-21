@@ -100,3 +100,20 @@ export const impersonateTenant = async (companyId) => {
   const res = await api.post(`/super-admin/impersonate/${companyId}`);
   return res.data;
 };
+
+// --- 2FA API ---
+export const setup2FA = async () => {
+  const res = await api.post("/2fa/setup");
+  return res.data;
+};
+
+export const verifySetup2FA = async (secret, code) => {
+  const res = await api.post("/2fa/verify-setup", { secret, code });
+  return res.data;
+};
+
+export const disable2FA = async (code) => {
+  const res = await api.post("/2fa/disable", { code });
+  return res.data;
+};
+

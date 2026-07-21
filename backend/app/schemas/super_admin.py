@@ -34,6 +34,8 @@ class CompanyResponse(BaseModel):
     is_active: bool
     subscription_start: date
     subscription_end: date
+    admin_email: str | None = None   # Actual login email of the Company Admin user
+    user_count: int = 0              # Number of users created by this company
 
     class Config:
         from_attributes = True

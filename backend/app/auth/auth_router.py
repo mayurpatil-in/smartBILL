@@ -46,6 +46,21 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
+    # 🔐 CHECK 2FA
+    if getattr(user, 'is_2fa_enabled', False):
+        if not data.totp_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="2FA_REQUIRED"
+            )
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        if not totp.verify(data.totp_code):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid 2FA code"
+            )
+
     # 🚧 CHECK MAINTENANCE MODE
     from app.core.maintenance import is_maintenance_mode
     from fastapi.responses import JSONResponse

@@ -70,6 +70,7 @@ pydyf==0.12.1
 pyee==13.0.0
 pygments==2.19.2
 pyphen==0.17.2
+pyotp==2.10.0
 pytest==9.0.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1

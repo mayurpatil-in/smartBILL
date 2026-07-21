@@ -44,6 +44,7 @@ import {
   Package,
   Layers,
   AlertTriangle,
+  Shield,
 } from "lucide-react";
 import {
   LineChart,
@@ -61,6 +62,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ManageCompanyActions from "../components/ManageCompanyActions";
 import CompanyAuditLogsModal from "../components/CompanyAuditLogsModal";
 import ModalWrapper from "../components/ModalWrapper";
+import TwoFactorSetupModal from "../components/TwoFactorSetupModal";
 
 export default function SuperAdminDashboard() {
   const [companies, setCompanies] = useState([]);
@@ -68,6 +70,7 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
   const [activeTab, setActiveTab] = useState("companies"); // 'companies' | 'plans'
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -79,6 +82,7 @@ export default function SuperAdminDashboard() {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showUpdatePlanModal, setShowUpdatePlanModal] = useState(false);
+  const [show2faModal, setShow2faModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   // Confirmation State
@@ -114,12 +118,6 @@ export default function SuperAdminDashboard() {
       } catch (err) {
         console.warn("Maintenance status fetch failed:", err);
       }
-      try {
-        const maintenanceData = await getMaintenanceStatus();
-        setIsMaintenance(maintenanceData.is_maintenance);
-      } catch (err) {
-        console.warn("Maintenance status fetch failed:", err);
-      }
     } catch {
       toast.error("Failed to load dashboard data");
     } finally {
@@ -130,6 +128,13 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     loadCompanies();
   }, []);
+
+  const filteredCompanies = companies.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.admin_email || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // ➕ Create Company Handler
   const handleCreate = async (data) => {
@@ -369,6 +374,14 @@ export default function SuperAdminDashboard() {
               Add Plan
             </button>
           )}
+          
+          <button
+            onClick={() => setShow2faModal(true)}
+            title="Two-Factor Authentication Settings"
+            className="relative z-10 flex items-center justify-center bg-white/50 hover:bg-white dark:bg-gray-800/50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 w-12 h-12 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 border border-gray-200 dark:border-gray-700"
+          >
+            <Shield size={20} />
+          </button>
         </div>
       </div>
 
@@ -654,6 +667,8 @@ export default function SuperAdminDashboard() {
                 type="text"
                 placeholder="Search companies..."
                 className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
@@ -665,6 +680,7 @@ export default function SuperAdminDashboard() {
                       Company Name
                     </th>
                     <th className="px-6 py-4 whitespace-nowrap">Email</th>
+                    <th className="px-6 py-4 whitespace-nowrap">Users</th>
                     <th className="px-6 py-4 whitespace-nowrap">Status</th>
                     <th className="px-6 py-4 whitespace-nowrap">
                       Subscription End
@@ -678,23 +694,23 @@ export default function SuperAdminDashboard() {
                   {loading ? (
                     <tr>
                       <td
-                        colSpan="5"
+                        colSpan="6"
                         className="px-6 py-8 text-center text-gray-500"
                       >
                         Loading companies...
                       </td>
                     </tr>
-                  ) : companies.length === 0 ? (
+                  ) : filteredCompanies.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="5"
+                        colSpan="6"
                         className="px-6 py-8 text-center text-gray-500"
                       >
-                        No companies found. Create one to get started.
+                        {searchQuery ? "No matching companies found." : "No companies found. Create one to get started."}
                       </td>
                     </tr>
                   ) : (
-                    companies.map((company) => (
+                    filteredCompanies.map((company) => (
                       <CompanyRow
                         key={company.id}
                         company={company}
@@ -850,6 +866,10 @@ export default function SuperAdminDashboard() {
           onSave={handleResetPassword}
         />
       )}
+      
+      {show2faModal && (
+        <TwoFactorSetupModal onClose={() => setShow2faModal(false)} />
+      )}
 
       {showManageModal && selectedCompany && (
         <ManageCompanyActions
@@ -938,6 +958,12 @@ function CompanyRow({ company, onManage }) {
       </td>
       <td className="px-6 py-5 text-gray-600 dark:text-gray-300 font-medium">
         {company.email}
+      </td>
+      <td className="px-6 py-5 text-gray-600 dark:text-gray-300 font-bold">
+        <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-lg w-fit border border-blue-100 dark:border-blue-800">
+          <Users size={14} />
+          {company.user_count || 0}
+        </div>
       </td>
       <td className="px-6 py-5 whitespace-nowrap">
         <span
@@ -1434,7 +1460,7 @@ function UpdateCompanyModal({ company, onClose, onSave }) {
 // -----------------------------------------
 function ResetPasswordModal({ company, onClose, onSave }) {
   const [form, setForm] = useState({
-    email: company.email || "",
+    email: company.admin_email || company.email || "",
     new_password: "",
   });
 
