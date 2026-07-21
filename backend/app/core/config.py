@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     # ================= SYSTEM =================
     BACKEND_URL: str | None = None
 
+    # ================= CRON =================
+    # Used to authenticate the internal /backup/cron endpoint.
+    # Set this in .env on the server. Keep it secret!
+    CRON_SECRET: str = ""
+
     # ================= E-WAY BILL =================
     EWAY_BILL_USERNAME: str = ""
     EWAY_BILL_PASSWORD: str = ""

@@ -2,9 +2,10 @@ import shutil
 import os
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form, Header
 from fastapi.responses import FileResponse
 from app.services.backup_service import backup_manager, BACKUP_DIR
+from app.core.config import settings
 from app.database.session import engine
 from app.models.user import User, UserRole
 from app.core.dependencies import require_role
@@ -26,6 +27,24 @@ async def get_backup_config():
     return {
         "db_type": backup_manager._get_db_type()
     }
+
+
+@router.post("/cron")
+async def cron_backup(x_cron_secret: str = Header(...)):
+    """
+    Trigger an automatic backup from a cPanel cron job.
+    Secured by the X-Cron-Secret header — no JWT required.
+    Set CRON_SECRET in your .env and pass it as the header value.
+    """
+    if not settings.CRON_SECRET:
+        raise HTTPException(status_code=503, detail="CRON_SECRET not configured on this server.")
+    if x_cron_secret != settings.CRON_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid cron secret.")
+
+    filename = backup_manager.create_backup(auto=True, format="dump")
+    if not filename:
+        raise HTTPException(status_code=500, detail="Backup failed — check server logs.")
+    return {"status": "ok", "filename": filename}
 
 
 @router.get("/list")
