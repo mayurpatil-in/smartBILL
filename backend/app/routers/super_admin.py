@@ -89,6 +89,41 @@ def reset_admin_password_api(
     return reset_admin_password(db, company_id, data.email, data.new_password, current_user.id)
 
 
+@router.post("/companies/{company_id}/disable-2fa")
+def disable_company_2fa_api(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    company = db.query(Company).get(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+        
+    admin_user = db.query(User).filter(
+        User.company_id == company.id,
+        User.legacy_role == UserRole.COMPANY_ADMIN.value
+    ).first()
+    
+    if not admin_user:
+        raise HTTPException(status_code=404, detail="Company Admin not found")
+        
+    admin_user.is_2fa_enabled = False
+    admin_user.totp_secret = None
+    db.commit()
+    
+    log = AuditLog(
+        company_id=company.id,
+        user_id=current_user.id,
+        action="SUPER_ADMIN_DISABLED_2FA",
+        details=f"Super Admin manually disabled 2FA for {admin_user.email}",
+        ip_address="SuperAdmin"
+    )
+    db.add(log)
+    db.commit()
+    
+    return {"message": "2FA disabled successfully"}
+
+
 @router.post("/companies/{company_id}/admin")
 def create_company_admin_api(
     company_id: int,
@@ -126,6 +161,56 @@ def toggle_status_api(
         raise HTTPException(status_code=404, detail="Company not found")
     return toggle_company_status(db, company, current_user.id)
 
+
+from sqlalchemy import func
+from app.models.invoice import Invoice
+from app.schemas.super_admin import CompanyDetailsResponse
+
+@router.get("/companies/{company_id}/details", response_model=CompanyDetailsResponse)
+def get_company_details(
+    company_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(require_super_admin),
+):
+    company = db.query(Company).get(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    # Fetch Admin Email
+    admin_user = db.query(User).filter(
+        User.company_id == company.id,
+        User.legacy_role == UserRole.COMPANY_ADMIN.value,
+        User.is_active == True
+    ).first()
+    
+    # Aggregations
+    user_count = db.query(User).filter(User.company_id == company.id).count()
+    
+    invoice_volume = db.query(func.sum(Invoice.grand_total)).filter(
+        Invoice.company_id == company.id
+    ).scalar() or 0.0
+
+    last_login_date = db.query(func.max(User.last_login_at)).filter(
+        User.company_id == company.id
+    ).scalar()
+
+    return {
+        "id": company.id,
+        "name": company.name,
+        "email": company.email,
+        "phone": company.phone,
+        "gst_number": company.gst_number,
+        "is_active": company.is_active,
+        "subscription_start": company.subscription_start,
+        "subscription_end": company.subscription_end,
+        "admin_email": admin_user.email if admin_user else None,
+        "user_count": user_count,
+        "total_invoice_volume": float(invoice_volume),
+        "last_login_date": last_login_date,
+        "plan_name": company.plan.name if company.plan else None,
+        "max_users": company.plan.max_users if company.plan else None,
+        "feature_flags": company.plan.feature_flags if company.plan else [],
+    }
 
 @router.get("/companies", response_model=list[CompanyResponse])
 def list_companies(

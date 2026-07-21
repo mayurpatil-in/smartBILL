@@ -8,6 +8,7 @@ import {
   updateCompany,
   resetCompanyPassword,
   deleteCompany,
+  disableCompany2FA,
   getAuditLogs,
   getSaaSAnalytics,
   getPlans,
@@ -63,14 +64,19 @@ import ManageCompanyActions from "../components/ManageCompanyActions";
 import CompanyAuditLogsModal from "../components/CompanyAuditLogsModal";
 import ModalWrapper from "../components/ModalWrapper";
 import TwoFactorSetupModal from "../components/TwoFactorSetupModal";
+import CompanyDetailsDrawer from "../components/CompanyDetailsDrawer";
+import { useAuth } from "../hooks/useAuth";
 
 export default function SuperAdminDashboard() {
+  const { user } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
   const [activeTab, setActiveTab] = useState("companies"); // 'companies' | 'plans'
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [expiryFilter, setExpiryFilter] = useState("ALL");
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -83,6 +89,7 @@ export default function SuperAdminDashboard() {
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showUpdatePlanModal, setShowUpdatePlanModal] = useState(false);
   const [show2faModal, setShow2faModal] = useState(false);
+  const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   // Confirmation State
@@ -129,12 +136,34 @@ export default function SuperAdminDashboard() {
     loadCompanies();
   }, []);
 
-  const filteredCompanies = companies.filter(
-    (c) =>
+  const filteredCompanies = companies.filter((c) => {
+    // Search filter (Name, Email, Admin Email, GST)
+    const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.admin_email || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      (c.admin_email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.gst_number || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Status filter
+    const matchesStatus =
+      statusFilter === "ALL"
+        ? true
+        : statusFilter === "ACTIVE"
+        ? c.is_active
+        : !c.is_active;
+
+    // Expiry filter (within 7 days)
+    let matchesExpiry = true;
+    if (expiryFilter === "EXPIRING_SOON" && c.subscription_end) {
+      const today = new Date();
+      const end = new Date(c.subscription_end);
+      const diffTime = end.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      matchesExpiry = diffDays >= 0 && diffDays <= 7;
+    }
+
+    return matchesSearch && matchesStatus && matchesExpiry;
+  });
 
   // ➕ Create Company Handler
   const handleCreate = async (data) => {
@@ -246,6 +275,28 @@ export default function SuperAdminDashboard() {
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to reset password");
     }
+  };
+
+  // 🛡️ Disable 2FA Handler
+  const handleDisable2FA = (company) => {
+    setConfirmDialog({
+      open: true,
+      title: "Disable Two-Factor Authentication",
+      message: `Are you sure you want to disable 2FA for ${company.name}'s admin? This removes their extra security layer.`,
+      type: "danger",
+      confirmLabel: "Disable 2FA",
+      onConfirm: async () => {
+        try {
+          await disableCompany2FA(company.id);
+          toast.success("2FA has been disabled for the company admin");
+          loadCompanies();
+          setConfirmDialog({ ...confirmDialog, open: false });
+        } catch (err) {
+          toast.error(err.response?.data?.detail || "Failed to disable 2FA");
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   // 📝 Subscription Plans Handlers
@@ -380,7 +431,10 @@ export default function SuperAdminDashboard() {
             title="Two-Factor Authentication Settings"
             className="relative z-10 flex items-center justify-center bg-white/50 hover:bg-white dark:bg-gray-800/50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 w-12 h-12 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 border border-gray-200 dark:border-gray-700"
           >
-            <Shield size={20} />
+            <Shield 
+              size={20} 
+              className={user?.is_2fa_enabled ? "text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" : ""} 
+            />
           </button>
         </div>
       </div>
@@ -661,15 +715,38 @@ export default function SuperAdminDashboard() {
 
           {/* 📋 TABLE */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
-              <Search className="text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search companies..."
-                className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row items-center gap-4">
+              <div className="flex-1 flex items-center gap-3 w-full bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
+                <Search className="text-gray-400 ml-2" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or GST..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-white"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none cursor-pointer"
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">Active Only</option>
+                  <option value="INACTIVE">Inactive Only</option>
+                </select>
+                
+                <select
+                  value={expiryFilter}
+                  onChange={(e) => setExpiryFilter(e.target.value)}
+                  className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none cursor-pointer"
+                >
+                  <option value="ALL">Any Expiry</option>
+                  <option value="EXPIRING_SOON">Expiring Soon (7 Days)</option>
+                </select>
+              </div>
             </div>
 
             <div className="overflow-x-auto min-h-[400px]">
@@ -870,6 +947,13 @@ export default function SuperAdminDashboard() {
       {show2faModal && (
         <TwoFactorSetupModal onClose={() => setShow2faModal(false)} />
       )}
+      
+      {showDetailsDrawer && selectedCompany && (
+        <CompanyDetailsDrawer 
+          companyId={selectedCompany.id}
+          onClose={() => setShowDetailsDrawer(false)}
+        />
+      )}
 
       {showManageModal && selectedCompany && (
         <ManageCompanyActions
@@ -898,6 +982,14 @@ export default function SuperAdminDashboard() {
           onImpersonate={() => {
             setShowManageModal(false);
             handleImpersonate(selectedCompany);
+          }}
+          onViewDetails={() => {
+            setShowManageModal(false);
+            setShowDetailsDrawer(true);
+          }}
+          onDisable2FA={() => {
+            setShowManageModal(false);
+            handleDisable2FA(selectedCompany);
           }}
           onDelete={() => {
             setShowManageModal(false);
@@ -944,15 +1036,39 @@ export default function SuperAdminDashboard() {
 // ROW COMPONENT (With Manage Button)
 // -----------------------------------------
 function CompanyRow({ company, onManage }) {
+  const end = new Date(company.subscription_end);
+  const today = new Date();
+  const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+  const isExpired = diffDays < 0;
+  const isExpiringSoon = diffDays >= 0 && diffDays <= 7;
+  
+  const rowHighlight = isExpired 
+    ? "bg-red-50/50 dark:bg-red-900/10 border-l-4 border-red-500" 
+    : isExpiringSoon 
+      ? "bg-amber-50/50 dark:bg-amber-900/10 border-l-4 border-amber-500" 
+      : "border-l-4 border-transparent";
+
   return (
-    <tr className="group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/5 transition-all duration-300">
+    <tr className={`group hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/30 dark:hover:from-purple-900/10 dark:hover:to-blue-900/5 transition-all duration-300 ${rowHighlight}`}>
       <td className="px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl shadow-md group-hover:scale-110 transition-transform duration-300">
             <Building2 size={18} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900 dark:text-gray-100">
+          <span className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             {company.name}
+            {isExpired && (
+              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-black px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
+                <AlertTriangle size={12} />
+                Expired
+              </span>
+            )}
+            {isExpiringSoon && (
+              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-black px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                <AlertTriangle size={12} />
+                Expiring
+              </span>
+            )}
           </span>
         </div>
       </td>
@@ -978,15 +1094,10 @@ function CompanyRow({ company, onManage }) {
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {(() => {
-          const end = new Date(company.subscription_end);
-          const today = new Date();
-          const diffTime = end - today;
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
           let colorClass = "text-gray-500";
-          if (diffDays < 0) {
+          if (isExpired) {
             colorClass = "text-red-600 font-semibold"; // ❌ Expired
-          } else if (diffDays <= 7) {
+          } else if (isExpiringSoon) {
             colorClass = "text-amber-600 font-semibold"; // ⚠️ Very urgent
           } else if (diffDays <= 30) {
             colorClass = "text-yellow-600 font-medium"; // ⏳ Upcoming

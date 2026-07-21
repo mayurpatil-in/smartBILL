@@ -10,6 +10,8 @@ import {
   Building2,
   Activity,
   LogIn,
+  Info,
+  ShieldOff,
 } from "lucide-react";
 
 export default function ManageCompanyActions({
@@ -23,6 +25,8 @@ export default function ManageCompanyActions({
   onDelete,
   onViewLogs,
   onImpersonate,
+  onViewDetails,
+  onDisable2FA,
 }) {
   if (!company) return null;
 
@@ -64,7 +68,15 @@ export default function ManageCompanyActions({
         </div>
 
         {/* Action Grid */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
+          <ActionCard
+            icon={Info}
+            title="View Details"
+            desc="See tenant analytics and limits"
+            color="indigo"
+            onClick={onViewDetails}
+          />
+
           <ActionCard
             icon={UserPlus}
             title="Create Admin"
@@ -87,6 +99,14 @@ export default function ManageCompanyActions({
             desc="Set a temporary password for admin"
             color="amber"
             onClick={onResetPassword}
+          />
+
+          <ActionCard
+            icon={ShieldOff}
+            title="Disable 2FA"
+            desc="Turn off 2FA if admin is locked out"
+            color="orange"
+            onClick={onDisable2FA}
           />
 
           <ActionCard

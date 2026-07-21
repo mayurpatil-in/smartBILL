@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 from app.database.base import Base
 import enum
@@ -37,6 +37,9 @@ class User(Base):
     is_2fa_enabled = Column(Boolean, default=False)
 
     is_active = Column(Boolean, default=True)
+
+    # 👇 TRACKING
+    last_login_at = Column(DateTime, nullable=True)
 
     # 🔁 Relationships
     company = relationship("Company", back_populates="users")

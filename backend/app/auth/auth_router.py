@@ -106,9 +106,9 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         remember=data.remember
     )
 
-    # [SECURITY] Audit Log for Successful Login
-    # Using a robust background task or direct insert
+    # [SECURITY] Audit Log for Successful Login & Update Last Login
     try:
+        user.last_login_at = datetime.utcnow()
         audit = AuditLog(
             user_id=user.id,
             action="LOGIN",

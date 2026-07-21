@@ -40,6 +40,26 @@ class CompanyResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class CompanyDetailsResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr | None = None
+    phone: str | None = None
+    gst_number: str | None = None
+    is_active: bool
+    subscription_start: date
+    subscription_end: date
+    admin_email: str | None = None
+    user_count: int = 0
+    total_invoice_volume: float = 0.0
+    last_login_date: datetime | None = None
+    plan_name: str | None = None
+    max_users: int | None = None
+    feature_flags: list[str] | None = None
+
+    class Config:
+        from_attributes = True
+
 
 class CreateCompanyAdmin(BaseModel):
     name: str

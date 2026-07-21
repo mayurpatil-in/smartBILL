@@ -66,6 +66,7 @@ export function AuthProvider({ children }) {
             companyName: profileData.company?.name || prev.companyName,
             companyLogo: profileData.company?.logo,
             plan: profileData.plan || null,
+            is_2fa_enabled: profileData.user.is_2fa_enabled,
           }));
         }
 

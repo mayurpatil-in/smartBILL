@@ -5,6 +5,11 @@ export const getCompanies = async () => {
   return res.data;
 };
 
+export const getCompanyDetails = async (companyId) => {
+  const res = await api.get(`/super-admin/companies/${companyId}/details`);
+  return res.data;
+};
+
 export const createCompany = async (payload) => {
   const res = await api.post("/super-admin/companies", payload);
   return res.data;
@@ -44,6 +49,11 @@ export const resetCompanyPassword = async (companyId, payload) => {
     `/super-admin/companies/${companyId}/reset-password`,
     payload,
   );
+  return res.data;
+};
+
+export const disableCompany2FA = async (companyId) => {
+  const res = await api.post(`/super-admin/companies/${companyId}/disable-2fa`);
   return res.data;
 };
 

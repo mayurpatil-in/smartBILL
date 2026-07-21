@@ -3,8 +3,10 @@ import { X, ShieldCheck, KeyRound } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { setup2FA, verifySetup2FA, disable2FA } from "../api/superAdmin";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../hooks/useAuth";
 
 export default function TwoFactorSetupModal({ onClose }) {
+  const { updateUser } = useAuth();
   const [step, setStep] = useState(1); // 1 = loading/intro, 2 = setup, 3 = disable
   const [uri, setUri] = useState("");
   const [secret, setSecret] = useState("");
@@ -43,6 +45,7 @@ export default function TwoFactorSetupModal({ onClose }) {
     setLoading(true);
     try {
       await verifySetup2FA(secret, code);
+      updateUser({ is_2fa_enabled: true });
       toast.success("2FA has been successfully enabled!");
       onClose();
     } catch (err) {
@@ -61,6 +64,7 @@ export default function TwoFactorSetupModal({ onClose }) {
     setLoading(true);
     try {
       await disable2FA(code);
+      updateUser({ is_2fa_enabled: false });
       toast.success("2FA has been disabled.");
       onClose();
     } catch (err) {

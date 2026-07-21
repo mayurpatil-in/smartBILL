@@ -31,10 +31,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ArrowRight, Calendar, FileText, PieChart as PieChartIcon, Plus, Users, Package, TrendingUp, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Calendar, FileText, PieChart as PieChartIcon, Plus, Users, Package, TrendingUp, Sparkles, Zap, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/axios";
 import { useTranslation } from "react-i18next";
+import TwoFactorSetupModal from "../components/TwoFactorSetupModal";
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -44,6 +45,9 @@ export default function Dashboard() {
 
   // Financial Year State
   const [activeFY, setActiveFY] = useState(null);
+
+  // 2FA Modal State
+  const [show2faModal, setShow2faModal] = useState(false);
 
   // Stats State
   const [stats, setStats] = useState(null);
@@ -222,26 +226,43 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* RIGHT: Active FY Badge */}
-        {activeFY && (
-          <button
-            onClick={() => navigate("/settings")}
-            className="group relative z-10 glass-card px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-white/30 w-full md:w-auto"
-            title="Manage Financial Years"
-          >
-            <Calendar
-              size={18}
-              className="text-blue-200 group-hover:text-white transition-colors sm:w-5 sm:h-5 flex-shrink-0"
-            />
-            <span className="text-blue-100 group-hover:text-white transition-colors">
-              {t("dashboard.fy")}
-              <span className="font-bold text-white">
-                {new Date(activeFY.start_date).getFullYear()}-
-                {new Date(activeFY.end_date).getFullYear().toString().slice(-2)}
+        {/* RIGHT: Active FY Badge + Security */}
+        <div className="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-end gap-3 w-full md:w-auto">
+          {activeFY && (
+            <button
+              onClick={() => navigate("/settings")}
+              className="group glass-card px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-white/30"
+              title="Manage Financial Years"
+            >
+              <Calendar
+                size={18}
+                className="text-blue-200 group-hover:text-white transition-colors sm:w-5 sm:h-5 flex-shrink-0"
+              />
+              <span className="text-blue-100 group-hover:text-white transition-colors">
+                {t("dashboard.fy")}
+                <span className="font-bold text-white">
+                  {new Date(activeFY.start_date).getFullYear()}-
+                  {new Date(activeFY.end_date).getFullYear().toString().slice(-2)}
+                </span>
               </span>
-            </span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setShow2faModal(true)}
+            title="Two-Factor Authentication Settings"
+            className="group glass-card flex items-center justify-center p-2.5 sm:p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer border-2 border-white/30"
+          >
+            <Shield 
+              size={20} 
+              className={`sm:w-5 sm:h-5 transition-colors ${
+                user?.is_2fa_enabled 
+                  ? "text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]" 
+                  : "text-blue-200 group-hover:text-white"
+              }`} 
+            />
           </button>
-        )}
+        </div>
       </div>
 
       {/* STATS CARDS */}
@@ -617,6 +638,10 @@ export default function Dashboard() {
             {t("dashboard.view_all_invoices")} <ArrowRight size={18} />
           </button>
         </div>
+      )}
+      
+      {show2faModal && (
+        <TwoFactorSetupModal onClose={() => setShow2faModal(false)} />
       )}
     </div>
   );
