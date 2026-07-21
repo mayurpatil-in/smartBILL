@@ -46,6 +46,16 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
+    # 🌍 SUPER ADMIN IP CHECK
+    if user.legacy_role == "SUPER_ADMIN" and settings.SUPER_ADMIN_ALLOWED_IPS:
+        allowed_ips = [ip.strip() for ip in settings.SUPER_ADMIN_ALLOWED_IPS.split(",") if ip.strip()]
+        client_ip = request.client.host
+        if allowed_ips and client_ip not in allowed_ips:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied from this IP address."
+            )
+
     # 🔐 CHECK 2FA
     if getattr(user, 'is_2fa_enabled', False):
         if not data.totp_code:
@@ -102,6 +112,7 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
             "role": user.legacy_role,          # Use legacy_role for backward compatibility
             "role_name": user.role.name if user.role else None,  # Add actual role name
             "company_name": user.company.name if user.company else None,
+            "token_version": user.token_version,
         },
         remember=data.remember
     )

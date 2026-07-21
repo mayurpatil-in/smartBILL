@@ -5,6 +5,16 @@ export const getCompanies = async () => {
   return res.data;
 };
 
+export const getActiveUsers = async () => {
+  const res = await api.get("/super-admin/active-users");
+  return res.data;
+};
+
+export const forceLogoutUser = async (userId) => {
+  const res = await api.post(`/super-admin/users/${userId}/force-logout`);
+  return res.data;
+};
+
 export const getCompanyDetails = async (companyId) => {
   const res = await api.get(`/super-admin/companies/${companyId}/details`);
   return res.data;

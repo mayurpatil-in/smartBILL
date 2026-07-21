@@ -40,6 +40,7 @@ class User(Base):
 
     # 👇 TRACKING
     last_login_at = Column(DateTime, nullable=True)
+    token_version = Column(Integer, default=1, server_default='1', nullable=False)
 
     # 🔁 Relationships
     company = relationship("Company", back_populates="users")

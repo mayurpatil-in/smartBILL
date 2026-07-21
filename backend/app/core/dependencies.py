@@ -56,6 +56,14 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
         )
+        
+    # Check if the token version matches the DB (Force Logout feature)
+    token_version = payload.get("token_version", 1)
+    if not payload.get("is_impersonated") and token_version != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired. Please log in again.",
+        )
 
     return user
 

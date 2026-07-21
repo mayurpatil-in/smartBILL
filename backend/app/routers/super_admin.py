@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import date, datetime, timedelta
 from sqlalchemy import func, desc
+from pydantic import BaseModel
 
 from app.database.session import get_db
 from app.schemas.super_admin import (
@@ -378,9 +379,20 @@ def get_maintenance_status_api(
 @router.post("/maintenance", response_model=MaintenanceModeResponse)
 def set_maintenance_status_api(
     data: MaintenanceModeUpdate,
-    _=Depends(require_super_admin),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
 ):
     set_maintenance_mode(data.is_maintenance)
+    
+    audit = AuditLog(
+        user_id=current_user.id,
+        action="MAINTENANCE_MODE_TOGGLED",
+        details=f"Maintenance mode set to {data.is_maintenance}",
+        company_id=None
+    )
+    db.add(audit)
+    db.commit()
+    
     return {"is_maintenance": data.is_maintenance}
 
 @router.post("/impersonate/{company_id}", response_model=TokenResponse)
@@ -426,3 +438,61 @@ def impersonate_tenant_api(
     db.commit()
 
     return TokenResponse(access_token=token)
+
+class ActiveUserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    legacy_role: str
+    company_name: str | None
+    last_login_at: datetime | None
+
+@router.get("/active-users", response_model=list[ActiveUserResponse])
+def get_active_users_api(
+    db: Session = Depends(get_db),
+    _=Depends(require_super_admin),
+):
+    # Get users who logged in within the last 7 days
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    users = (
+        db.query(User)
+        .filter(User.last_login_at >= seven_days_ago)
+        .order_by(User.last_login_at.desc())
+        .limit(100)
+        .all()
+    )
+    result = []
+    for u in users:
+        result.append({
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "legacy_role": u.legacy_role,
+            "company_name": u.company.name if u.company else "System",
+            "last_login_at": u.last_login_at
+        })
+    return result
+
+@router.post("/users/{user_id}/force-logout")
+def force_logout_api(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.token_version += 1
+    db.commit()
+    
+    # Audit log
+    audit = AuditLog(
+        user_id=current_user.id,
+        action="FORCE_LOGOUT",
+        details=f"Forced logout for user {user.email}",
+        company_id=None
+    )
+    db.add(audit)
+    db.commit()
+    return {"message": "User logged out successfully"}

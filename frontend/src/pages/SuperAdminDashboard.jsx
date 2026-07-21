@@ -65,9 +65,12 @@ import CompanyAuditLogsModal from "../components/CompanyAuditLogsModal";
 import ModalWrapper from "../components/ModalWrapper";
 import TwoFactorSetupModal from "../components/TwoFactorSetupModal";
 import CompanyDetailsDrawer from "../components/CompanyDetailsDrawer";
+import ActiveUsersModal from "../components/ActiveUsersModal";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export default function SuperAdminDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -90,6 +93,7 @@ export default function SuperAdminDashboard() {
   const [showUpdatePlanModal, setShowUpdatePlanModal] = useState(false);
   const [show2faModal, setShow2faModal] = useState(false);
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+  const [showActiveUsersModal, setShowActiveUsersModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   // Confirmation State
@@ -488,6 +492,20 @@ export default function SuperAdminDashboard() {
             : isMaintenance
               ? "Disable Maintenance"
               : "Enable Maintenance"}
+        </button>
+        <button
+          onClick={() => navigate("/audit-logs")}
+          className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all focus:ring-4 whitespace-nowrap bg-indigo-100 hover:bg-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/50 dark:text-indigo-300 flex items-center gap-2"
+        >
+          <Activity size={18} />
+          Global Audit Logs
+        </button>
+        <button
+          onClick={() => setShowActiveUsersModal(true)}
+          className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all focus:ring-4 whitespace-nowrap bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-300 flex items-center gap-2"
+        >
+          <Users size={18} />
+          Active Sessions
         </button>
       </div>
 
@@ -1025,6 +1043,11 @@ export default function SuperAdminDashboard() {
         type={confirmDialog.type}
         confirmLabel={confirmDialog.confirmLabel}
       />
+      
+      {/* 🛑 ACTIVE USERS MODAL */}
+      {showActiveUsersModal && (
+        <ActiveUsersModal onClose={() => setShowActiveUsersModal(false)} />
+      )}
     </div>
   );
 }

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     # ================= SYSTEM =================
     BACKEND_URL: str | None = None
+    SUPER_ADMIN_ALLOWED_IPS: str = ""
 
     # ================= CRON =================
     # Used to authenticate the internal /backup/cron endpoint.
