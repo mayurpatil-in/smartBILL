@@ -888,8 +888,10 @@ async def public_download_invoice(
     token: str,
     db: Session = Depends(get_db)
 ):
+    from app.routers.public_challan import render_public_error_page
+
     if not verify_url_signature(str(invoice_id), token):
-        raise HTTPException(403, "Invalid link")
+        return render_public_error_page("Link Expired or Invalid", "This download link is invalid or has expired.", status_code=403)
         
     invoice = db.query(Invoice).options(
         joinedload(Invoice.party),
@@ -897,7 +899,7 @@ async def public_download_invoice(
     ).filter(Invoice.id == invoice_id).first()
     
     if not invoice:
-        raise HTTPException(404, "Invoice not found")
+        return render_public_error_page("Invoice Deleted", "This invoice has been deleted and is no longer available.", status_code=404)
         
     company = db.query(Company).filter(Company.id == invoice.company_id).first()
     
@@ -949,13 +951,15 @@ async def redirect_invoice_short_link(
     from datetime import datetime
     from fastapi.responses import RedirectResponse
     
+    from app.routers.public_challan import render_public_error_page
+
     short_link = db.query(ShortLink).filter(ShortLink.code == code).first()
     
     if not short_link:
-        raise HTTPException(status_code=404, detail="Link not found")
+        return render_public_error_page("Link Not Found", "The requested short link does not exist or has been removed.", status_code=404)
         
     if short_link.expires_at and short_link.expires_at < datetime.now(short_link.expires_at.tzinfo if short_link.expires_at.tzinfo else None):
-        raise HTTPException(status_code=410, detail="This link has expired")
+        return render_public_error_page("Link Expired", "This download link has expired. Please request a new link.", status_code=410)
         
     return RedirectResponse(url=short_link.target_url, status_code=307)
 

@@ -371,12 +371,12 @@ export default function ChallanTracker() {
     setLoading(true);
     try {
       const [pcData, dcData, pData, iData] = await Promise.all([
-        getPartyChallans(),
+        getPartyChallans({ limit: 1000 }),
         getDeliveryChallans(),
         getParties(),
         getItems()
       ]);
-      setPartyChallans(pcData);
+      setPartyChallans(Array.isArray(pcData) ? pcData : (pcData?.items || []));
       setDeliveryChallans(dcData);
       setParties(pData);
       setItems(iData);

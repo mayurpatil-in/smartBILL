@@ -19,7 +19,7 @@ import {
   IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getPartyChallans, deletePartyChallan } from "../api/partyChallans";
+import { getPartyChallans, deletePartyChallan, getPartyChallanStats } from "../api/partyChallans";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
 import AddPartyChallanModal from "../components/AddPartyChallanModal";
@@ -43,6 +43,9 @@ export default function PartyChallans() {
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
   const [items, setItems] = useState([]);
+  const [stats, setStats] = useState({ total_open: 0, total_partial: 0, total_completed: 0 });
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
@@ -58,17 +61,59 @@ export default function PartyChallans() {
   });
   const navigate = useNavigate();
 
+  // Master Data (load once)
+  useEffect(() => {
+    const loadMasterData = async () => {
+      try {
+        const [partiesData, itemsData] = await Promise.all([
+          getParties({ ignoreGlobal403: true }).catch(() => []),
+          getItems({ ignoreGlobal403: true }).catch(() => []),
+        ]);
+        setParties(partiesData);
+        setItems(itemsData);
+      } catch (err) {
+        console.error("Failed to load master data", err);
+      }
+    };
+    loadMasterData();
+  }, []);
+
+  // Stats (load on mount and after delete/add)
+  const loadStats = async () => {
+    try {
+      const statsData = await getPartyChallanStats();
+      setStats(statsData);
+    } catch (err) {
+      console.error("Failed to load party challan stats", err);
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  // Paginated List Loading
   const loadChallans = async () => {
     try {
       setLoading(true);
-      const [challansData, partiesData, itemsData] = await Promise.all([
-        getPartyChallans(),
-        getParties({ ignoreGlobal403: true }).catch(() => []),
-        getItems({ ignoreGlobal403: true }).catch(() => []),
-      ]);
-      setChallans(challansData);
-      setParties(partiesData);
-      setItems(itemsData);
+      const params = {
+        page: currentPage,
+        limit: challansPerPage,
+        search: searchTerm,
+        status: statusFilter,
+        party_id: partyFilter,
+        item_id: itemFilter,
+      };
+      const res = await getPartyChallans(params);
+      if (res && res.items) {
+        setChallans(res.items);
+        setTotalRecords(res.total || 0);
+        setTotalPages(res.total_pages || 1);
+      } else if (Array.isArray(res)) {
+        setChallans(res);
+        setTotalRecords(res.length);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error("Failed to load party challans", err);
     } finally {
@@ -78,7 +123,7 @@ export default function PartyChallans() {
 
   useEffect(() => {
     loadChallans();
-  }, []);
+  }, [currentPage, challansPerPage, searchTerm, statusFilter, partyFilter, itemFilter]);
 
   const handleDelete = async (challan) => {
     setDeleteConfirm({ open: true, challan });
@@ -90,34 +135,13 @@ export default function PartyChallans() {
       toast.success(t("party_challans.delete_success"));
       setDeleteConfirm({ open: false, challan: null });
       loadChallans();
+      loadStats();
     } catch (err) {
       toast.error(
         err.response?.data?.detail || t("party_challans.delete_failed"),
       );
     }
   };
-
-  const filteredChallans = challans
-    .filter((c) => {
-      const matchesSearch =
-        c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter ? c.status === statusFilter : true;
-      const matchesParty = partyFilter
-        ? c.party_id === Number(partyFilter)
-        : true;
-      const matchesItem = itemFilter
-        ? c.items?.some((item) => item.item_id === Number(itemFilter))
-        : true;
-      return matchesSearch && matchesStatus && matchesParty && matchesItem;
-    })
-    .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
-
-  // Pagination
-  const totalPages = Math.ceil(filteredChallans.length / challansPerPage);
-  const startIndex = (currentPage - 1) * challansPerPage;
-  const endIndex = startIndex + challansPerPage;
-  const paginatedChallans = filteredChallans.slice(startIndex, endIndex);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -161,14 +185,13 @@ export default function PartyChallans() {
     return totalOrdered > 0 ? (totalDelivered / totalOrdered) * 100 : 0;
   };
 
-  // Calculate stats based on filtered challans
-  const totalOpen = filteredChallans.filter((c) => c.status === "open").length;
-  const totalPartial = filteredChallans.filter(
-    (c) => c.status === "partial",
-  ).length;
-  const totalCompleted = filteredChallans.filter(
-    (c) => c.status === "completed",
-  ).length;
+  // Use stats from server
+  const totalOpen = stats.total_open || 0;
+  const totalPartial = stats.total_partial || 0;
+  const totalCompleted = stats.total_completed || 0;
+
+  const startIndex = (currentPage - 1) * challansPerPage;
+  const endIndex = Math.min(startIndex + challansPerPage, totalRecords);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -244,7 +267,7 @@ export default function PartyChallans() {
                 />
                 {searchTerm && (
                   <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md">
-                    {filteredChallans.length} {t("party_challans.found")}
+                    {totalRecords} {t("party_challans.found")}
                   </span>
                 )}
               </div>
@@ -259,13 +282,11 @@ export default function PartyChallans() {
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
                 <option value="">{t("party_challans.filter_all_parties")}</option>
-                {parties
-                  .filter((p) => p.is_active)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                {parties.map((party) => (
+                  <option key={party.id} value={party.id}>
+                    {party.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -275,17 +296,14 @@ export default function PartyChallans() {
                 id="item_filter"
                 value={itemFilter}
                 onChange={(e) => setItemFilter(e.target.value)}
-                disabled={!partyFilter}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
               >
                 <option value="">{t("party_challans.filter_all_items")}</option>
-                {filteredItems
-                  .filter((item) => item.is_active)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
+                {filteredItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -336,7 +354,7 @@ export default function PartyChallans() {
                     </div>
                   </td>
                 </tr>
-              ) : paginatedChallans.length === 0 ? (
+              ) : challans.length === 0 ? (
                 <tr>
                   <td
                     colSpan="7"
@@ -357,7 +375,7 @@ export default function PartyChallans() {
                   </td>
                 </tr>
               ) : (
-                paginatedChallans.map((challan, index) => (
+                challans.map((challan, index) => (
                   <PartyChallanRow
                     key={challan.id}
                     challan={challan}
@@ -385,21 +403,21 @@ export default function PartyChallans() {
         </div>
 
         {/* Pagination */}
-        {filteredChallans.length > 0 && (
+        {totalRecords > 0 && (
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {t("party_challans.showing")}{" "}
                 <span className="font-bold text-purple-600 dark:text-purple-400">
-                  {startIndex + 1}
+                  {totalRecords > 0 ? startIndex + 1 : 0}
                 </span>{" "}
                 {t("party_challans.to")}{" "}
                 <span className="font-bold text-purple-600 dark:text-purple-400">
-                  {Math.min(endIndex, filteredChallans.length)}
+                  {endIndex}
                 </span>{" "}
                 {t("party_challans.of")}{" "}
                 <span className="font-bold text-gray-900 dark:text-white">
-                  {filteredChallans.length}
+                  {totalRecords}
                 </span>{" "}
                 {t("party_challans.challans")}
               </span>
@@ -481,11 +499,16 @@ export default function PartyChallans() {
       <AddPartyChallanModal
         open={showAddModal}
         partyChallan={editingChallan}
+        partiesData={parties}
+        itemsData={items}
         onClose={() => {
           setShowAddModal(false);
           setEditingChallan(null);
         }}
-        onSuccess={loadChallans}
+        onSuccess={() => {
+          loadChallans();
+          loadStats();
+        }}
       />
 
       <ConfirmDialog

@@ -10,18 +10,20 @@ import {
   Package,
   Cog,
   TrendingUp,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   createPartyChallan,
   updatePartyChallan,
   getNextPartyChallanNumber,
+  checkDuplicatePartyChallanNumber,
+  getPartyChallansByItem,
 } from "../api/partyChallans";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
 import { getProcesses } from "../api/processes";
 import { getStock } from "../api/stock";
-import { getPartyChallansByItem } from "../api/partyChallans";
 
 import {
   formatDate,
@@ -34,16 +36,47 @@ export default function AddPartyChallanModal({
   onClose,
   onSuccess,
   partyChallan,
+  partiesData = [],
+  itemsData = [],
 }) {
   const [loading, setLoading] = useState(false);
-  const [parties, setParties] = useState([]);
-  const [items, setItems] = useState([]);
+  const [parties, setParties] = useState(partiesData || []);
+  const [items, setItems] = useState(itemsData || []);
   const [processes, setProcesses] = useState([]);
-  const [stockData, setStockData] = useState({});
   const [nextChallanNumber, setNextChallanNumber] = useState("");
+  const [challanNumberError, setChallanNumberError] = useState("");
   const scrollContainerRef = useRef(null);
   const partySelectRef = useRef(null);
   const itemSelectRef = useRef(null);
+
+  const checkDuplicateChallanNumber = async (numToTest, partyIdToTest) => {
+    const challanNum = numToTest !== undefined ? numToTest : form.challan_number;
+    const partyId = partyIdToTest !== undefined ? partyIdToTest : form.party_id;
+
+    if (!challanNum || !challanNum.trim() || !partyId) {
+      setChallanNumberError("");
+      return false;
+    }
+
+    try {
+      const res = await checkDuplicatePartyChallanNumber(
+        challanNum.trim(),
+        partyId,
+        partyChallan ? partyChallan.id : null
+      );
+      if (res && res.exists) {
+        const errorMsg = `Challan number '${challanNum.trim()}' already exists for this party`;
+        setChallanNumberError(errorMsg);
+        return true;
+      } else {
+        setChallanNumberError("");
+        return false;
+      }
+    } catch (err) {
+      console.error("Failed to check duplicate challan number", err);
+      return false;
+    }
+  };
 
   const [form, setForm] = useState({
     challan_number: "",
@@ -64,6 +97,9 @@ export default function AddPartyChallanModal({
 
   const handleItemChange = async (itemId) => {
     let pending = 0;
+    const selectedItemObj = items.find((i) => Number(i.id) === Number(itemId));
+    const defaultRate = selectedItemObj?.rate || selectedItemObj?.party_rate || "";
+
     if (form.party_id && itemId) {
       try {
         const challans = await getPartyChallansByItem(form.party_id, itemId);
@@ -83,40 +119,49 @@ export default function AddPartyChallanModal({
     setCurrentItem((prev) => ({
       ...prev,
       item_id: itemId,
+      rate: prev.rate || defaultRate,
       pending_at_party: pending,
     }));
   };
 
   const fetchData = async () => {
     try {
-      const [
-        partiesData,
-        itemsData,
-        processesData,
-        stockResponse,
-        challanNumberData,
-      ] = await Promise.all([
-        getParties({ ignoreGlobal403: true }).catch(() => []),
-        getItems({ ignoreGlobal403: true }).catch(() => []),
-        getProcesses({ ignoreGlobal403: true }).catch(() => []),
-        getStock({ ignoreGlobal403: true }).catch(() => ({})),
-        partyChallan ? null : getNextPartyChallanNumber(),
-      ]);
-      setParties(partiesData.filter((p) => p.is_active) || []);
-      setItems(itemsData.filter((i) => i.is_active) || []);
-      setProcesses(processesData.filter((p) => p.is_active) || []);
-
-      // Create stock lookup map
-      const stockMap = {};
-      if (stockResponse && Array.isArray(stockResponse)) {
-        stockResponse.forEach((stock) => {
-          stockMap[stock.item_id] = stock.current_stock || 0;
-        });
+      if (partiesData && partiesData.length > 0) {
+        setParties(partiesData.filter((p) => p.is_active));
       }
-      setStockData(stockMap);
+      if (itemsData && itemsData.length > 0) {
+        setItems(itemsData.filter((i) => i.is_active));
+      }
 
-      if (!partyChallan) {
-        setNextChallanNumber(challanNumberData.next_challan_number);
+      const promises = [];
+      if (!partiesData || partiesData.length === 0) {
+        promises.push(getParties({ ignoreGlobal403: true }).catch(() => []));
+      } else {
+        promises.push(Promise.resolve(partiesData));
+      }
+
+      if (!itemsData || itemsData.length === 0) {
+        promises.push(getItems({ ignoreGlobal403: true }).catch(() => []));
+      } else {
+        promises.push(Promise.resolve(itemsData));
+      }
+
+      promises.push(getProcesses({ ignoreGlobal403: true }).catch(() => []));
+      promises.push(partyChallan ? Promise.resolve(null) : getNextPartyChallanNumber());
+
+      const [pRes, iRes, procRes, numRes] = await Promise.all(promises);
+
+      if (pRes && (!partiesData || partiesData.length === 0)) {
+        setParties(pRes.filter((p) => p.is_active) || []);
+      }
+      if (iRes && (!itemsData || itemsData.length === 0)) {
+        setItems(iRes.filter((i) => i.is_active) || []);
+      }
+      if (procRes) {
+        setProcesses(procRes.filter((p) => p.is_active) || []);
+      }
+      if (numRes) {
+        setNextChallanNumber(numRes.next_challan_number || "");
       }
     } catch (err) {
       console.error("Failed to load data", err);
@@ -232,11 +277,6 @@ export default function AddPartyChallanModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.challan_number || !form.challan_number.trim()) {
-      toast.error("Please enter challan number");
-      return;
-    }
-
     if (!form.party_id) {
       toast.error("Please select a party");
       return;
@@ -255,10 +295,19 @@ export default function AddPartyChallanModal({
       return;
     }
 
+    // Duplicate check before submitting if challan_number typed
+    if (form.challan_number && form.challan_number.trim()) {
+      const isDup = await checkDuplicateChallanNumber(form.challan_number.trim(), form.party_id);
+      if (isDup) {
+        toast.error(`Challan number '${form.challan_number.trim()}' already exists for this party`);
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       const payload = {
-        challan_number: form.challan_number.trim(),
+        challan_number: form.challan_number ? form.challan_number.trim() : "",
         party_id: Number(form.party_id),
         challan_date: form.challan_date,
         working_days: form.working_days ? Number(form.working_days) : null,
@@ -281,7 +330,11 @@ export default function AddPartyChallanModal({
       onSuccess();
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to save party challan");
+      const errorMsg = err.response?.data?.detail || "Failed to save party challan";
+      if (errorMsg.toLowerCase().includes("already exists")) {
+        setChallanNumberError(errorMsg);
+      }
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -388,9 +441,11 @@ export default function AddPartyChallanModal({
                     name="party_id"
                     id="party_id"
                     value={form.party_id}
-                    onChange={(e) =>
-                      setForm({ ...form, party_id: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      setForm({ ...form, party_id: pId });
+                      checkDuplicateChallanNumber(form.challan_number, pId);
+                    }}
                     required
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer"
                   >
@@ -407,23 +462,40 @@ export default function AddPartyChallanModal({
                 <div className="group">
                   <label
                     htmlFor="challan_number"
-                    className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                    className={`block text-sm font-semibold mb-2 flex items-center gap-1.5 ${
+                      challanNumberError ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"
+                    }`}
                   >
-                    <FileText size={14} className="text-purple-500" />
-                    Challan No. <span className="text-red-500">*</span>
+                    <FileText size={14} className={challanNumberError ? "text-red-500" : "text-purple-500"} />
+                    Challan No.
                   </label>
                   <input
                     type="text"
                     name="challan_number"
                     id="challan_number"
                     value={form.challan_number}
-                    onChange={(e) =>
-                      setForm({ ...form, challan_number: e.target.value })
+                    onChange={(e) => {
+                      setChallanNumberError("");
+                      setForm({ ...form, challan_number: e.target.value });
+                    }}
+                    onBlur={() => checkDuplicateChallanNumber()}
+                    placeholder={
+                      nextChallanNumber
+                        ? `e.g. ${nextChallanNumber} (or leave blank)`
+                        : "Enter party challan number"
                     }
-                    placeholder="Enter challan number"
-                    required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 outline-none transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700"
+                    className={`w-full px-4 py-3 rounded-xl border-2 outline-none transition-all duration-200 ${
+                      challanNumberError
+                        ? "border-red-500 bg-red-50/50 dark:bg-red-900/20 text-red-900 dark:text-red-200 focus:ring-2 focus:ring-red-500/30 focus:border-red-500"
+                        : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 hover:border-purple-300 dark:hover:border-purple-700"
+                    }`}
                   />
+                  {challanNumberError && (
+                    <p className="text-xs font-semibold text-red-500 mt-1 flex items-center gap-1">
+                      <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
+                      {challanNumberError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Date */}

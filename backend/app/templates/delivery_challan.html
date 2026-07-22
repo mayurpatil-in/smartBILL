@@ -6,6 +6,16 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+      }
+
       @page {
         size: A4;
         margin: 0;
@@ -191,6 +201,43 @@
     </style>
   </head>
   <body>
+    <!-- Action Bar for Web / Public Link Viewers -->
+    <div class="no-print" style="position: sticky; top: 0; left: 0; right: 0; background: #0f172a; color: white; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; font-family: 'Inter', system-ui, -apple-system, sans-serif; box-shadow: 0 4px 14px rgba(0,0,0,0.18); z-index: 99999; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+        <span style="font-size: 13px; font-weight: 600; color: #f8fafc; letter-spacing: 0.3px;">SmartBill Public View</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button onclick="window.print()" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,99,235,0.3); transition: all 0.2s;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Download PDF
+        </button>
+        <button onclick="sharePublicLink()" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.3); transition: all 0.2s;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+      </div>
+    </div>
+
+    <script class="no-print">
+      function sharePublicLink() {
+        const shareData = {
+          title: document.title || 'SmartBill Delivery Challan',
+          text: 'View Delivery Challan on SmartBill',
+          url: window.location.href
+        };
+        if (navigator.share) {
+          navigator.share(shareData).catch(function() {});
+        } else {
+          navigator.clipboard.writeText(window.location.href).then(function() {
+            alert('Link copied to clipboard!');
+          }).catch(function() {
+            window.open('https://wa.me/?text=' + encodeURIComponent(window.location.href), '_blank');
+          });
+        }
+      }
+    </script>
+
     {% macro render_challan(copy_label) %}
     <div class="page-half">
       <!-- Header -->

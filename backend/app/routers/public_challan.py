@@ -22,6 +22,36 @@ env = Environment(
 
 from app.core.security import verify_url_signature
 
+from fastapi.responses import Response, HTMLResponse, RedirectResponse
+
+def render_public_error_page(title: str, message: str, status_code: int = 404):
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} - SmartBill</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }}
+        .card {{ background: white; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04); padding: 48px 36px; text-align: center; max-width: 440px; width: 100%; border: 1px solid #e2e8f0; }}
+        .icon {{ width: 72px; height: 72px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; color: #ef4444; font-size: 36px; font-weight: bold; }}
+        h1 {{ font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 12px; }}
+        p {{ font-size: 14px; color: #64748b; margin: 0 0 28px; line-height: 1.6; }}
+        .badge {{ display: inline-block; background: #f1f5f9; color: #475569; padding: 8px 18px; border-radius: 9999px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">!</div>
+        <h1>{title}</h1>
+        <p>{message}</p>
+        <span class="badge">SmartBill Document Protection</span>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content, status_code=status_code)
+
+
 @router.get("/{challan_id}/download")
 async def public_download_challan(
     challan_id: int,
@@ -30,11 +60,11 @@ async def public_download_challan(
 ):
     """
     Public endpoint to download a delivery challan PDF.
-    This is intended to be accessed via QR Code.
+    This is intended to be accessed via QR Code or WhatsApp share link.
     """
     # 🔒 Verify Signature
     if not verify_url_signature(str(challan_id), token):
-        raise HTTPException(status_code=403, detail="Invalid or expired download link")
+        return render_public_error_page("Link Expired or Invalid", "This download link is invalid or has expired.", status_code=403)
 
     # Fetch challan
     challan = db.query(DeliveryChallan).options(
@@ -47,7 +77,7 @@ async def public_download_challan(
     ).first()
     
     if not challan:
-        raise HTTPException(status_code=404, detail="Delivery Challan not found")
+        return render_public_error_page("Delivery Challan Deleted", "This delivery challan has been deleted and is no longer available.", status_code=404)
     
     # Fetch company
     company = db.query(Company).filter(Company.id == challan.company_id).first()
@@ -333,10 +363,10 @@ async def redirect_short_link(
     short_link = db.query(ShortLink).filter(ShortLink.code == code).first()
     
     if not short_link:
-        raise HTTPException(status_code=404, detail="Link not found")
+        return render_public_error_page("Link Not Found", "The requested short link does not exist or has been removed.", status_code=404)
         
     if short_link.expires_at and short_link.expires_at < datetime.now(short_link.expires_at.tzinfo if short_link.expires_at.tzinfo else None):
-        raise HTTPException(status_code=410, detail="This link has expired")
+        return render_public_error_page("Link Expired", "This download link has expired. Please request a new link.", status_code=410)
         
     # Redirect to the target URL
     return RedirectResponse(url=short_link.target_url, status_code=307)

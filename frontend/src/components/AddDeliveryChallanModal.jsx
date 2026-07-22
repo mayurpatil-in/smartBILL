@@ -133,12 +133,13 @@ export default function AddDeliveryChallanModal({
     if (partyId) {
       setLoadingPendingItems(true);
       try {
-        const [nextNumData, partyChallans] = await Promise.all([
+        const [nextNumData, pcRes] = await Promise.all([
           getNextDeliveryChallanNumber(partyId).catch(() => ({ next_challan_number: "" })),
-          getPartyChallans({ party_id: partyId, ignoreGlobal403: true }).catch(() => []),
+          getPartyChallans({ party_id: partyId, limit: 1000, ignoreGlobal403: true }).catch(() => []),
         ]);
 
         setNextChallanNumber(nextNumData.next_challan_number || "");
+        const partyChallans = Array.isArray(pcRes) ? pcRes : (pcRes?.items || []);
 
         // Extract item IDs that have pending quantity
         const activeIds = new Set();

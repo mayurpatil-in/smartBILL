@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from sqlalchemy import func, case, or_
+from typing import List, Optional
 
 from app.database.session import get_db
 from app.models.party_challan import PartyChallan
 from app.models.party_challan_item import PartyChallanItem
-from app.models.party_challan_item import PartyChallanItem
 from app.models.delivery_challan_item import DeliveryChallanItem
 from app.models.stock_transaction import StockTransaction
+from app.models.party import Party
 from app.schemas.party_challan import (
     PartyChallanCreate,
     PartyChallanResponse,
@@ -54,10 +55,23 @@ def create_party_challan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Server-side Validations
+    if not data.items or len(data.items) == 0:
+        raise HTTPException(status_code=400, detail="Party challan must contain at least one item")
+
+    party = db.query(Party).filter(Party.id == data.party_id, Party.company_id == company_id).first()
+    if not party:
+        raise HTTPException(status_code=404, detail="Selected Party not found")
+
+    for item in data.items:
+        if item.quantity_ordered <= 0:
+            raise HTTPException(status_code=400, detail="Ordered quantity must be greater than 0")
+
     # Check if challan number already exists for this party in this financial year
-    if data.challan_number:
+    if data.challan_number and data.challan_number.strip():
+        challan_number = data.challan_number.strip()
         existing = db.query(PartyChallan).filter(
-            PartyChallan.challan_number == data.challan_number,
+            PartyChallan.challan_number == challan_number,
             PartyChallan.party_id == data.party_id,  # Party specific
             PartyChallan.company_id == company_id,
             PartyChallan.financial_year_id == fy.id  # Financial year specific
@@ -66,9 +80,8 @@ def create_party_challan(
         if existing:
             raise HTTPException(
                 status_code=400,
-                detail=f"Challan number '{data.challan_number}' already exists for this party in this financial year"
+                detail=f"Challan number '{challan_number}' already exists for this party in this financial year"
             )
-        challan_number = data.challan_number
     else:
         # Auto-generate if not provided
         challan_number = generate_party_challan_number(db, company_id, fy.id)
@@ -137,36 +150,87 @@ def create_party_challan(
     }
 
 
-@router.get("/", response_model=List[PartyChallanResponse])
+import math
+
+
+@router.get("/stats")
 @require_permission("party_challans.view")
-def list_party_challans(
-    party_id: int = None,
-    status: str = None,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10000, ge=1, le=100000),
+def get_party_challan_stats(
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(PartyChallan).options(
-        joinedload(PartyChallan.party),
-        joinedload(PartyChallan.items).joinedload(PartyChallanItem.item),
-        joinedload(PartyChallan.items).joinedload(PartyChallanItem.process)
+    stats = db.query(
+        func.count(case((PartyChallan.status == "open", 1))).label("total_open"),
+        func.count(case((PartyChallan.status == "partial", 1))).label("total_partial"),
+        func.count(case((PartyChallan.status == "completed", 1))).label("total_completed"),
+        func.count(PartyChallan.id).label("total_count")
     ).filter(
         PartyChallan.company_id == company_id,
         PartyChallan.financial_year_id == fy.id
+    ).first()
+
+    return {
+        "total_open": stats.total_open if stats else 0,
+        "total_partial": stats.total_partial if stats else 0,
+        "total_completed": stats.total_completed if stats else 0,
+        "total_count": stats.total_count if stats else 0
+    }
+
+
+@router.get("/")
+@require_permission("party_challans.view")
+def list_party_challans(
+    party_id: Optional[int] = None,
+    status: Optional[str] = None,
+    item_id: Optional[int] = None,
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100000),
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(PartyChallan).filter(
+        PartyChallan.company_id == company_id,
+        PartyChallan.financial_year_id == fy.id
     )
-    
+
     if party_id:
         query = query.filter(PartyChallan.party_id == party_id)
-    
+
     if status:
         query = query.filter(PartyChallan.status == status)
-    
-    challans = query.order_by(PartyChallan.challan_date.desc()).offset(skip).limit(limit).all()
-    
-    # Convert to dict to avoid serialization issues
+
+    if item_id:
+        query = query.join(PartyChallan.items).filter(PartyChallanItem.item_id == item_id)
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.join(PartyChallan.party).filter(
+            or_(
+                PartyChallan.challan_number.ilike(term),
+                Party.name.ilike(term)
+            )
+        )
+
+    total_count = query.distinct().count()
+    offset = (page - 1) * limit
+
+    challans = (
+        query.options(
+            joinedload(PartyChallan.party),
+            joinedload(PartyChallan.items).joinedload(PartyChallanItem.item),
+            joinedload(PartyChallan.items).joinedload(PartyChallanItem.process)
+        )
+        .order_by(PartyChallan.challan_date.desc(), PartyChallan.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
     response_data = []
     for challan in challans:
         response_data.append({
@@ -204,8 +268,41 @@ def list_party_challans(
                 for item in challan.items
             ]
         })
+
+    total_pages = math.ceil(total_count / limit) if total_count > 0 else 1
+
+    return {
+        "items": response_data,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages
+    }
+
+
+@router.get("/check-duplicate")
+@require_permission("party_challans.view")
+def check_duplicate_party_challan_number(
+    challan_number: str,
+    party_id: int,
+    exclude_id: Optional[int] = None,
+    company_id: int = Depends(get_company_id),
+    fy = Depends(get_active_financial_year),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Check if a party challan number already exists for this party"""
+    query = db.query(PartyChallan).filter(
+        PartyChallan.challan_number == challan_number.strip(),
+        PartyChallan.party_id == party_id,
+        PartyChallan.company_id == company_id,
+        PartyChallan.financial_year_id == fy.id
+    )
+    if exclude_id:
+        query = query.filter(PartyChallan.id != exclude_id)
     
-    return response_data
+    exists = query.first() is not None
+    return {"exists": exists}
 
 
 @router.get("/{challan_id}", response_model=PartyChallanResponse)
