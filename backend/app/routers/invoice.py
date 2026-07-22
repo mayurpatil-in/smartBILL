@@ -939,6 +939,27 @@ async def public_download_invoice(
     )
 
 
+@public_router.get("/dl/{code}")
+async def redirect_invoice_short_link(
+    code: str,
+    db: Session = Depends(get_db)
+):
+    """Redirect a short link code to its original secure Invoice URL"""
+    from app.models.short_link import ShortLink
+    from datetime import datetime
+    from fastapi.responses import RedirectResponse
+    
+    short_link = db.query(ShortLink).filter(ShortLink.code == code).first()
+    
+    if not short_link:
+        raise HTTPException(status_code=404, detail="Link not found")
+        
+    if short_link.expires_at and short_link.expires_at < datetime.now(short_link.expires_at.tzinfo if short_link.expires_at.tzinfo else None):
+        raise HTTPException(status_code=410, detail="This link has expired")
+        
+    return RedirectResponse(url=short_link.target_url, status_code=307)
+
+
 @router.get("/{invoice_id}/share")
 @require_permission("invoices.view")
 async def share_invoice(
@@ -948,7 +969,7 @@ async def share_invoice(
     current_user: User = Depends(get_current_user),
     _ = Depends(require_feature("WHATSAPP_SHARE"))
 ):
-    """Generate a WhatsApp-ready sharing link and message for an invoice"""
+    """Generate a WhatsApp-ready short sharing link and message for an invoice"""
     from app.core.config import get_backend_url
     from app.core.security import create_url_signature
     import urllib.parse
@@ -968,6 +989,37 @@ async def share_invoice(
         signature = create_url_signature(str(invoice_id))
         download_url = f"{base_url}/public/invoice/{invoice_id}/download?token={signature}"
         
+        # Generate Short Link (with fallback to long link if DB fails)
+        short_download_url = download_url
+        try:
+            import string
+            import random
+            from datetime import datetime, timedelta, timezone
+            from app.models.short_link import ShortLink
+            
+            # Generate a unique 10-character code
+            chars = string.ascii_letters + string.digits
+            while True:
+                short_code = ''.join(random.choice(chars) for _ in range(10))
+                if not db.query(ShortLink).filter(ShortLink.code == short_code).first():
+                    break
+                    
+            # Save the short link (expires in 30 days)
+            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+            short_link = ShortLink(
+                code=short_code,
+                target_url=download_url,
+                expires_at=expires_at
+            )
+            db.add(short_link)
+            db.commit()
+            
+            # If successful, use the short URL
+            short_download_url = f"{base_url}/public/invoice/dl/{short_code}"
+        except Exception as e:
+            print(f"Failed to generate invoice short link (DB issue?): {e}")
+            db.rollback()
+
         # Format the message
         company = db.query(Company).filter(Company.id == company_id).first()
         company_name = company.name if company else "Our Company"
@@ -980,42 +1032,36 @@ async def share_invoice(
         amount_str = f"Rs. {float(invoice.grand_total or 0):,.2f}"
 
         lines = [
-            f"*Invoice from {company_name}*",
-            "-" * 32,
-            f"Hello {party_name},",
+            f"*{company_name}*",
+            "_" * 32,
+            f"Dear {party_name},",
             "",
             f"Please find your *Invoice {invoice.invoice_number}* details below.",
             "",
-            f"*Invoice Date :* {inv_date}",
-            f"*Due Date     :* {due_str}",
-            f"*Total Amount :* {amount_str}",
-            f"*Status       :* {status_str}",
+            f"*Invoice Date:* {inv_date}",
+            f"*Due Date:* {due_str}",
+            f"*Total Amount:* {amount_str}",
+            f"*Status:* {status_str}",
             "",
-            "*Download Invoice:*",
-            download_url,
+            "*Download PDF:*",
+            short_download_url,
             "",
             "Thank you for your business!",
-            "For any queries, feel free to reply to this message.",
+            "Have a great day!",
+            "",
+            "Powered by SmartBill",
         ]
-        message = "\n".join(lines)
+        message = "\r\n".join(lines)
 
         # Create the whatsapp deep link (explicit utf-8 encoding, safe='' to encode everything)
         encoded_message = urllib.parse.quote(message, safe="", encoding="utf-8")
         whatsapp_url = f"https://wa.me/?text={encoded_message}"
-        
-        # The user requested NOT to pre-fill the phone number so they can manually pick the contact.
-        # Therefore, we only use https://wa.me/?text=... which prompts for contact selection.
-        # if invoice.party and invoice.party.phone:
-        #     phone = ''.join(filter(str.isdigit, invoice.party.phone))
-        #     if len(phone) == 10:
-        #         phone = f"91{phone}"
-        #     whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
             
         return {
             "invoice_id": invoice.id,
             "whatsapp_url": whatsapp_url,
             "message": message,
-            "download_url": download_url
+            "download_url": short_download_url
         }
     except HTTPException:
         raise
