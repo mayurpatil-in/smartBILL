@@ -13,6 +13,7 @@ import {
   XCircle,
   AlertTriangle,
   IndianRupee,
+  ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -22,7 +23,7 @@ import {
 } from "../api/challans";
 import { getParties } from "../api/parties";
 import { getItems } from "../api/items";
-import { getPartyChallansByItem } from "../api/partyChallans";
+import { getPartyChallans, getPartyChallansByItem } from "../api/partyChallans";
 import useBarcodeScanner from "../hooks/useBarcodeScanner";
 import { useAuth } from "../hooks/useAuth";
 
@@ -36,16 +37,35 @@ export default function AddDeliveryChallanModal({
   onClose,
   onSuccess,
   deliveryChallan,
+  parties: initialParties = [],
+  items: initialItems = [],
 }) {
   const { hasFeature } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [parties, setParties] = useState([]);
-  const [items, setItems] = useState([]);
+  const [parties, setParties] = useState(initialParties);
+  const [items, setItems] = useState(initialItems);
   const [partyChallansByItem, setPartyChallansByItem] = useState([]);
+  const [pendingItemIds, setPendingItemIds] = useState([]);
+  const [loadingPendingItems, setLoadingPendingItems] = useState(false);
+  const [isChallanDropdownOpen, setIsChallanDropdownOpen] = useState(false);
   const [nextChallanNumber, setNextChallanNumber] = useState("");
   const scrollContainerRef = useRef(null);
   const partySelectRef = useRef(null);
   const itemSelectRef = useRef(null);
+  const challanDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        challanDropdownRef.current &&
+        !challanDropdownRef.current.contains(event.target)
+      ) {
+        setIsChallanDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [form, setForm] = useState({
     party_id: "",
@@ -73,8 +93,12 @@ export default function AddDeliveryChallanModal({
   const fetchData = async () => {
     try {
       const [partiesData, itemsData] = await Promise.all([
-        getParties({ ignoreGlobal403: true }).catch(() => []),
-        getItems({ ignoreGlobal403: true }).catch(() => []),
+        initialParties && initialParties.length > 0
+          ? initialParties
+          : getParties({ ignoreGlobal403: true }).catch(() => []),
+        initialItems && initialItems.length > 0
+          ? initialItems
+          : getItems({ ignoreGlobal403: true }).catch(() => []),
       ]);
       setParties(partiesData.filter((p) => p.is_active) || []);
       setItems(itemsData.filter((i) => i.is_active) || []);
@@ -83,14 +107,58 @@ export default function AddDeliveryChallanModal({
     }
   };
 
-  const handlePartyChange = async (partyId) => {
-    setForm({ ...form, party_id: partyId });
+  const handlePartyChange = async (partyId, preserveItems = false) => {
+    if (!preserveItems) {
+      setForm((prev) => ({ ...prev, party_id: partyId, items: [] }));
+    } else {
+      setForm((prev) => ({ ...prev, party_id: partyId }));
+    }
+    setCurrentItem({
+      item_id: "",
+      party_challan_id: "",
+      party_challan_item_id: "",
+      process_id: "",
+      challan_qty: 0,
+      pending_qty: 0,
+      ok_qty: "",
+      cr_qty: "",
+      mr_qty: "",
+      rate: "",
+      party_rate: "",
+      total_qty: 0,
+    });
+    setPartyChallansByItem([]);
+    setPendingItemIds([]);
+
     if (partyId) {
+      setLoadingPendingItems(true);
       try {
-        const data = await getNextDeliveryChallanNumber(partyId);
-        setNextChallanNumber(data.next_challan_number);
+        const [nextNumData, partyChallans] = await Promise.all([
+          getNextDeliveryChallanNumber(partyId).catch(() => ({ next_challan_number: "" })),
+          getPartyChallans({ party_id: partyId, ignoreGlobal403: true }).catch(() => []),
+        ]);
+
+        setNextChallanNumber(nextNumData.next_challan_number || "");
+
+        // Extract item IDs that have pending quantity
+        const activeIds = new Set();
+        (partyChallans || []).forEach((challan) => {
+          if (challan.status !== "completed" && challan.status !== "cancelled") {
+            (challan.items || []).forEach((item) => {
+              const pending =
+                (Number(item.quantity_ordered) || 0) -
+                (Number(item.quantity_delivered) || 0);
+              if (pending > 0) {
+                activeIds.add(Number(item.item_id));
+              }
+            });
+          }
+        });
+        setPendingItemIds(Array.from(activeIds));
       } catch (err) {
-        console.error("Failed to fetch next number", err);
+        console.error("Failed to fetch party details", err);
+      } finally {
+        setLoadingPendingItems(false);
       }
     } else {
       setNextChallanNumber("");
@@ -110,17 +178,17 @@ export default function AddDeliveryChallanModal({
   }, [open]);
 
   useEffect(() => {
-    if (deliveryChallan) {
+    if (deliveryChallan && open) {
       setForm({
         party_id: deliveryChallan.party_id,
         challan_date: deliveryChallan.challan_date,
         vehicle_number: deliveryChallan.vehicle_number || "",
         notes: deliveryChallan.notes || "",
-        items: deliveryChallan.items.map((i) => ({
+        items: (deliveryChallan.items || []).map((i) => ({
           party_challan_item_id: i.party_challan_item_id,
-          item_id: i.item?.id,
+          item_id: i.item?.id || i.party_challan_item?.item_id,
           party_challan_id: i.party_challan_item?.party_challan_id,
-          process_id: i.process?.id,
+          process_id: i.process?.id || i.process_id,
           ok_qty: i.ok_qty,
           cr_qty: i.cr_qty,
           mr_qty: i.mr_qty,
@@ -132,8 +200,11 @@ export default function AddDeliveryChallanModal({
           party_rate: i.party_rate || 0,
         })),
       });
-      // If editing, we don't fetch next number, we show current
-    } else {
+
+      if (deliveryChallan.party_id) {
+        handlePartyChange(deliveryChallan.party_id, true);
+      }
+    } else if (open) {
       setForm({
         party_id: "",
         challan_date: new Date().toISOString().split("T")[0],
@@ -142,6 +213,7 @@ export default function AddDeliveryChallanModal({
         items: [],
       });
       setNextChallanNumber(""); // Reset when opening fresh
+      setPendingItemIds([]);
       setCurrentItem({
         item_id: "",
         party_challan_id: "",
@@ -191,10 +263,22 @@ export default function AddDeliveryChallanModal({
 
   if (!open) return null;
 
-  // Filter items by selected party
+  // Filter items by selected party and only include items with pending quantity
   const getPartyItems = () => {
     if (!form.party_id) return [];
-    return items.filter((item) => item.party_id === Number(form.party_id));
+    
+    let partyItems = items.filter((item) => item.party_id === Number(form.party_id));
+
+    // Keep items currently added in form or items that have active pending quantities
+    const existingItemIds = (form.items || []).map((i) => Number(i.item_id));
+
+    partyItems = partyItems.filter(
+      (item) =>
+        pendingItemIds.includes(Number(item.id)) ||
+        existingItemIds.includes(Number(item.id)),
+    );
+
+    return partyItems;
   };
 
   // When item selected, fetch party challans for that item
@@ -447,6 +531,22 @@ export default function AddDeliveryChallanModal({
     }
   };
 
+  const availableChallanItems = partyChallansByItem.flatMap((challan) =>
+    challan.items
+      .filter((item) => getEffectivePending(item) > 0)
+      .map((item) => ({
+        id: item.id,
+        party_challan_id: challan.id,
+        challan_number: challan.challan_number,
+        process_name: item.process_name || "No Process",
+        pending_qty: getEffectivePending(item),
+      })),
+  );
+
+  const selectedChallanItem = availableChallanItems.find(
+    (item) => String(item.id) === String(currentItem.party_challan_item_id),
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-[90rem] shadow-2xl overflow-hidden animate-scale-in max-h-[92vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50">
@@ -589,10 +689,17 @@ export default function AddDeliveryChallanModal({
                       id="delivery_item_id"
                       value={currentItem.item_id}
                       onChange={(e) => handleItemChange(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+                      disabled={loadingPendingItems || !form.party_id}
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-60"
                     >
                       <option value="">
-                        {form.party_id ? "Select Item" : "Select Party First"}
+                        {!form.party_id
+                          ? "Select Party First"
+                          : loadingPendingItems
+                          ? "Loading Pending Items..."
+                          : getPartyItems().length === 0
+                          ? "No Pending Items for this Party"
+                          : "Select Item"}
                       </option>
                       {getPartyItems().map((i) => (
                         <option key={i.id} value={i.id}>
@@ -628,35 +735,87 @@ export default function AddDeliveryChallanModal({
                     </div>
                   </div>
 
-                  {/* Select Challan */}
-                  <div className="lg:col-span-2">
+                  {/* Select Challan Combobox */}
+                  <div className="lg:col-span-2 relative" ref={challanDropdownRef}>
                     <label
                       htmlFor="party_challan_item_id"
                       className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
                     >
                       Select Challan <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="party_challan_item_id"
-                      id="party_challan_item_id"
-                      value={currentItem.party_challan_item_id}
-                      onChange={(e) => handleChallanItemChange(e.target.value)}
-                      disabled={!currentItem.item_id}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50"
+
+                    <button
+                      type="button"
+                      disabled={!currentItem.item_id || availableChallanItems.length === 0}
+                      onClick={() => setIsChallanDropdownOpen((prev) => !prev)}
+                      className="w-full px-3 py-2.5 rounded-xl border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50 flex items-center justify-between min-h-[42px] transition-all cursor-pointer shadow-xs hover:border-purple-300 dark:hover:border-purple-600"
                     >
-                      <option value="">Select Challan</option>
-                      {partyChallansByItem.map((challan) =>
-                        challan.items
-                          .filter((item) => getEffectivePending(item) > 0)
-                          .map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {challan.challan_number} -{" "}
-                              {item.process_name || "No Process"} (Pending:{" "}
-                              {getEffectivePending(item)})
-                            </option>
-                          )),
+                      {selectedChallanItem ? (
+                        <div className="flex items-center justify-between w-full pr-1 overflow-hidden">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate text-xs sm:text-sm">
+                            {selectedChallanItem.challan_number}
+                            <span className="text-gray-600 dark:text-gray-400 font-medium ml-1">
+                              - {selectedChallanItem.process_name}
+                            </span>
+                          </span>
+                          <span className="ml-1.5 px-2 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-600 dark:bg-red-900/60 dark:text-red-300 border border-red-200 dark:border-red-800 flex-shrink-0">
+                            (Pending: {selectedChallanItem.pending_qty})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs sm:text-sm">
+                          {!currentItem.item_id
+                            ? "Select Item First"
+                            : availableChallanItems.length === 0
+                            ? "No Pending Challans"
+                            : "Select Challan"}
+                        </span>
                       )}
-                    </select>
+                      <ChevronDown
+                        size={16}
+                        className={`text-gray-400 transition-transform duration-200 flex-shrink-0 ml-1 ${
+                          isChallanDropdownOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {/* Custom Combobox Dropdown List */}
+                    {isChallanDropdownOpen && availableChallanItems.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-purple-300 dark:border-purple-700 z-50 max-h-60 overflow-y-auto animate-scale-in">
+                        {availableChallanItems.map((item) => {
+                          const isSelected =
+                            String(item.id) === String(currentItem.party_challan_item_id);
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                handleChallanItemChange(item.id);
+                                setIsChallanDropdownOpen(false);
+                              }}
+                              className={`w-full px-3 py-2.5 text-left text-xs sm:text-sm flex items-center justify-between transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-0 ${
+                                isSelected
+                                  ? "bg-purple-100/70 dark:bg-purple-900/50 text-purple-900 dark:text-purple-100 font-bold"
+                                  : "hover:bg-purple-50 dark:hover:bg-gray-700/60 text-gray-800 dark:text-gray-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                <FileText size={14} className="text-purple-500 flex-shrink-0" />
+                                <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
+                                  {item.challan_number}
+                                </span>
+                                <span className="text-gray-600 dark:text-gray-400 font-medium truncate">
+                                  - {item.process_name}
+                                </span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-600 dark:bg-red-900/60 dark:text-red-300 border border-red-200 dark:border-red-800 flex-shrink-0">
+                                (Pending: {item.pending_qty})
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Challan Qty */}
@@ -682,7 +841,7 @@ export default function AddDeliveryChallanModal({
                       type="number"
                       name="ok_qty"
                       id="ok_qty"
-                      value={currentItem.ok_qty}
+                      value={currentItem.ok_qty ?? ""}
                       onChange={(e) =>
                         handleQtyChange("ok_qty", e.target.value)
                       }
@@ -705,7 +864,7 @@ export default function AddDeliveryChallanModal({
                       type="number"
                       name="cr_qty"
                       id="cr_qty"
-                      value={currentItem.cr_qty}
+                      value={currentItem.cr_qty ?? ""}
                       onChange={(e) =>
                         handleQtyChange("cr_qty", e.target.value)
                       }
@@ -728,7 +887,7 @@ export default function AddDeliveryChallanModal({
                       type="number"
                       name="mr_qty"
                       id="mr_qty"
-                      value={currentItem.mr_qty}
+                      value={currentItem.mr_qty ?? ""}
                       onChange={(e) =>
                         handleQtyChange("mr_qty", e.target.value)
                       }
@@ -751,7 +910,7 @@ export default function AddDeliveryChallanModal({
                       type="number"
                       name="rate"
                       id="rate"
-                      value={currentItem.rate}
+                      value={currentItem.rate ?? ""}
                       readOnly
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400 focus:ring-0 focus:border-gray-300 outline-none cursor-not-allowed"
                     />
@@ -770,7 +929,7 @@ export default function AddDeliveryChallanModal({
                       type="number"
                       name="party_rate"
                       id="party_rate"
-                      value={currentItem.party_rate}
+                      value={currentItem.party_rate ?? ""}
                       onChange={(e) =>
                         setCurrentItem({
                           ...currentItem,

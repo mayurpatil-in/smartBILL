@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, Response
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from sqlalchemy import func, case, or_
+from typing import List, Optional, Any
 from decimal import Decimal
+import math
 
 from app.database.session import get_db
 from app.models.delivery_challan import DeliveryChallan
@@ -13,6 +15,7 @@ from app.schemas.challan import ChallanCreate, ChallanResponse, ChallanUpdate
 from app.core.dependencies import get_company_id, get_active_financial_year, require_feature, get_current_user
 from app.core.permissions import require_permission
 from app.models.user import User
+from app.models.party import Party
 from app.utils.stock import get_current_stock
 
 router = APIRouter(prefix="/challan", tags=["Delivery Challan"])
@@ -55,6 +58,14 @@ def create_challan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Server-side Validations
+    if not data.items or len(data.items) == 0:
+        raise HTTPException(status_code=400, detail="Delivery challan must contain at least one item")
+
+    party = db.query(Party).filter(Party.id == data.party_id, Party.company_id == company_id).first()
+    if not party:
+        raise HTTPException(status_code=404, detail="Selected Party not found")
+
     # Generate challan number (Party Wise)
     challan_number = generate_challan_number(db, company_id, fy.id, data.party_id)
     
@@ -79,6 +90,13 @@ def create_challan(
             raise HTTPException(
                 status_code=404,
                 detail=f"Party challan item {item_data.party_challan_item_id} not found"
+            )
+
+        total_line_qty = float(item_data.quantity) if item_data.quantity and float(item_data.quantity) > 0 else (float(item_data.ok_qty) + float(item_data.cr_qty) + float(item_data.mr_qty))
+        if total_line_qty <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Total quantity for item {pc_item.item_id} must be greater than 0"
             )
         
         # No stock check needed - items are being delivered back from party
@@ -134,38 +152,29 @@ def create_challan(
     try:
         from app.models.item import Item as ItemModel
         from app.services.notification_service import create_notification
-        # Collect unique item_ids from this challan's items
         item_ids_to_check = set()
         for item_data in data.items:
             pc_item_check = db.get(PartyChallanItem, item_data.party_challan_item_id)
             if pc_item_check:
                 item_ids_to_check.add(pc_item_check.item_id)
-        for item_id_check in item_ids_to_check:
-            item_obj = db.query(ItemModel).filter(
-                ItemModel.id == item_id_check,
+        
+        if item_ids_to_check:
+            low_stock_items = db.query(ItemModel).filter(
+                ItemModel.id.in_(item_ids_to_check),
                 ItemModel.company_id == company_id
-            ).first()
-            if item_obj and float(item_obj.current_stock) <= 5:
-                create_notification(
-                    db=db,
-                    company_id=company_id,
-                    title=f"Low Stock: {item_obj.name}",
-                    message=f"Only {float(item_obj.current_stock):.0f} unit(s) remaining after delivery. Consider restocking.",
-                    type="warning",
-                )
+            ).all()
+            for item_obj in low_stock_items:
+                if item_obj and float(item_obj.current_stock) <= 5:
+                    create_notification(
+                        db=db,
+                        company_id=company_id,
+                        title=f"Low Stock: {item_obj.name}",
+                        message=f"Only {float(item_obj.current_stock):.0f} unit(s) remaining after delivery. Consider restocking.",
+                        type="warning",
+                    )
     except Exception as notify_err:
         print(f"[Challan] Low stock notification failed (non-fatal): {notify_err}")
 
-    # Reload with relationships
-    challan = db.query(DeliveryChallan).options(
-        joinedload(DeliveryChallan.party),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.process),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
-    ).filter(DeliveryChallan.id == challan.id).first()
-    
-    # Manual serialization
     return {
         "id": challan.id,
         "challan_number": challan.challan_number,
@@ -177,40 +186,7 @@ def create_challan(
         "notes": challan.notes,
         "status": challan.status,
         "is_active": challan.is_active,
-        "party": {
-            "id": challan.party.id,
-            "name": challan.party.name
-        } if challan.party else None,
-        "items": [
-            {
-                "id": item.id,
-                "party_challan_item_id": item.party_challan_item_id,
-                "ok_qty": float(item.ok_qty),
-                "cr_qty": float(item.cr_qty),
-                "mr_qty": float(item.mr_qty),
-                "quantity": float(item.quantity),
-                "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
-                "party_rate": float(item.party_rate) if item.party_rate else 0.0,
-                "item": {
-                    "id": item.party_challan_item.item.id,
-                    "name": item.party_challan_item.item.name
-                } if item.party_challan_item and item.party_challan_item.item else None,
-                "process": {
-                    "id": item.process.id,
-                    "name": item.process.name
-                } if item.process else None,
-                "party_challan_item": {
-                    "id": item.party_challan_item.id,
-                    "party_challan_id": item.party_challan_item.party_challan_id,
-                    "quantity_ordered": float(item.party_challan_item.quantity_ordered),
-                    "quantity_delivered": float(item.party_challan_item.quantity_delivered),
-                    "party_challan": {
-                        "challan_number": item.party_challan_item.party_challan.challan_number
-                    } if item.party_challan_item.party_challan else None
-                } if item.party_challan_item else None
-            }
-            for item in challan.items
-        ]
+        "items": []
     }
 
 
@@ -224,9 +200,12 @@ def update_challan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Get existing challan
+    # Get existing challan with full relationship tree
     challan = db.query(DeliveryChallan).options(
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item)
+        joinedload(DeliveryChallan.items)
+        .joinedload(DeliveryChallanItem.party_challan_item)
+        .joinedload(PartyChallanItem.party_challan)
+        .joinedload(PartyChallan.items)
     ).filter(
         DeliveryChallan.id == challan_id,
         DeliveryChallan.company_id == company_id
@@ -235,37 +214,37 @@ def update_challan(
     if not challan:
         raise HTTPException(status_code=404, detail="Delivery challan not found")
     
-    # Step 1: Reverse all old items' quantities
-    for old_item in challan.items:
+    # Step 1: Reverse all old items' delivered quantities & party challan statuses
+    for old_item in list(challan.items):
         pc_item = old_item.party_challan_item
         if pc_item:
-            # Reduce the delivered quantity
-            pc_item.quantity_delivered -= Decimal(str(old_item.quantity))
+            # Safely reduce delivered quantity
+            new_delivered = pc_item.quantity_delivered - Decimal(str(old_item.quantity))
+            pc_item.quantity_delivered = max(Decimal("0"), new_delivered)
             
-            # Update party challan status
+            # Recalculate party challan status
             party_challan = pc_item.party_challan
             if party_challan:
                 total_ordered = sum(float(item.quantity_ordered) for item in party_challan.items)
                 total_delivered = sum(float(item.quantity_delivered) for item in party_challan.items)
                 
-                if total_delivered == 0:
+                if total_delivered <= 0:
                     party_challan.status = "open"
                 elif total_delivered >= total_ordered:
                     party_challan.status = "completed"
                 else:
                     party_challan.status = "partial"
+
+    # Step 2: Delete old stock transactions & old items
+    db.query(StockTransaction).filter(
+        StockTransaction.reference_type == "DELIVERY_CHALLAN",
+        StockTransaction.reference_id == challan.id
+    ).delete(synchronize_session=False)
+
+    for old_item in list(challan.items):
+        db.delete(old_item)
         
-        # Delete stock transaction
-        db.query(StockTransaction).filter(
-            StockTransaction.reference_type == "DELIVERY_CHALLAN",
-            StockTransaction.reference_id == challan.id,
-            StockTransaction.item_id == pc_item.item_id if pc_item else None
-        ).delete()
-    
-    # Step 2: Delete all old delivery challan items
-    db.query(DeliveryChallanItem).filter(
-        DeliveryChallanItem.challan_id == challan.id
-    ).delete()
+    db.flush()
     
     # Step 3: Update challan metadata
     challan.party_id = data.party_id
@@ -274,9 +253,12 @@ def update_challan(
     challan.notes = data.notes
     challan.status = data.status or "sent"
     
-    # Step 4: Add new items (same logic as create)
+    # Step 4: Add new items
     for item_data in data.items:
-        pc_item = db.get(PartyChallanItem, item_data.party_challan_item_id)
+        pc_item = db.query(PartyChallanItem).options(
+            joinedload(PartyChallanItem.party_challan).joinedload(PartyChallan.items)
+        ).filter(PartyChallanItem.id == item_data.party_challan_item_id).first()
+
         if not pc_item:
             raise HTTPException(
                 status_code=404,
@@ -306,7 +288,7 @@ def update_challan(
             total_ordered = sum(float(item.quantity_ordered) for item in party_challan.items)
             total_delivered = sum(float(item.quantity_delivered) for item in party_challan.items)
             
-            if total_delivered == 0:
+            if total_delivered <= 0:
                 party_challan.status = "open"
             elif total_delivered >= total_ordered:
                 party_challan.status = "completed"
@@ -327,16 +309,6 @@ def update_challan(
     
     db.commit()
     
-    # Reload with relationships
-    challan = db.query(DeliveryChallan).options(
-        joinedload(DeliveryChallan.party),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.process),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
-    ).filter(DeliveryChallan.id == challan.id).first()
-    
-    # Manual serialization (same as create)
     return {
         "id": challan.id,
         "challan_number": challan.challan_number,
@@ -350,39 +322,7 @@ def update_challan(
         "client_status": challan.client_status or "pending",
         "client_notes": challan.client_notes,
         "is_active": challan.is_active,
-        "party": {
-            "id": challan.party.id,
-            "name": challan.party.name
-        } if challan.party else None,
-        "items": [
-            {
-                "id": item.id,
-                "party_challan_item_id": item.party_challan_item_id,
-                "ok_qty": float(item.ok_qty),
-                "cr_qty": float(item.cr_qty),
-                "mr_qty": float(item.mr_qty),
-                "quantity": float(item.quantity),
-                "rate": float(item.rate) if item.rate and item.rate > 0 else (float(item.party_challan_item.rate) if item.party_challan_item and item.party_challan_item.rate and item.party_challan_item.rate > 0 else (float(item.party_challan_item.item.rate) if item.party_challan_item and item.party_challan_item.item and item.party_challan_item.item.rate else 0.0)),
-                "item": {
-                    "id": item.party_challan_item.item.id,
-                    "name": item.party_challan_item.item.name
-                } if item.party_challan_item and item.party_challan_item.item else None,
-                "process": {
-                    "id": item.process.id,
-                    "name": item.process.name
-                } if item.process else None,
-                "party_challan_item": {
-                    "id": item.party_challan_item.id,
-                    "party_challan_id": item.party_challan_item.party_challan_id,
-                    "quantity_ordered": float(item.party_challan_item.quantity_ordered),
-                    "quantity_delivered": float(item.party_challan_item.quantity_delivered),
-                    "party_challan": {
-                        "challan_number": item.party_challan_item.party_challan.challan_number
-                    } if item.party_challan_item.party_challan else None
-                } if item.party_challan_item else None
-            }
-            for item in challan.items
-        ]
+        "items": []
     }
 
 
@@ -408,13 +348,16 @@ def resolve_delivery_issue(
     return {"message": "Issue resolved successfully", "client_status": challan.client_status}
 
 
-@router.get("/", response_model=List[ChallanResponse])
+@router.get("/")
 @require_permission("challans.view")
 def list_challans(
-    party_id: int = None,
-    status: str = None,
-    start_date: str = None,
-    end_date: str = None,
+    party_id: Optional[int] = None,
+    item_id: Optional[int] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    page: Optional[int] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(10000, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
@@ -422,14 +365,7 @@ def list_challans(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(DeliveryChallan).options(
-        joinedload(DeliveryChallan.party),
-        joinedload(DeliveryChallan.pdi_report),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.process),
-        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
-    ).filter(
+    query = db.query(DeliveryChallan).filter(
         DeliveryChallan.company_id == company_id,
         DeliveryChallan.financial_year_id == fy.id
     )
@@ -445,9 +381,36 @@ def list_challans(
     
     if end_date:
         query = query.filter(DeliveryChallan.challan_date <= end_date)
+
+    if search and search.strip():
+        search_pattern = f"%{search.strip()}%"
+        query = query.join(DeliveryChallan.party, isouter=True).filter(
+            or_(
+                DeliveryChallan.challan_number.ilike(search_pattern),
+                DeliveryChallan.vehicle_number.ilike(search_pattern),
+                Party.name.ilike(search_pattern)
+            )
+        )
+
+    if item_id:
+        query = query.join(DeliveryChallan.items).join(DeliveryChallanItem.party_challan_item).filter(
+            PartyChallanItem.item_id == item_id
+        )
     
-    challans = query.order_by(DeliveryChallan.id.desc()).offset(skip).limit(limit).all()
-    
+    total_records = query.distinct().count()
+
+    # Apply relationships eager loading for final fetch
+    query_with_options = query.options(
+        joinedload(DeliveryChallan.party),
+        joinedload(DeliveryChallan.pdi_report),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.process),
+        joinedload(DeliveryChallan.items).joinedload(DeliveryChallanItem.process)
+    )
+
+    current_skip = (page - 1) * limit if page and page > 0 else skip
+    challans = query_with_options.order_by(DeliveryChallan.id.desc()).offset(current_skip).limit(limit).all()
     
     # Manual serialization
     response_data = []
@@ -500,6 +463,14 @@ def list_challans(
             ]
         })
     
+    if page:
+        return {
+            "items": response_data,
+            "total": total_records,
+            "page": page,
+            "limit": limit,
+            "total_pages": math.ceil(total_records / limit) if limit else 1
+        }
     return response_data
 
 
@@ -511,22 +482,22 @@ def get_challan_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get statistics for delivery challans"""
-    base_query = db.query(DeliveryChallan).filter(
+    """Get statistics for delivery challans using single SQL query aggregation"""
+    stats_row = db.query(
+        func.count(DeliveryChallan.id).label("total"),
+        func.sum(case((DeliveryChallan.status == "sent", 1), else_=0)).label("sent"),
+        func.sum(case((DeliveryChallan.status == "delivered", 1), else_=0)).label("delivered"),
+        func.sum(case((DeliveryChallan.client_status == "discrepancy", 1), else_=0)).label("pending_discrepancies")
+    ).filter(
         DeliveryChallan.company_id == company_id,
         DeliveryChallan.financial_year_id == fy.id
-    )
-    
-    total = base_query.count()
-    sent = base_query.filter(DeliveryChallan.status == "sent").count()
-    delivered = base_query.filter(DeliveryChallan.status == "delivered").count()
-    pending_discrepancies = base_query.filter(DeliveryChallan.client_status == "discrepancy").count()
+    ).first()
     
     return {
-        "total": total,
-        "sent": sent,
-        "delivered": delivered,
-        "pending_discrepancies": pending_discrepancies
+        "total": stats_row.total or 0 if stats_row else 0,
+        "sent": int(stats_row.sent or 0) if stats_row else 0,
+        "delivered": int(stats_row.delivered or 0) if stats_row else 0,
+        "pending_discrepancies": int(stats_row.pending_discrepancies or 0) if stats_row else 0
     }
 
 
@@ -1187,15 +1158,6 @@ async def share_challan(
     # Create the whatsapp deep link (explicit utf-8, safe='' to encode everything)
     encoded_message = urllib.parse.quote(message, safe="", encoding="utf-8")
     whatsapp_url = f"https://wa.me/?text={encoded_message}"
-    
-    # The user requested NOT to pre-fill the phone number so they can manually pick the contact.
-    # Therefore, we only use https://wa.me/?text=... which prompts for contact selection.
-    # if challan.party and challan.party.phone:
-    #     phone = ''.join(filter(str.isdigit, challan.party.phone))
-    #     if len(phone) == 10:
-    #         phone = f"91{phone}"
-    #     whatsapp_url = f"https://wa.me/{phone}?text={encoded_message}"
-        
     return {
         "challan_id": challan.id,
         "whatsapp_url": whatsapp_url,
@@ -1211,14 +1173,45 @@ def delete_challan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    challan = db.query(DeliveryChallan).filter(
+    # Get existing challan with full relationship tree
+    challan = db.query(DeliveryChallan).options(
+        joinedload(DeliveryChallan.items)
+        .joinedload(DeliveryChallanItem.party_challan_item)
+        .joinedload(PartyChallanItem.party_challan)
+        .joinedload(PartyChallan.items)
+    ).filter(
         DeliveryChallan.id == challan_id,
         DeliveryChallan.company_id == company_id
     ).first()
     
     if not challan:
-        raise HTTPException(status_code=404, detail="Delivery Challan not found")
-        
+        raise HTTPException(status_code=404, detail="Delivery challan not found")
+
+    # Reverse delivered quantities on PartyChallanItems
+    for old_item in list(challan.items):
+        pc_item = old_item.party_challan_item
+        if pc_item:
+            new_delivered = pc_item.quantity_delivered - Decimal(str(old_item.quantity))
+            pc_item.quantity_delivered = max(Decimal("0"), new_delivered)
+            
+            party_challan = pc_item.party_challan
+            if party_challan:
+                total_ordered = sum(float(item.quantity_ordered) for item in party_challan.items)
+                total_delivered = sum(float(item.quantity_delivered) for item in party_challan.items)
+                
+                if total_delivered <= 0:
+                    party_challan.status = "open"
+                elif total_delivered >= total_ordered:
+                    party_challan.status = "completed"
+                else:
+                    party_challan.status = "partial"
+
+    # Delete stock transactions
+    db.query(StockTransaction).filter(
+        StockTransaction.reference_type == "DELIVERY_CHALLAN",
+        StockTransaction.reference_id == challan.id
+    ).delete(synchronize_session=False)
+
     db.delete(challan)
     db.commit()
     

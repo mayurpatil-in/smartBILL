@@ -121,53 +121,20 @@ def create_party_challan(
         db.add(stock_tx)
 
     db.commit()
-    db.refresh(party_challan)
-    
-    # Reload with relationships
-    challan = db.query(PartyChallan).options(
-        joinedload(PartyChallan.party),
-        joinedload(PartyChallan.items).joinedload(PartyChallanItem.item),
-        joinedload(PartyChallan.items).joinedload(PartyChallanItem.process)
-    ).filter(PartyChallan.id == party_challan.id).first()
-    
-    # Convert to dict to avoid serialization issues
-    response_data = {
-        "id": challan.id,
-        "challan_number": challan.challan_number,
-        "challan_date": challan.challan_date,
-        "party_id": challan.party_id,
-        "company_id": challan.company_id,
-        "financial_year_id": challan.financial_year_id,
-        "working_days": challan.working_days,
-        "notes": challan.notes,
-        "status": challan.status,
-        "is_active": challan.is_active,
-        "party": {
-            "id": challan.party.id,
-            "name": challan.party.name
-        } if challan.party else None,
-        "items": [
-            {
-                "id": item.id,
-                "item_id": item.item_id,
-                "process_id": item.process_id,
-                "quantity_ordered": float(item.quantity_ordered),
-                "quantity_delivered": float(item.quantity_delivered),
-                "rate": float(item.rate) if item.rate else None,
-                "item": {
-                    "id": item.item.id,
-                    "name": item.item.name
-                } if item.item else None,
-                "process": {
-                    "id": item.process.id,
-                    "name": item.process.name
-                } if item.process else None
-            }
-            for item in challan.items
-        ]
+
+    return {
+        "id": party_challan.id,
+        "challan_number": party_challan.challan_number,
+        "challan_date": party_challan.challan_date,
+        "party_id": party_challan.party_id,
+        "company_id": party_challan.company_id,
+        "financial_year_id": party_challan.financial_year_id,
+        "working_days": party_challan.working_days,
+        "notes": party_challan.notes,
+        "status": party_challan.status,
+        "is_active": party_challan.is_active,
+        "items": []
     }
-    
-    return response_data
 
 
 @router.get("/", response_model=List[PartyChallanResponse])

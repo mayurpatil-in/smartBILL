@@ -83,22 +83,53 @@ export default function Challans() {
   const [showPDIModal, setShowPDIModal] = useState(false);
   const [selectedPDIChallan, setSelectedPDIChallan] = useState(null);
 
-  const loadChallans = async () => {
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+
+  const loadMasterData = async () => {
     try {
-      setLoading(true);
-      const [data, statsData, partiesData, itemsData] = await Promise.all([
-        getDeliveryChallans({
-          start_date: dateRange.start,
-          end_date: dateRange.end,
-        }),
-        getChallanStats(),
+      const [partiesData, itemsData] = await Promise.all([
         getParties({ ignoreGlobal403: true }).catch(() => []),
         getItems({ ignoreGlobal403: true }).catch(() => []),
       ]);
-      setChallans(data);
-      setStats(statsData);
       setParties(partiesData);
       setItems(itemsData);
+    } catch (err) {
+      console.error("Failed to load master data", err);
+    }
+  };
+
+  useEffect(() => {
+    loadMasterData();
+  }, []);
+
+  const loadChallans = async () => {
+    try {
+      setLoading(true);
+      const [response, statsData] = await Promise.all([
+        getDeliveryChallans({
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+          party_id: partyFilter || undefined,
+          item_id: itemFilter || undefined,
+          status: statusFilter || undefined,
+          search: searchTerm || undefined,
+          page: currentPage,
+          limit: challansPerPage,
+        }),
+        getChallanStats(),
+      ]);
+
+      if (response && response.items) {
+        setChallans(response.items);
+        setTotalRecords(response.total);
+        setServerTotalPages(response.total_pages || 1);
+      } else {
+        setChallans(Array.isArray(response) ? response : []);
+        setTotalRecords(Array.isArray(response) ? response.length : 0);
+        setServerTotalPages(1);
+      }
+      setStats(statsData);
     } catch (err) {
       console.error("Failed to load challans", err);
     } finally {
@@ -108,7 +139,15 @@ export default function Challans() {
 
   useEffect(() => {
     loadChallans();
-  }, [dateRange]); // Reload when date range changes
+  }, [
+    dateRange,
+    currentPage,
+    challansPerPage,
+    statusFilter,
+    partyFilter,
+    itemFilter,
+    searchTerm,
+  ]);
 
   const handleDelete = async (challan) => {
     setDeleteConfirm({ open: true, challan });
@@ -140,7 +179,7 @@ export default function Challans() {
         new Blob([blob], { type: "text/html" }),
       );
       setPreviewUrl(url);
-      toast.success("PDF generated", { id: toastId });
+      toast.success("PDF ready for print/download", { id: toastId });
     } catch (err) {
       console.error(err);
       setPreviewOpen(false);
@@ -226,30 +265,11 @@ export default function Challans() {
     setSelectedChallans(newSelected);
   };
 
-  const filteredChallans = challans
-    .filter((c) => {
-      const matchesSearch =
-        c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.party?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter ? c.status === statusFilter : true;
-      const matchesParty = partyFilter
-        ? c.party_id === Number(partyFilter)
-        : true;
-      const matchesItem = itemFilter
-        ? c.items?.some(
-            (challanItem) =>
-              challanItem.item_id === Number(itemFilter) ||
-              challanItem.item?.id === Number(itemFilter),
-          )
-        : true;
-      return matchesSearch && matchesStatus && matchesParty && matchesItem;
-    })
-    .sort((a, b) => b.id - a.id);
-
-  const totalPages = Math.ceil(filteredChallans.length / challansPerPage);
+  const filteredChallans = challans;
+  const totalPages = serverTotalPages;
   const startIndex = (currentPage - 1) * challansPerPage;
   const endIndex = startIndex + challansPerPage;
-  const paginatedChallans = filteredChallans.slice(startIndex, endIndex);
+  const paginatedChallans = challans;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -687,6 +707,8 @@ export default function Challans() {
       <AddDeliveryChallanModal
         open={showAddModal}
         deliveryChallan={editingChallan}
+        parties={parties}
+        items={items}
         onClose={() => {
           setShowAddModal(false);
           setEditingChallan(null);

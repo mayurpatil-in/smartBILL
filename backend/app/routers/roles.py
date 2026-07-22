@@ -77,14 +77,14 @@ def get_roles(
 
     # For Company Admin / others:
     # 1. Own company roles
-    # 2. System roles "Employee" (so they can verify/assign it if needed)
-    # 3. EXCLUDE "Super Admin" and "Company Admin" system roles
+    # 2. System roles (e.g. "Company Admin", "Employee")
+    # 3. EXCLUDE "Super Admin" system role only
     roles = db.query(Role).filter(
         Role.is_active == True,
         (Role.company_id == current_user.company_id) | 
         (
             (Role.is_system_role == True) & 
-            (Role.name.notin_(["Super Admin", "Company Admin"]))
+            (Role.name != "Super Admin")
         )
     ).all()
     return roles

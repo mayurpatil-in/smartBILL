@@ -370,3 +370,61 @@ def assign_user_role(
         "role_id": role.id,
         "role_name": role.name
     }
+
+
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Delete a user.
+    Requires: users.delete permission
+    """
+    # Check permission
+    if not PermissionService.has_permission(current_user, "users.delete", db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: users.delete required"
+        )
+    
+    # Prevent deleting self
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account"
+        )
+
+    # Get the user
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Ensure the user belongs to the same company
+    if user.company_id != current_user.company_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete users from other companies"
+        )
+        
+    # Prevent deleting Super Admin
+    if user.legacy_role == "SUPER_ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete Super Admin accounts"
+        )
+        
+    try:
+        db.delete(user)
+        db.commit()
+        return {"message": "User deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user because they have associated records. Please edit the user and mark them as inactive instead."
+        )
