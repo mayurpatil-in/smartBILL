@@ -677,7 +677,7 @@ export default function AddDeliveryChallanModal({
               <div className="sticky top-[56px] z-20 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-5 rounded-2xl border-2 border-purple-200/50 dark:border-gray-700/50 shadow-md transition-shadow duration-200">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                   {/* Select Item */}
-                  <div className="lg:col-span-3">
+                  <div className="lg:col-span-2">
                     <label
                       htmlFor="delivery_item_id"
                       className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
@@ -737,7 +737,7 @@ export default function AddDeliveryChallanModal({
                   </div>
 
                   {/* Select Challan Combobox */}
-                  <div className="lg:col-span-2 relative" ref={challanDropdownRef}>
+                  <div className="lg:col-span-3 relative" ref={challanDropdownRef}>
                     <label
                       htmlFor="party_challan_item_id"
                       className="block text-xs font-semibold mb-1.5 text-gray-700 dark:text-gray-300"
@@ -749,13 +749,18 @@ export default function AddDeliveryChallanModal({
                       type="button"
                       disabled={!currentItem.item_id || availableChallanItems.length === 0}
                       onClick={() => setIsChallanDropdownOpen((prev) => !prev)}
+                      title={
+                        selectedChallanItem
+                          ? `${selectedChallanItem.challan_number} - ${selectedChallanItem.process_name} (Pending: ${selectedChallanItem.pending_qty})`
+                          : ""
+                      }
                       className="w-full px-3 py-2.5 rounded-xl border-2 border-purple-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none disabled:opacity-50 flex items-center justify-between min-h-[42px] transition-all cursor-pointer shadow-xs hover:border-purple-300 dark:hover:border-purple-600"
                     >
                       {selectedChallanItem ? (
                         <div className="flex items-center justify-between w-full pr-1 overflow-hidden">
-                          <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate text-xs sm:text-sm">
-                            {selectedChallanItem.challan_number}
-                            <span className="text-gray-600 dark:text-gray-400 font-medium ml-1">
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm flex items-center gap-1 min-w-0 truncate">
+                            <span className="flex-shrink-0">{selectedChallanItem.challan_number}</span>
+                            <span className="text-gray-600 dark:text-gray-300 font-semibold truncate">
                               - {selectedChallanItem.process_name}
                             </span>
                           </span>
@@ -782,7 +787,7 @@ export default function AddDeliveryChallanModal({
 
                     {/* Custom Combobox Dropdown List */}
                     {isChallanDropdownOpen && availableChallanItems.length > 0 && (
-                      <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-purple-300 dark:border-purple-700 z-50 max-h-60 overflow-y-auto animate-scale-in">
+                      <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] sm:min-w-[360px] max-w-[90vw] sm:max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-purple-300 dark:border-purple-700 z-50 max-h-60 overflow-y-auto animate-scale-in">
                         {availableChallanItems.map((item) => {
                           const isSelected =
                             String(item.id) === String(currentItem.party_challan_item_id);
@@ -794,22 +799,23 @@ export default function AddDeliveryChallanModal({
                                 handleChallanItemChange(item.id);
                                 setIsChallanDropdownOpen(false);
                               }}
+                              title={`${item.challan_number} - ${item.process_name} (Pending: ${item.pending_qty})`}
                               className={`w-full px-3 py-2.5 text-left text-xs sm:text-sm flex items-center justify-between transition-colors border-b border-gray-100 dark:border-gray-700/50 last:border-0 ${
                                 isSelected
                                   ? "bg-purple-100/70 dark:bg-purple-900/50 text-purple-900 dark:text-purple-100 font-bold"
                                   : "hover:bg-purple-50 dark:hover:bg-gray-700/60 text-gray-800 dark:text-gray-200"
                               }`}
                             >
-                              <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                              <div className="flex items-center gap-1.5 min-w-0 pr-2 overflow-hidden">
                                 <FileText size={14} className="text-purple-500 flex-shrink-0" />
-                                <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
+                                <span className="font-extrabold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
                                   {item.challan_number}
                                 </span>
-                                <span className="text-gray-600 dark:text-gray-400 font-medium truncate">
+                                <span className="text-gray-700 dark:text-gray-300 font-semibold whitespace-nowrap">
                                   - {item.process_name}
                                 </span>
                               </div>
-                              <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-600 dark:bg-red-900/60 dark:text-red-300 border border-red-200 dark:border-red-800 flex-shrink-0">
+                              <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-600 dark:bg-red-900/60 dark:text-red-300 border border-red-200 dark:border-red-800 flex-shrink-0 ml-2">
                                 (Pending: {item.pending_qty})
                               </span>
                             </button>
