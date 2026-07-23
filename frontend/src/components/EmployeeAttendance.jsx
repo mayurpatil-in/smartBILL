@@ -8,14 +8,20 @@ import {
   Clock,
   AlertCircle,
   PartyPopper,
+  RotateCcw,
+  Coffee,
 } from "lucide-react";
 import {
   getEmployees,
   getDailyAttendance,
   markAttendance,
   getHolidays,
+  getCompanySettings,
 } from "../api/employees";
 import toast from "react-hot-toast";
+import ConfirmDialog from "./ConfirmDialog";
+
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function EmployeeAttendance() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -25,6 +31,9 @@ export default function EmployeeAttendance() {
   const [saving, setSaving] = useState(false);
   const [isMarked, setIsMarked] = useState(false);
   const [holiday, setHoliday] = useState(null); // stores holiday name if today is holiday
+  const [offDays, setOffDays] = useState([]);
+  const [isWeekend, setIsWeekend] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -37,13 +46,24 @@ export default function EmployeeAttendance() {
         getEmployees(),
         getDailyAttendance(date),
         getHolidays(),
+        getCompanySettings(),
       ]);
-      const holidays = allData[2];
       const emps = allData[0];
       const daily = allData[1];
+      const holidays = allData[2];
+      const settings = allData[3];
 
       const activeEmps = emps.filter((emp) => emp.is_active);
       setEmployees(activeEmps);
+
+      const companyOffDays = settings.off_days || [];
+      setOffDays(companyOffDays);
+
+      // Check if selected date is weekend (SmartBill 0=Mon, 6=Sun)
+      const jsDay = new Date(date + "T00:00:00").getDay();
+      const smartBillDay = jsDay === 0 ? 6 : jsDay - 1;
+      const dayIsWeekend = companyOffDays.includes(smartBillDay);
+      setIsWeekend(dayIsWeekend);
 
       // Check if selected date is holiday
       const foundHoliday = holidays.find((h) => h.date === date);
@@ -52,13 +72,29 @@ export default function EmployeeAttendance() {
       // Map daily records to state
       const attendanceMap = {};
 
-      // Initialize with existing data or default PRESENT
-      // Initialize with existing data or default PRESENT
       activeEmps.forEach((emp) => {
         const record = daily.find((d) => d.user_id === emp.id);
+        const stdHours = emp.employee_profile?.work_hours_per_day || 8;
+        const status = record?.status || "present";
+        
+        let hours = stdHours;
+        if (record) {
+          const recHours = parseFloat(record.hours_worked);
+          if (!isNaN(recHours) && recHours > 0) {
+            hours = recHours;
+          } else if (status === "absent" || status === "leave") {
+            hours = 0;
+          } else if (status === "half_day") {
+            hours = stdHours / 2;
+          } else {
+            hours = stdHours;
+          }
+        }
+
         attendanceMap[emp.id] = {
-          status: record?.status || "present",
+          status: status,
           notes: record?.notes || "",
+          hours_worked: hours,
           overtime_hours: record?.overtime_hours || "",
           bonus_amount: record?.bonus_amount || "",
         };
@@ -73,10 +109,14 @@ export default function EmployeeAttendance() {
     }
   };
 
-  const handleStatusChange = (userId, status) => {
+  const handleStatusChange = (userId, status, defaultHours = 8) => {
+    let newHours = defaultHours;
+    if (status === "absent" || status === "leave") newHours = 0;
+    else if (status === "half_day") newHours = defaultHours / 2;
+    
     setAttendance((prev) => ({
       ...prev,
-      [userId]: { ...prev[userId], status },
+      [userId]: { ...prev[userId], status, hours_worked: newHours },
     }));
   };
 
@@ -87,7 +127,31 @@ export default function EmployeeAttendance() {
     }));
   };
 
-  const handleSave = async () => {
+  const handleReset = () => {
+    const resetMap = {};
+    employees.forEach((emp) => {
+      resetMap[emp.id] = {
+        status: "present",
+        notes: "",
+        hours_worked: emp.employee_profile?.work_hours_per_day || 8,
+        overtime_hours: "",
+        bonus_amount: "",
+      };
+    });
+    setAttendance(resetMap);
+    toast.success("Attendance reset to default");
+  };
+
+  const handleSave = () => {
+    if (isWeekend || holiday) {
+      setConfirmModalOpen(true);
+    } else {
+      executeSave();
+    }
+  };
+
+  const executeSave = async () => {
+    setConfirmModalOpen(false);
     setSaving(true);
     try {
       const records = Object.entries(attendance).map(([userId, data]) => ({
@@ -95,12 +159,13 @@ export default function EmployeeAttendance() {
         date: date,
         status: data.status,
         notes: data.notes,
+        hours_worked: parseFloat(data.hours_worked) || 0,
         overtime_hours: parseFloat(data.overtime_hours) || 0,
         bonus_amount: parseFloat(data.bonus_amount) || 0,
       }));
 
       await markAttendance(records);
-      setIsMarked(true);
+      await loadData();
       toast.success("Attendance saved successfully");
     } catch (err) {
       toast.error("Failed to save attendance");
@@ -111,6 +176,21 @@ export default function EmployeeAttendance() {
 
   return (
     <div className="space-y-6">
+      {/* Confirm Dialog for Weekend / Holiday Attendance */}
+      <ConfirmDialog
+        open={confirmModalOpen}
+        title={isWeekend ? "Weekend Attendance Confirmation" : "Holiday Attendance Confirmation"}
+        message={
+          isWeekend
+            ? `The selected date (${format(new Date(date + "T00:00:00"), "MMMM d, yyyy")}) is configured as a Company Off-Day / Weekend. Are you sure you want to save attendance for this day?`
+            : `The selected date (${format(new Date(date + "T00:00:00"), "MMMM d, yyyy")}) is marked as a Company Holiday (${holiday}). Are you sure you want to save attendance for this day?`
+        }
+        type="info"
+        confirmLabel="Yes, Save Attendance"
+        onConfirm={executeSave}
+        onCancel={() => setConfirmModalOpen(false)}
+      />
+
       {/* Date Selection Header */}
       <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -131,7 +211,7 @@ export default function EmployeeAttendance() {
               )}
             </h3>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Mark attendance for {format(new Date(date), "MMMM d, yyyy")}
+              Mark attendance for {format(new Date(date + "T00:00:00"), "MMMM d, yyyy")}
             </p>
           </div>
         </div>
@@ -145,6 +225,16 @@ export default function EmployeeAttendance() {
             name="attendance_date"
             id="attendance_date"
           />
+          <button
+            onClick={handleReset}
+            disabled={saving || loading}
+            type="button"
+            className="group px-4 py-2 sm:py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-semibold transition-all duration-200 border border-gray-200 dark:border-gray-600 flex items-center justify-center gap-2 text-sm w-full sm:w-auto shadow-sm"
+            title="Reset inputs to default"
+          >
+            <RotateCcw size={16} className="group-hover:-rotate-90 transition-transform duration-300 sm:w-[18px] sm:h-[18px]" />
+            Reset
+          </button>
           <button
             onClick={handleSave}
             disabled={saving || loading}
@@ -168,15 +258,27 @@ export default function EmployeeAttendance() {
         </div>
       </div>
 
+      {/* Weekend Banner */}
+      {isWeekend && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3">
+          <Coffee size={24} className="text-white shrink-0" />
+          <div>
+            <p className="font-bold text-sm">Company Weekend / Off-Day</p>
+            <p className="text-xs opacity-90">
+              The date selected ({format(new Date(date + "T00:00:00"), "MMMM d, yyyy")}) is configured as a Weekly Off-Day. A confirmation popup will ask for validation before saving.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Holiday Banner */}
       {holiday && (
         <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-4 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
           <PartyPopper size={24} className="text-white" />
           <div>
-            <h4 className="font-bold text-lg">Holiday: {holiday}</h4>
-            <p className="text-white/90 text-sm">
-              Attendance marking is optional. Employees with no attendance
-              marked will be treated as Paid Leave.
+            <p className="font-bold text-sm">Company Holiday: {holiday}</p>
+            <p className="text-xs opacity-90">
+              Attendance marking is optional. Employees with no attendance marked will be automatically counted as Paid Leave. Saving attendance will prompt for confirmation validation.
             </p>
           </div>
         </div>
@@ -193,6 +295,9 @@ export default function EmployeeAttendance() {
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap">
                   Status
+                </th>
+                <th className="px-6 py-4 text-left whitespace-nowrap w-24">
+                  Working Hrs
                 </th>
                 <th className="px-6 py-4 text-left whitespace-nowrap w-24">
                   OT (Hrs)
@@ -287,7 +392,7 @@ export default function EmployeeAttendance() {
                         ].map((opt) => (
                           <button
                             key={opt.id}
-                            onClick={() => handleStatusChange(emp.id, opt.id)}
+                            onClick={() => handleStatusChange(emp.id, opt.id, emp.employee_profile?.work_hours_per_day || 8)}
                             className={`w-10 h-10 rounded-lg border-2 font-bold text-xs flex items-center justify-center transition-all duration-200 ${
                               attendance[emp.id]?.status === opt.id
                                 ? opt.color +
@@ -300,6 +405,20 @@ export default function EmployeeAttendance() {
                           </button>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={attendance[emp.id]?.hours_worked ?? ""}
+                        onChange={(e) =>
+                          handleChange(emp.id, "hours_worked", e.target.value)
+                        }
+                        className="w-20 px-3 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                        name={`hours_worked_${emp.id}`}
+                        id={`hours_worked_${emp.id}`}
+                      />
                     </td>
                     <td className="px-6 py-5">
                       <input

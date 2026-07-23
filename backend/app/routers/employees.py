@@ -13,6 +13,7 @@ import base64
 from jose import jwt
 from app.core.config import settings
 from jinja2 import Environment, FileSystemLoader
+from num2words import num2words
 
 from app.services.pdf_service import generate_pdf
 
@@ -201,11 +202,15 @@ async def download_my_salary_slip(
     # Reverse calculate base earned
     # Final = EarnedBasic + OT + Bonus - Advances - Tax
     # EarnedBasic = Final - OT - Bonus + Advances + Tax
-    # Reverse calculate base earned
     # Final = EarnedBasic + OT + Bonus - Advances - Tax - PT
     # EarnedBasic = Final - OT - Bonus + Advances + Tax + PT
     earned_basic = salary_slip.final_payable - salary_slip.total_overtime_pay - salary_slip.total_bonus + salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction
     
+    try:
+        final_payable_words = num2words(salary_slip.final_payable, lang='en_IN').title().replace(",", "") + " Only"
+    except Exception:
+        final_payable_words = f"Rupees {salary_slip.final_payable:,.2f} Only"
+
     template = env.get_template("salary_slip.html")
     html_content = template.render(
         company=company,
@@ -224,6 +229,7 @@ async def download_my_salary_slip(
         professional_tax_deduction=f"{salary_slip.professional_tax_deduction:,.2f}",
         total_deductions=f"{(salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction):,.2f}",
         final_payable=f"{salary_slip.final_payable:,.2f}",
+        final_payable_words=final_payable_words,
         generated_date=date.today().strftime("%d-%m-%Y")
     )
     
@@ -488,6 +494,7 @@ def mark_attendance(
         if existing:
             existing.status = record.status
             existing.notes = record.notes
+            existing.hours_worked = record.hours_worked
             existing.overtime_hours = record.overtime_hours
             existing.bonus_amount = record.bonus_amount
         else:
@@ -496,6 +503,7 @@ def mark_attendance(
                 date=record.date,
                 status=record.status,
                 notes=record.notes,
+                hours_worked=record.hours_worked,
                 overtime_hours=record.overtime_hours,
                 bonus_amount=record.bonus_amount
             )
@@ -642,21 +650,49 @@ def calculate_salary(
         total_overtime_pay = 0.0
         total_bonus = 0.0
 
-        # Calculate hourly rate for Overtime (Assuming 30 days/work_hours)
+        company = db.query(Company).filter(Company.id == company_id).first()
+        off_days = company.off_days if company and company.off_days else [] # List of ints [0-6]
+        
+        _, days_in_month = monthrange(year, month)
+        off_days_count = 0
+        
+        if off_days:
+            for day in range(1, days_in_month + 1):
+                 current_date = date(year, month, day)
+                 if current_date.weekday() in off_days:
+                     off_days_count += 1
+                     
+        working_days_in_month = max(1, days_in_month - off_days_count)
+
+        # Calculate exact hourly rate for Overtime based on salary type
         daily_work_hours = float(profile.work_hours_per_day) if profile.work_hours_per_day else 8.0
-        hourly_rate = (base_salary / 30) / daily_work_hours
+        if profile.salary_type == SalaryType.DAILY:
+            effective_daily_rate = base_salary
+        else:
+            effective_daily_rate = base_salary / working_days_in_month
+            
+        hourly_rate = effective_daily_rate / daily_work_hours
+
+        total_hours_worked = 0.0
 
         for r in records:
-            if r.status == AttendanceStatus.PRESENT:
-                present_days += 1.0
-            elif r.status == AttendanceStatus.HALF_DAY:
-                present_days += 0.5
+            # Use exact hours worked if provided and > 0, else fallback to Status for old/legacy records
+            if r.hours_worked and float(r.hours_worked) > 0:
+                total_hours_worked += float(r.hours_worked)
+            else:
+                if r.status == AttendanceStatus.PRESENT:
+                    total_hours_worked += daily_work_hours
+                elif r.status == AttendanceStatus.HALF_DAY:
+                    total_hours_worked += (daily_work_hours / 2.0)
             
-            # Add OT and Bonus
+            # Add explicit OT (if any) and Bonus
             if r.overtime_hours:
                 total_overtime_pay += float(r.overtime_hours) * hourly_rate
             if r.bonus_amount:
                 total_bonus += float(r.bonus_amount)
+                
+        # Convert total exact hours into equivalent 'present days' for daily rate multiplication
+        present_days = total_hours_worked / daily_work_hours if daily_work_hours > 0 else 0.0
         
         # [NEW] Add Holidays to Present Days (if no attendance marked)
         holidays = db.query(Holiday).filter(
@@ -667,33 +703,19 @@ def calculate_salary(
         
         holiday_dates = {h.date for h in holidays}
         attended_dates = {r.date for r in records}
-        
-        for h_date in holiday_dates:
-            # If no attendance marked for this holiday, count as full paid day
-            if h_date not in attended_dates:
-                present_days += 1.0
-                
-        # [NEW] Add Weekly Off Days (e.g. Sundays) to Present Days
-        company = db.query(Company).filter(Company.id == company_id).first()
-        off_days = company.off_days if company and company.off_days else [] # List of ints [0-6]
-        
-        if off_days:
-            _, days_in_month_count = monthrange(year, month)
-            
-            for day in range(1, days_in_month_count + 1):
-                 current_date = date(year, month, day)
-                 # If it is an off day (e.g. Sunday=6)
-                 if current_date.weekday() in off_days:
-                     # If not already counted as holiday AND not attended (marked absent/present manually)
-                     if current_date not in holiday_dates and current_date not in attended_dates:
-                         present_days += 1.0
+
+        # Only add automatic paid holidays for MONTHLY salaried employees
+        if profile.salary_type == SalaryType.MONTHLY:
+            for h_date in holiday_dates:
+                # If no attendance marked for this holiday, count as full paid day
+                if h_date not in attended_dates:
+                    present_days += 1.0
         
         # Logic
-        _, days_in_month = monthrange(year, month)
         calculated_amount = 0.0
         
         if profile.salary_type == SalaryType.MONTHLY:
-            daily_rate = base_salary / days_in_month
+            daily_rate = base_salary / working_days_in_month
             calculated_amount = daily_rate * present_days
             
         elif profile.salary_type == SalaryType.DAILY:
@@ -742,7 +764,7 @@ def calculate_salary(
             month=f"{year}-{month:02d}",
             base_salary=base_salary,
             salary_type=profile.salary_type.value if profile.salary_type else "monthly",
-            total_days=days_in_month,
+            total_days=working_days_in_month,
             present_days=present_days,
             total_overtime_pay=round(total_overtime_pay, 2),
             total_bonus=round(total_bonus, 2),
@@ -854,6 +876,11 @@ async def get_salary_slip_pdf(
     # Reverse calculate base earned
     earned_basic = salary_slip.final_payable - salary_slip.total_overtime_pay - salary_slip.total_bonus + salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction
     
+    try:
+        final_payable_words = num2words(salary_slip.final_payable, lang='en_IN').title().replace(",", "") + " Only"
+    except Exception:
+        final_payable_words = f"Rupees {salary_slip.final_payable:,.2f} Only"
+
     template = env.get_template("salary_slip.html")
     html_content = template.render(
         company=company,
@@ -872,6 +899,7 @@ async def get_salary_slip_pdf(
         professional_tax_deduction=f"{salary_slip.professional_tax_deduction:,.2f}",
         total_deductions=f"{(salary_slip.total_advances_deducted + salary_slip.tax_deduction + salary_slip.professional_tax_deduction):,.2f}",
         final_payable=f"{salary_slip.final_payable:,.2f}",
+        final_payable_words=final_payable_words,
         generated_date=date.today().strftime("%d-%m-%Y")
     )
     

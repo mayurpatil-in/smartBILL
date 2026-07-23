@@ -93,6 +93,7 @@ class AttendanceBase(BaseModel):
     date: date
     status: AttendanceStatus = AttendanceStatus.PRESENT
     notes: Optional[str] = None
+    hours_worked: Decimal = 8.00
     overtime_hours: Decimal = 0.00
     bonus_amount: Decimal = 0.00
 

@@ -22,6 +22,7 @@ class Attendance(Base):
     notes = Column(String(255), nullable=True)
 
     # New Payroll Fields
+    hours_worked = Column(Numeric(5, 2), default=8.00) # Exact hours worked
     overtime_hours = Column(Numeric(4, 2), default=0.00) # e.g. 1.5 hours
     bonus_amount = Column(Numeric(10, 2), default=0.00)  # e.g. 500 rupees
     

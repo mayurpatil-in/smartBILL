@@ -40,9 +40,9 @@ if _sentry_dsn:
         environment=os.getenv("ENV", "development"),
         release=os.getenv("APP_VERSION", "unknown"),
     )
-    logger.info("✅ Sentry error monitoring initialized.")
+    logger.info("[SUCCESS] Sentry error monitoring initialized.")
 else:
-    logger.info("ℹ️ Sentry DSN not configured — error monitoring disabled.")
+    logger.info("[INFO] Sentry DSN not configured - error monitoring disabled.")
 # ==================================================================
 
 from app.core.config import settings
