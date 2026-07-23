@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, Numeric, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
@@ -7,6 +7,11 @@ from app.models.item import Item
 
 class DeliveryChallanItem(Base):
     __tablename__ = "delivery_challan_items"
+
+    __table_args__ = (
+        Index("idx_dci_challan_id", "challan_id"),
+        Index("idx_dci_party_challan_item_id", "party_challan_item_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     challan_id = Column(Integer, ForeignKey("delivery_challan.id"))

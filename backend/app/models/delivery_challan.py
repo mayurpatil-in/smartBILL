@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Date, String, ForeignKey, Boolean, Text, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, Date, String, ForeignKey, Boolean, Text, DateTime, UniqueConstraint, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import date
@@ -38,4 +38,5 @@ class DeliveryChallan(Base):
 
     __table_args__ = (
         UniqueConstraint('company_id', 'financial_year_id', 'party_id', 'challan_number', name='uix_delivery_company_fy_party_challan_number'),
+        Index("idx_dc_company_fy_id", "company_id", "financial_year_id", "id"),
     )

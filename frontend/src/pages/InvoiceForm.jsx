@@ -101,17 +101,15 @@ export default function InvoiceForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [partiesData, fyData] = await Promise.all([
-          getParties({ ignoreGlobal403: true }).catch(() => []),
-          getActiveFinancialYear(),
-        ]);
-        setParties((partiesData || []).filter((p) => p.is_active));
-        setActiveFY(fyData);
-
         if (isEditMode) {
-          // Edit Mode: Load Invoice
-          const invoice = await getInvoice(id);
-          setNextInvoiceNumber(invoice.invoice_number); // Keep existing number
+          const [partiesData, fyData, invoice] = await Promise.all([
+            getParties({ ignoreGlobal403: true }).catch(() => []),
+            getActiveFinancialYear(),
+            getInvoice(id),
+          ]);
+          setParties((partiesData || []).filter((p) => p.is_active));
+          setActiveFY(fyData);
+          setNextInvoiceNumber(invoice.invoice_number);
           setFormData({
             party_id: invoice.party_id,
             invoice_date: invoice.invoice_date,
@@ -127,7 +125,6 @@ export default function InvoiceForm() {
               quantity: i.quantity,
               rate: i.rate,
               amount: i.amount,
-              // Calculate derived fields or defaults if missing in backend response meant for view
               ok_qty:
                 i.ok_qty !== undefined
                   ? i.ok_qty
@@ -145,11 +142,16 @@ export default function InvoiceForm() {
             })),
           });
         } else {
-          // Create Mode: Load Next Number
-          const nextInvData = await getNextInvoiceNumber();
-          setNextInvoiceNumber(nextInvData.next_invoice_number);
+          // Create Mode: Load Parties, FY, and Next Invoice Number concurrently
+          const [partiesData, fyData, nextInvData] = await Promise.all([
+            getParties({ ignoreGlobal403: true }).catch(() => []),
+            getActiveFinancialYear(),
+            getNextInvoiceNumber(),
+          ]);
+          setParties((partiesData || []).filter((p) => p.is_active));
+          setActiveFY(fyData);
+          setNextInvoiceNumber(nextInvData?.next_invoice_number || "");
 
-          // Adjust default date if current date is outside FY
           if (fyData) {
             const today = new Date().toISOString().split("T")[0];
             if (today < fyData.start_date) {

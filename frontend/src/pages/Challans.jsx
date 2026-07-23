@@ -106,19 +106,22 @@ export default function Challans() {
   const loadChallans = async () => {
     try {
       setLoading(true);
-      const [response, statsData] = await Promise.all([
-        getDeliveryChallans({
-          start_date: dateRange.start,
-          end_date: dateRange.end,
-          party_id: partyFilter || undefined,
-          item_id: itemFilter || undefined,
-          status: statusFilter || undefined,
-          search: searchTerm || undefined,
-          page: currentPage,
-          limit: challansPerPage,
-        }),
-        getChallanStats(),
-      ]);
+
+      // Fetch stats asynchronously in parallel
+      getChallanStats()
+        .then((sData) => setStats(sData))
+        .catch((err) => console.error("Failed to load stats", err));
+
+      const response = await getDeliveryChallans({
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        party_id: partyFilter || undefined,
+        item_id: itemFilter || undefined,
+        status: statusFilter || undefined,
+        search: searchTerm || undefined,
+        page: currentPage,
+        limit: challansPerPage,
+      });
 
       if (response && response.items) {
         setChallans(response.items);
@@ -129,7 +132,6 @@ export default function Challans() {
         setTotalRecords(Array.isArray(response) ? response.length : 0);
         setServerTotalPages(1);
       }
-      setStats(statsData);
     } catch (err) {
       console.error("Failed to load challans", err);
     } finally {

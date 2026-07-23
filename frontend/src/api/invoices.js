@@ -2,9 +2,13 @@ import api from "./axios";
 
 export const getInvoices = async (params = {}) => {
   const cleanParams = Object.fromEntries(
-    Object.entries(params).filter(([_, v]) => v !== "" && v != null)
+    Object.entries(params).filter(([key, v]) => key !== "returnFullResponse" && v !== "" && v != null)
   );
   const response = await api.get("/invoice/", { params: cleanParams });
+  const totalCount = parseInt(response.headers["x-total-count"] || "0", 10);
+  if (params.returnFullResponse) {
+    return { data: response.data, totalCount };
+  }
   return response.data;
 };
 

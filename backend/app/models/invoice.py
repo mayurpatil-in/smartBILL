@@ -14,6 +14,7 @@ class Invoice(Base):
     
     __table_args__ = (
         Index("idx_invoice_company_fy_status", "company_id", "financial_year_id", "status"),
+        Index("idx_invoice_company_fy_id", "company_id", "financial_year_id", "id"),
         Index("idx_invoice_party_payment_status", "party_id", "payment_status"),
         Index("idx_invoice_date", "invoice_date"),
     )

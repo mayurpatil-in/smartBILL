@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case
 from typing import List, Optional
 from datetime import date
 import io
@@ -121,37 +121,23 @@ def get_invoice_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    stats = {
-        "total": {"count": 0, "amount": 0},
-        "paid": {"count": 0, "amount": 0},
-        "pending": {"count": 0, "amount": 0}
-    }
-    
-    invoices = db.query(Invoice).filter(
+    result = db.query(
+        func.count(Invoice.id).label("total_count"),
+        func.coalesce(func.sum(Invoice.grand_total), 0).label("total_amount"),
+        func.count(case((Invoice.status == "PAID", 1))).label("paid_count"),
+        func.coalesce(func.sum(case((Invoice.status == "PAID", Invoice.grand_total), else_=0)), 0).label("paid_amount"),
+        func.count(case((Invoice.status != "PAID", 1))).label("pending_count"),
+        func.coalesce(func.sum(case((Invoice.status != "PAID", Invoice.grand_total), else_=0)), 0).label("pending_amount")
+    ).filter(
         Invoice.company_id == company_id,
         Invoice.financial_year_id == fy.id
-    ).all()
-    
-    for inv in invoices:
-        # Total
-        stats["total"]["count"] += 1
-        stats["total"]["amount"] += float(inv.grand_total or 0)
-        
-        # Paid vs Pending
-        if inv.status == "PAID":
-            stats["paid"]["count"] += 1
-            stats["paid"]["amount"] += float(inv.grand_total or 0)
-        else:
-            stats["pending"]["count"] += 1
-            stats["pending"]["amount"] += float(inv.grand_total or 0)
-            
-    return stats
+    ).first()
 
-
-
-
-
-    return stats
+    return {
+        "total": {"count": result.total_count or 0, "amount": float(result.total_amount or 0)},
+        "paid": {"count": result.paid_count or 0, "amount": float(result.paid_amount or 0)},
+        "pending": {"count": result.pending_count or 0, "amount": float(result.pending_amount or 0)}
+    }
 
 
 @router.get("/pending", response_model=List[InvoiceResponse])
@@ -309,19 +295,21 @@ def create_invoice(
         try:
             from app.models.item import Item as ItemModel
             from app.services.notification_service import create_notification
-            for inv_item in invoice.items:
-                item_obj = db.query(ItemModel).filter(
-                    ItemModel.id == inv_item.item_id,
+            item_ids = list(set(inv_item.item_id for inv_item in invoice.items if inv_item.item_id))
+            if item_ids:
+                item_objs = db.query(ItemModel).filter(
+                    ItemModel.id.in_(item_ids),
                     ItemModel.company_id == company_id
-                ).first()
-                if item_obj and float(item_obj.current_stock) <= 5:
-                    create_notification(
-                        db=db,
-                        company_id=company_id,
-                        title=f"Low Stock: {item_obj.name}",
-                        message=f"Only {float(item_obj.current_stock):.0f} unit(s) remaining. Consider restocking.",
-                        type="warning",
-                    )
+                ).all()
+                for item_obj in item_objs:
+                    if item_obj and float(item_obj.current_stock or 0) <= 5:
+                        create_notification(
+                            db=db,
+                            company_id=company_id,
+                            title=f"Low Stock: {item_obj.name}",
+                            message=f"Only {float(item_obj.current_stock or 0):.0f} unit(s) remaining. Consider restocking.",
+                            type="warning",
+                        )
         except Exception as notify_err:
             print(f"[Invoice] Low stock notification failed (non-fatal): {notify_err}")
 
@@ -694,22 +682,45 @@ def create_invoice_from_challan(
 @router.get("/", response_model=List[InvoiceResponse])
 @require_permission("invoices.view")
 def list_invoices(
+    response: Response,
     skip: int = Query(0, ge=0),
-    limit: int = Query(10000, ge=1, le=100000),
+    limit: int = Query(50, ge=1, le=10000),
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    party_id: Optional[int] = None,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    query = db.query(Invoice).filter(
+        Invoice.company_id == company_id,
+        Invoice.financial_year_id == fy.id
+    )
+
+    if status and status != "ALL":
+        query = query.filter(Invoice.status == status)
+
+    if party_id:
+        query = query.filter(Invoice.party_id == party_id)
+
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.join(Invoice.party).filter(
+            or_(
+                Invoice.invoice_number.ilike(search_term),
+                Party.name.ilike(search_term)
+            )
+        )
+
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
     invoices = (
-        db.query(Invoice)
-        .options(
+        query.options(
             joinedload(Invoice.party),
             joinedload(Invoice.items).joinedload(InvoiceItem.item)
-        )
-        .filter(
-            Invoice.company_id == company_id,
-            Invoice.financial_year_id == fy.id
         )
         .order_by(Invoice.id.desc())
         .offset(skip)

@@ -117,14 +117,18 @@ export default function Invoices() {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const [invoicesData, statsData, partiesData] = await Promise.all([
-        getInvoices(),
-        getInvoiceStats(),
-        getParties({ ignoreGlobal403: true }).catch(() => []),
-      ]);
-      setInvoices(invoicesData.sort((a, b) => b.id - a.id));
-      setStats(statsData);
-      setParties((partiesData || []).filter((p) => p.is_active));
+
+      // Fetch stats & parties in parallel without blocking table render
+      getInvoiceStats()
+        .then((data) => setStats(data))
+        .catch((err) => console.error("Failed to fetch stats", err));
+
+      getParties({ ignoreGlobal403: true })
+        .then((data) => setParties((data || []).filter((p) => p.is_active)))
+        .catch(() => setParties([]));
+
+      const invoicesData = await getInvoices({ limit: 1000 });
+      setInvoices((invoicesData || []).sort((a, b) => b.id - a.id));
     } catch (error) {
       console.error("Failed to fetch invoices", error);
       toast.error("Failed to load invoices");

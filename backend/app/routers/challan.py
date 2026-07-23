@@ -351,6 +351,7 @@ def resolve_delivery_issue(
 @router.get("/")
 @require_permission("challans.view")
 def list_challans(
+    response: Response,
     party_id: Optional[int] = None,
     item_id: Optional[int] = None,
     status: Optional[str] = None,
@@ -359,7 +360,7 @@ def list_challans(
     end_date: Optional[str] = None,
     page: Optional[int] = None,
     skip: int = Query(0, ge=0),
-    limit: int = Query(10000, ge=1, le=100000),
+    limit: int = Query(50, ge=1, le=100000),
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db),
@@ -398,6 +399,8 @@ def list_challans(
         )
     
     total_records = query.distinct().count()
+    response.headers["X-Total-Count"] = str(total_records)
+    response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
 
     # Apply relationships eager loading for final fetch
     query_with_options = query.options(
