@@ -14,6 +14,8 @@ class SalaryAdvance(Base):
     
     # Track if this advance has been fully deducted/paid back
     is_deducted = Column(Boolean, default=False)
+    deducted_month = Column(Integer, nullable=True)
+    deducted_year = Column(Integer, nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="salary_advances")

@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { API_URL } from "../api/axios";
+import { formatDateDDMMYYYY } from "../utils/dateUtils";
+
 
 export default function VerifyID() {
   const { id } = useParams();
@@ -136,7 +138,7 @@ export default function VerifyID() {
                   Joining Date
                 </p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {data.joining_date || "N/A"}
+                  {formatDateDDMMYYYY(data.joining_date)}
                 </p>
               </div>
             </div>

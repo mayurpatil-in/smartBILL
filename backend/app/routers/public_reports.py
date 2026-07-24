@@ -17,6 +17,10 @@ from app.models.financial_year import FinancialYear
 from app.models.party_challan_item import PartyChallanItem
 from app.models.party_challan import PartyChallan
 from app.models.invoice import Invoice
+from typing import Optional
+import io, base64, qrcode
+from app.models.delivery_challan_item import DeliveryChallanItem
+from app.models.invoice_item import InvoiceItem
 from app.models.party import Party
 from app.models.item import Item
 from app.models.payment import Payment
@@ -713,4 +717,299 @@ async def public_gst_report_download(
         content=pdf_data,
         media_type="text/html; charset=utf-8",
         headers={"Content-Disposition": f"inline; filename={filename}"}
+    )
+
+
+@router.get("/job-work-stock-summary")
+async def public_job_work_stock_summary(
+    company_id: int,
+    start: str,
+    end: str,
+    party_name: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to view / verify Job Work Stock Summary by scanning QR code.
+    """
+    try:
+        start_dt = datetime.strptime(start, "%Y-%m-%d").date()
+    except Exception:
+        start_dt = datetime.now().date()
+    try:
+        end_dt = datetime.strptime(end, "%Y-%m-%d").date()
+    except Exception:
+        end_dt = datetime.now().date()
+
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        class MockCompany:
+            name = "Company"
+            address = ""
+            gst_number = ""
+            phone = ""
+        company = MockCompany()
+
+    inwards = db.query(PartyChallanItem).join(PartyChallan).filter(
+        PartyChallan.company_id == company_id,
+        PartyChallan.status != "cancelled"
+    ).all()
+
+    outwards = db.query(DeliveryChallanItem).join(DeliveryChallan).options(
+        joinedload(DeliveryChallanItem.challan),
+        joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.party_challan).joinedload(PartyChallan.party),
+        joinedload(DeliveryChallanItem.party_challan_item).joinedload(PartyChallanItem.item)
+    ).filter(
+        DeliveryChallan.company_id == company_id,
+        DeliveryChallan.status != "cancelled"
+    ).all()
+
+    stock_map = {}
+    def get_key(party_id, item_id):
+        return (party_id, item_id)
+
+    for row in inwards:
+        if not row.party_challan or not row.item:
+            continue
+        key = get_key(row.party_challan.party_id, row.item_id)
+        if key not in stock_map:
+            stock_map[key] = {
+                "party_name": row.party_challan.party.name if (row.party_challan and row.party_challan.party) else "Unknown",
+                "gstin": row.party_challan.party.gst_number if (row.party_challan and row.party_challan.party and row.party_challan.party.gst_number) else "",
+                "item_name": row.item.name if row.item else "Unknown",
+                "opening": 0.0,
+                "inward": 0.0,
+                "outward": 0.0,
+                "closing": 0.0
+            }
+        qty = float(row.quantity_ordered or 0)
+        t_date = row.party_challan.challan_date
+        if t_date:
+            if hasattr(t_date, "date"): t_date = t_date.date()
+            if isinstance(t_date, str):
+                try: t_date = datetime.strptime(t_date[:10], "%Y-%m-%d").date()
+                except: pass
+            if t_date < start_dt:
+                stock_map[key]["opening"] += qty
+            elif start_dt <= t_date <= end_dt:
+                stock_map[key]["inward"] += qty
+
+    for row in outwards:
+        if not row.party_challan_item:
+            continue
+        pc_item = row.party_challan_item
+        if not pc_item.party_challan or not pc_item.item:
+            continue
+        key = get_key(pc_item.party_challan.party_id, pc_item.item_id)
+        if key not in stock_map:
+            stock_map[key] = {
+                "party_name": pc_item.party_challan.party.name if (pc_item.party_challan and pc_item.party_challan.party) else "Unknown",
+                "gstin": pc_item.party_challan.party.gst_number if (pc_item.party_challan and pc_item.party_challan.party and pc_item.party_challan.party.gst_number) else "",
+                "item_name": pc_item.item.name if pc_item.item else "Unknown",
+                "opening": 0.0,
+                "inward": 0.0,
+                "outward": 0.0,
+                "closing": 0.0
+            }
+        qty = float(row.quantity or 0)
+        if not row.challan:
+            continue
+        t_date = row.challan.challan_date
+        if t_date:
+            if hasattr(t_date, "date"): t_date = t_date.date()
+            if isinstance(t_date, str):
+                try: t_date = datetime.strptime(t_date[:10], "%Y-%m-%d").date()
+                except: pass
+            if t_date < start_dt:
+                stock_map[key]["opening"] -= qty
+            elif start_dt <= t_date <= end_dt:
+                stock_map[key]["outward"] += qty
+
+    stock_data = []
+    clean_party = party_name.strip().lower() if (party_name and isinstance(party_name, str)) else None
+    if clean_party in ["all", "all parties", "undefined", "null", "none", ""]:
+        clean_party = None
+
+    for k, v in stock_map.items():
+        v["closing"] = v["opening"] + v["inward"] - v["outward"]
+        item_party = (v.get("party_name") or "").strip().lower()
+        if clean_party and item_party != clean_party:
+            continue
+        if abs(v["opening"]) > 0 or v["inward"] > 0 or v["outward"] > 0 or abs(v["closing"]) > 0:
+            stock_data.append(v)
+
+    grouped_stock = {}
+    for item in stock_data:
+        pname = item.get("party_name") or "Unknown"
+        if pname not in grouped_stock:
+            grouped_stock[pname] = {
+                "party_name": pname,
+                "gstin": item.get("gstin") or "",
+                "item_list": [],
+                "sub_opening": 0.0,
+                "sub_inward": 0.0,
+                "sub_outward": 0.0,
+                "sub_closing": 0.0
+            }
+        grouped_stock[pname]["item_list"].append(item)
+        grouped_stock[pname]["sub_opening"] += item.get("opening", 0.0)
+        grouped_stock[pname]["sub_inward"] += item.get("inward", 0.0)
+        grouped_stock[pname]["sub_outward"] += item.get("outward", 0.0)
+        grouped_stock[pname]["sub_closing"] += item.get("closing", 0.0)
+
+    grouped_list = list(grouped_stock.values())
+
+    total_opening = sum(item['opening'] for item in stock_data)
+    total_inward = sum(item['inward'] for item in stock_data)
+    total_outward = sum(item['outward'] for item in stock_data)
+    total_closing = sum(item['closing'] for item in stock_data)
+
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
+    p_param = f"&party_name={party_name}" if party_name else ""
+    current_url = f"{base_url}/public/reports/job-work-stock-summary?company_id={company_id}&start={start}&end={end}{p_param}"
+
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(current_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    template = env.get_template("job_work_stock_summary.html")
+    html_content = template.render({
+        "request": {},
+        "grouped_stock": grouped_list,
+        "stock_data": stock_data,
+        "company": company,
+        "party_name": party_name,
+        "start_date": start_dt.strftime("%d/%m/%Y"),
+        "end_date": end_dt.strftime("%d/%m/%Y"),
+        "generation_date": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
+        "total_opening": total_opening,
+        "total_inward": total_inward,
+        "total_outward": total_outward,
+        "total_closing": total_closing,
+        "qr_code": qr_code_b64
+    })
+
+    return Response(
+        content=html_content,
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": "inline; filename=Job_Work_Stock_Summary.html"}
+    )
+
+
+@router.get("/grn-report")
+async def public_grn_report(
+    company_id: int,
+    start: str,
+    end: str,
+    party_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to view / verify GRN Report by scanning QR code.
+    """
+    try:
+        start_dt = datetime.strptime(start, "%Y-%m-%d").date()
+    except Exception:
+        start_dt = datetime.now().date()
+    try:
+        end_dt = datetime.strptime(end, "%Y-%m-%d").date()
+    except Exception:
+        end_dt = datetime.now().date()
+
+    query = db.query(InvoiceItem).join(Invoice).join(Party).join(Item).outerjoin(DeliveryChallanItem).outerjoin(DeliveryChallan).filter(
+        Invoice.company_id == company_id,
+        Invoice.invoice_date >= start_dt,
+        Invoice.invoice_date <= end_dt,
+        Invoice.status != "CANCELLED"
+    )
+
+    party_name = None
+    if party_id:
+        query = query.filter(Invoice.party_id == party_id)
+        party = db.query(Party).filter(Party.id == party_id).first()
+        if party:
+            party_name = party.name
+
+    items = query.order_by(Item.name.asc(), Invoice.invoice_date.desc()).all()
+
+    grouped_data = {}
+    total_qty = 0
+    total_amount = 0
+
+    for item in items:
+        qty = float(item.quantity) if item.quantity else 0
+        amt = float(item.amount) if item.amount else 0
+        total_qty += qty
+        total_amount += amt
+
+        challan_no = "-"
+        if item.delivery_challan_item and item.delivery_challan_item.challan:
+             challan_no = item.delivery_challan_item.challan.challan_number
+
+        item_data = {
+            "invoice_number": item.invoice.invoice_number,
+            "invoice_date": item.invoice.invoice_date,
+            "party_name": item.invoice.party.name,
+            "grn_no": item.grn_no,
+            "challan_no": challan_no,
+            "quantity": qty,
+            "rate": float(item.rate) if item.rate else 0,
+            "amount": amt
+        }
+
+        item_name = item.item.name
+        if item_name not in grouped_data:
+            grouped_data[item_name] = {
+                "item_list": [],
+                "total_qty": 0,
+                "total_amount": 0
+            }
+
+        grouped_data[item_name]["item_list"].append(item_data)
+        grouped_data[item_name]["total_qty"] += qty
+        grouped_data[item_name]["total_amount"] += amt
+
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        class MockCompany:
+            name = "Company"
+            address = ""
+            gst_number = ""
+            phone = ""
+        company = MockCompany()
+
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
+    p_param = f"&party_id={party_id}" if party_id else ""
+    current_url = f"{base_url}/public/reports/grn-report?company_id={company_id}&start={start}&end={end}{p_param}"
+
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(current_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    template = env.get_template("grn_report.html")
+    html_content = template.render({
+        "company": company,
+        "grouped_items": grouped_data,
+        "start_date": start_dt.strftime("%d/%m/%Y"),
+        "end_date": end_dt.strftime("%d/%m/%Y"),
+        "party_name": party_name,
+        "grand_total_qty": total_qty,
+        "grand_total_amount": total_amount,
+        "generation_date": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
+        "qr_code": qr_code_b64
+    })
+
+    return Response(
+        content=html_content,
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": "inline; filename=GRN_Report.html"}
     )

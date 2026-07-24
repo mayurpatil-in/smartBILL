@@ -11,6 +11,18 @@ export const formatDate = (dateString) => {
   return `${day}-${month}-${year}`;
 };
 
+export const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return "N/A";
+  if (typeof dateStr === "string" && dateStr.includes("-")) {
+    const parts = dateStr.split("T")[0].split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, "0")}-${parts[1].padStart(2, "0")}-${parts[0]}`;
+    }
+  }
+  return formatDate(dateStr) || "N/A";
+};
+
+
 export const getFinancialYearStartDate = () => {
   const today = new Date();
   const currentMonth = today.getMonth(); // 0-11

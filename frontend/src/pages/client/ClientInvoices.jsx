@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useClientAuth } from "../../context/ClientAuthContext";
 import {
   Download,
@@ -26,6 +27,47 @@ export default function ClientInvoices() {
   const [financialYears, setFinancialYears] = useState([]);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState("");
   const [showFYDropdown, setShowFYDropdown] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [invoiceDetails, setInvoiceDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const fetchInvoiceDetails = async (invoiceId) => {
+    setSelectedInvoiceId(invoiceId);
+    setLoadingDetails(true);
+    try {
+      const token = localStorage.getItem("client_token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/client/invoices/${invoiceId}/details`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load invoice details");
+      const data = await res.json();
+      setInvoiceDetails(data);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handlePrintInvoice = async (invoiceId) => {
+    try {
+      const token = localStorage.getItem("client_token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/client/invoices/${invoiceId}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Could not print invoice");
+      const htmlText = await res.text();
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(htmlText);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 500);
+      }
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -85,6 +127,18 @@ export default function ClientInvoices() {
     }
   }, [selectedFinancialYear]);
 
+  // Close modal on ESC key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && selectedInvoiceId) {
+        setSelectedInvoiceId(null);
+        setInvoiceDetails(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedInvoiceId]);
+
   const handleDownload = async (invoiceId, invoiceNumber) => {
     setDownloadingId(invoiceId);
     try {
@@ -97,20 +151,24 @@ export default function ClientInvoices() {
       );
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || "Download failed");
       }
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Invoice-${invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("Invoice downloaded successfully!");
+      const html = await res.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, "_blank");
+      if (!printWindow) {
+        toast.error("Popup blocked - please allow popups for this site");
+        return;
+      }
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        URL.revokeObjectURL(blobUrl);
+      }, 500);
+      toast.success("Invoice opened — select 'Save as PDF' to download.", { duration: 5000 });
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -527,9 +585,9 @@ export default function ClientInvoices() {
                     </div>
 
                     {/* Right Section - Amount & Action */}
-                    <div className="flex items-center justify-between md:justify-end gap-4 mt-4 md:mt-0">
+                    <div className="flex items-center justify-between md:justify-end gap-3 mt-4 md:mt-0 flex-wrap">
                       {/* Amount Display - Desktop */}
-                      <div className="hidden lg:block text-right">
+                      <div className="hidden lg:block text-right pr-2">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
                           Total Amount
                         </p>
@@ -538,16 +596,25 @@ export default function ClientInvoices() {
                         </p>
                       </div>
 
+                      {/* View Details Button */}
+                      <button
+                        onClick={() => fetchInvoiceDetails(inv.id)}
+                        className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5"
+                      >
+                        <FileText size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        Details
+                      </button>
+
                       {/* Download Button */}
                       <button
                         onClick={() =>
                           handleDownload(inv.id, inv.invoice_number)
                         }
                         disabled={downloadingId === inv.id}
-                        className={`flex items-center gap-2 px-4 md:px-6 py-3 text-white rounded-xl font-medium transition-all duration-200 shadow-lg relative overflow-hidden ${
+                        className={`flex items-center gap-1.5 px-4 py-2.5 text-white rounded-xl text-xs font-semibold transition-all duration-200 shadow-md relative overflow-hidden ${
                           downloadingId === inv.id
                             ? "bg-blue-500 cursor-wait"
-                            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-xl"
+                            : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105"
                         }`}
                         aria-label="Download invoice"
                       >
@@ -614,6 +681,190 @@ export default function ClientInvoices() {
           Showing {filteredInvoices.length} of {invoices.length} invoices
         </div>
       )}
+
+      {/* Invoice Details Modal (Portal to document.body) */}
+      {selectedInvoiceId &&
+        createPortal(
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setSelectedInvoiceId(null);
+                setInvoiceDetails(null);
+              }
+            }}
+            className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-md p-3 sm:p-6 flex items-start justify-center animate-fadeIn"
+          >
+            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col my-auto max-h-[88vh] overflow-hidden">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-20 shrink-0 p-4 sm:p-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-between shadow-md">
+                <div className="pr-4 min-w-0">
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold truncate">
+                    {loadingDetails ? "Loading Invoice..." : `Invoice Details - ${invoiceDetails?.invoice_number || ""}`}
+                  </h2>
+                  <p className="text-xs text-blue-100 mt-0.5">Itemized statement breakdown</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedInvoiceId(null);
+                    setInvoiceDetails(null);
+                  }}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/25 text-white transition-all flex items-center justify-center border border-white/20 flex-shrink-0"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Scrollable Content Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+                {loadingDetails || !invoiceDetails ? (
+                  <div className="space-y-4 animate-pulse p-4">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                    <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Status & Overview Bar */}
+                    <div className="p-3.5 sm:p-4 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-wrap justify-between items-center gap-3">
+                      <div>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 block mb-0.5">Invoice Date</span>
+                        <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">
+                          {new Date(invoiceDetails.invoice_date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      {invoiceDetails.due_date && (
+                        <div>
+                          <span className="text-[11px] text-gray-500 dark:text-gray-400 block mb-0.5">Due Date</span>
+                          <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">
+                            {new Date(invoiceDetails.due_date).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 block mb-0.5">Status</span>
+                        <span
+                          className={`text-xs uppercase font-bold px-3 py-1 rounded-full ${
+                            invoiceDetails.status === "PAID"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                              : invoiceDetails.status === "OVERDUE"
+                                ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                                : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                          }`}
+                        >
+                          {invoiceDetails.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Vendor Company Info */}
+                    {invoiceDetails.company && (
+                      <div className="p-3.5 sm:p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                        <h4 className="text-[10px] font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider mb-1">Billed By</h4>
+                        <p className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">{invoiceDetails.company.name}</p>
+                        {invoiceDetails.company.gst_number && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 font-mono">GSTIN: {invoiceDetails.company.gst_number}</p>
+                        )}
+                        {invoiceDetails.company.address && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{invoiceDetails.company.address}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Itemized Table */}
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white mb-2.5">Itemized Particulars</h4>
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-x-auto shadow-sm">
+                        <table className="w-full text-left text-xs min-w-[320px]">
+                          <thead className="bg-gray-50 dark:bg-gray-900/70 text-gray-500 dark:text-gray-400 uppercase font-semibold border-b border-gray-200 dark:border-gray-700 text-[10px]">
+                            <tr>
+                              <th className="p-2.5 sm:p-3">Item Particulars</th>
+                              <th className="p-2.5 sm:p-3 text-right">Qty</th>
+                              <th className="p-2.5 sm:p-3 text-right">Rate</th>
+                              <th className="p-2.5 sm:p-3 text-right">GST %</th>
+                              <th className="p-2.5 sm:p-3 text-right">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {invoiceDetails.items?.map((it) => (
+                              <tr key={it.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+                                <td className="p-2.5 sm:p-3">
+                                  <span className="font-bold text-gray-900 dark:text-white block text-xs">{it.item_name}</span>
+                                  {it.hsn_code && <span className="text-[10px] text-gray-400">HSN: {it.hsn_code}</span>}
+                                </td>
+                                <td className="p-2.5 sm:p-3 text-right font-medium whitespace-nowrap">{it.quantity} {it.unit}</td>
+                                <td className="p-2.5 sm:p-3 text-right font-medium whitespace-nowrap">₹{it.rate.toLocaleString("en-IN")}</td>
+                                <td className="p-2.5 sm:p-3 text-right text-gray-500 whitespace-nowrap">{it.gst_rate}%</td>
+                                <td className="p-2.5 sm:p-3 text-right font-bold text-gray-900 dark:text-white whitespace-nowrap">₹{it.amount.toLocaleString("en-IN")}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Totals Breakdown */}
+                    <div className="bg-gray-50 dark:bg-gray-900/60 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-2 text-xs">
+                      <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                        <span>Subtotal (Taxable)</span>
+                        <span className="font-semibold">₹{invoiceDetails.subtotal.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                        <span>Total Tax (GST)</span>
+                        <span className="font-semibold">₹{invoiceDetails.gst_amount.toLocaleString("en-IN")}</span>
+                      </div>
+                      {invoiceDetails.discount_amount > 0 && (
+                        <div className="flex justify-between text-emerald-600">
+                          <span>Discount</span>
+                          <span className="font-semibold">-₹{invoiceDetails.discount_amount.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
+                      {invoiceDetails.round_off !== 0 && (
+                        <div className="flex justify-between text-gray-500">
+                          <span>Round Off</span>
+                          <span>₹{invoiceDetails.round_off.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs sm:text-sm font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <span>Grand Total</span>
+                        <span className="text-blue-600 dark:text-blue-400">₹{invoiceDetails.grand_total.toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Sticky Footer Actions */}
+              {invoiceDetails && (
+                <div className="sticky bottom-0 z-20 shrink-0 p-3.5 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-2.5 bg-gray-50 dark:bg-gray-900">
+                  <button
+                    onClick={() => handlePrintInvoice(invoiceDetails.id)}
+                    className="flex-1 py-2.5 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <FileText size={16} />
+                    Print View
+                  </button>
+                  <button
+                    onClick={() => handleDownload(invoiceDetails.id, invoiceDetails.invoice_number)}
+                    className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    <Download size={16} />
+                    Download PDF
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </motion.div>
   );
 }

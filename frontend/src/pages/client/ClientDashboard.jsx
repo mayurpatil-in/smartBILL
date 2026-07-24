@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useClientAuth } from "../../context/ClientAuthContext";
 import {
@@ -18,6 +19,8 @@ import {
   Sun,
   Sunset,
   Moon,
+  Copy,
+  Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -41,6 +44,47 @@ export default function ClientDashboard() {
   const [selectedFinancialYear, setSelectedFinancialYear] = useState("");
   const [showFYDropdown, setShowFYDropdown] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [companyInfo, setCompanyInfo] = useState(null);
+  const [showRemittanceModal, setShowRemittanceModal] = useState(false);
+  const [fetchingCompany, setFetchingCompany] = useState(false);
+  const [copiedPayee, setCopiedPayee] = useState(false);
+
+  const handleCopyCompanyInfo = () => {
+    if (!companyInfo) return;
+    const textToCopy = `Vendor: ${companyInfo.name}\n` +
+      (companyInfo.gst_number ? `GSTIN: ${companyInfo.gst_number}\n` : "") +
+      (companyInfo.phone ? `Phone: ${companyInfo.phone}\n` : "") +
+      (companyInfo.email ? `Email: ${companyInfo.email}\n` : "") +
+      (companyInfo.address ? `Address: ${companyInfo.address}` : "");
+
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedPayee(true);
+    toast.success("Vendor details copied to clipboard!");
+    setTimeout(() => setCopiedPayee(false), 2500);
+  };
+
+  const fetchCompanyInfo = async () => {
+    if (companyInfo) {
+      setShowRemittanceModal(true);
+      return;
+    }
+    setFetchingCompany(true);
+    try {
+      const token = localStorage.getItem("client_token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/client/company-info`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyInfo(data);
+        setShowRemittanceModal(true);
+      }
+    } catch (err) {
+      toast.error("Could not fetch company payment info");
+    } finally {
+      setFetchingCompany(false);
+    }
+  };
 
   // Time-based greeting
   const getGreeting = () => {
@@ -67,20 +111,24 @@ export default function ClientDashboard() {
       );
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || "Download failed");
       }
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Invoice-${invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("Invoice downloaded successfully!");
+      const html = await res.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, "_blank");
+      if (!printWindow) {
+        toast.error("Popup blocked - please allow popups for this site");
+        return;
+      }
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        URL.revokeObjectURL(blobUrl);
+      }, 500);
+      toast.success("Invoice opened — select 'Save as PDF' to download.", { duration: 5000 });
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -314,9 +362,23 @@ export default function ClientDashboard() {
           <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             {t("client_dashboard.total_outstanding", "Total Outstanding")}
           </p>
-          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            ₹{stats.total_outstanding.toLocaleString("en-IN")}
-          </h3>
+          <div className="flex items-baseline justify-between flex-wrap gap-2">
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              ₹{stats.total_outstanding.toLocaleString("en-IN")}
+            </h3>
+            <button
+              onClick={fetchCompanyInfo}
+              disabled={fetchingCompany}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-105 flex items-center gap-1.5"
+            >
+              {fetchingCompany ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Zap size={14} />
+              )}
+              Remittance Info
+            </button>
+          </div>
         </div>
 
         {/* Last Payment */}
@@ -512,6 +574,100 @@ export default function ClientDashboard() {
           </div>
         </div>
       </motion.div>
+
+      {/* Remittance Payment Info Modal */}
+      {showRemittanceModal &&
+        companyInfo &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
+              <button
+                onClick={() => setShowRemittanceModal(false)}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <AlertCircle size={20} className="hidden" />
+                <span className="font-bold text-lg">✕</span>
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                  <Zap size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Payment Remittance Info</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Remit payments to vendor account</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 my-6">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-100 dark:border-gray-700/60 space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 dark:text-gray-400">Vendor / Payee</span>
+                    <span className="font-bold text-gray-900 dark:text-white text-right">{companyInfo.name}</span>
+                  </div>
+                  {companyInfo.gst_number && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">GSTIN</span>
+                      <span className="font-mono text-gray-800 dark:text-gray-200">{companyInfo.gst_number}</span>
+                    </div>
+                  )}
+                  {companyInfo.phone && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">Phone</span>
+                      <span className="text-gray-800 dark:text-gray-200">{companyInfo.phone}</span>
+                    </div>
+                  )}
+                  {companyInfo.email && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">Email</span>
+                      <span className="text-gray-800 dark:text-gray-200">{companyInfo.email}</span>
+                    </div>
+                  )}
+                  {companyInfo.address && (
+                    <div className="flex justify-between items-start text-xs pt-1 border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-gray-500 dark:text-gray-400">Address</span>
+                      <span className="text-gray-800 dark:text-gray-200 text-right max-w-[200px]">{companyInfo.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
+                  <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider mb-2">Remittance Instructions</h4>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                    Please transfer funds via NEFT / RTGS / UPI to the vendor's bank account or phone contact above, referencing your Party Name and Invoice Number in the transaction remarks.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCopyCompanyInfo}
+                  className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {copiedPayee ? (
+                    <>
+                      <Check size={16} className="text-emerald-600" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={16} />
+                      Copy Details
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowRemittanceModal(false)}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-md"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </motion.div>
   );
 }

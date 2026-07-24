@@ -45,3 +45,15 @@ export const getMySalarySlipPdf = async (month, year) => {
   );
   return response.data;
 };
+
+/**
+ * Change current employee's password
+ */
+export const changeMyPassword = async (currentPassword, newPassword) => {
+  const response = await axios.put("/employees/me/change-password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  return response.data;
+};
+

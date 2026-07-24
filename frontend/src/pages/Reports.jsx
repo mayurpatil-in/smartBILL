@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from "react";
+import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   FileText,
@@ -237,6 +237,7 @@ export default function Reports() {
       const blob = await getJobWorkStockSummaryPDF({
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
+        party_name: selectedJobWorkParty || undefined,
       });
 
       const url = window.URL.createObjectURL(
@@ -1465,39 +1466,79 @@ export default function Reports() {
                       </td>
                     </tr>
                   ) : (
-                    finalStockData.map((row, i) => (
-                      <tr
-                        key={i}
-                        className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
-                      >
-                        <td className="px-6 py-5 text-gray-700 dark:text-gray-300 font-medium">
-                          {row.party_name}
-                        </td>
-                        <td className="px-6 py-5 text-gray-600 dark:text-gray-400">
-                          {row.item_name}
-                        </td>
-                        <td className="px-6 py-5 text-right font-mono text-gray-600 dark:text-gray-400">
-                          {row.opening.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-5 text-right font-mono text-blue-600 dark:text-blue-400">
-                          {row.inward.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-5 text-right font-mono text-green-600 dark:text-green-400">
-                          {row.outward.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <span
-                            className={`font-bold font-mono px-3 py-1.5 rounded-lg ${
-                              row.closing > 0
-                                ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30"
-                                : "text-gray-400 bg-gray-100 dark:bg-gray-700"
-                            }`}
-                          >
-                            {row.closing.toFixed(2)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                    Object.entries(
+                      finalStockData.reduce((acc, row) => {
+                        const p = row.party_name || "Unknown";
+                        if (!acc[p]) acc[p] = [];
+                        acc[p].push(row);
+                        return acc;
+                      }, {})
+                    ).map(([partyName, rows], gIdx) => {
+                      const subOpening = rows.reduce((s, r) => s + r.opening, 0);
+                      const subInward = rows.reduce((s, r) => s + r.inward, 0);
+                      const subOutward = rows.reduce((s, r) => s + r.outward, 0);
+                      const subClosing = rows.reduce((s, r) => s + r.closing, 0);
+                      return (
+                        <Fragment key={gIdx}>
+                          <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/20 font-bold border-t border-b border-blue-200 dark:border-blue-800">
+                            <td colSpan="6" className="px-6 py-3 text-blue-900 dark:text-blue-200 flex items-center justify-between">
+                              <span>PARTY: {partyName}</span>
+                              <span className="text-xs font-normal text-blue-600 dark:text-blue-400">({rows.length} {rows.length === 1 ? 'item' : 'items'})</span>
+                            </td>
+                          </tr>
+                          {rows.map((row, i) => (
+                            <tr
+                              key={i}
+                              className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300"
+                            >
+                              <td className="px-6 py-4 text-gray-500 dark:text-gray-400 font-medium pl-8">
+                                {row.party_name}
+                              </td>
+                              <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
+                                {row.item_name}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono text-gray-600 dark:text-gray-400">
+                                {row.opening.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono text-blue-600 dark:text-blue-400">
+                                {row.inward.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono text-green-600 dark:text-green-400">
+                                {row.outward.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <span
+                                  className={`font-bold font-mono px-3 py-1.5 rounded-lg ${
+                                    row.closing > 0
+                                      ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30"
+                                      : "text-gray-400 bg-gray-100 dark:bg-gray-700"
+                                  }`}
+                                >
+                                  {row.closing.toFixed(2)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-gray-100/80 dark:bg-gray-800/80 font-bold border-b-2 border-gray-200 dark:border-gray-700 text-xs">
+                            <td colSpan="2" className="px-6 py-3 text-right text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                              SUB TOTAL ({partyName})
+                            </td>
+                            <td className="px-6 py-3 text-right font-mono text-gray-700 dark:text-gray-300">
+                              {subOpening.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-3 text-right font-mono text-blue-600 dark:text-blue-400">
+                              {subInward.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-3 text-right font-mono text-green-600 dark:text-green-400">
+                              {subOutward.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-3 text-right font-mono text-gray-900 dark:text-white">
+                              {subClosing.toFixed(2)}
+                            </td>
+                          </tr>
+                        </Fragment>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

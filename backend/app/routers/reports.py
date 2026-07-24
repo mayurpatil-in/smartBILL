@@ -7,10 +7,11 @@ from sqlalchemy import func, or_, and_
 from decimal import Decimal
 import calendar
 from collections import defaultdict
-from cachetools import TTLCache
-
-# Dashboard Cache: 5 mins TTL, max 100 companies
-dashboard_cache = TTLCache(maxsize=100, ttl=300)
+try:
+    from cachetools import TTLCache
+    dashboard_cache = TTLCache(maxsize=100, ttl=300)
+except ImportError:
+    dashboard_cache = {}
 from typing import List, Optional
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -24,7 +25,8 @@ from app.services.pdf_service import generate_pdf # ADDED
 
 from app.database.session import get_db
 from app.models.company import Company
-from app.core.dependencies import get_company_id, get_active_financial_year
+from app.models.user import User, UserRole
+from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user
 from app.models.party_challan_item import PartyChallanItem
 from app.models.party_challan import PartyChallan
 from app.models.party import Party
@@ -263,20 +265,50 @@ def get_job_work_report(
     return report_data
 
 
+def parse_to_date(d):
+    if not d:
+        return None
+    if isinstance(d, datetime):
+        return d.date()
+    if hasattr(d, "year") and hasattr(d, "month") and hasattr(d, "day"):
+        return d
+    if isinstance(d, str):
+        try:
+            return datetime.strptime(d[:10], "%Y-%m-%d").date()
+        except Exception:
+            return None
+    return d
+
+def get_effective_company_id(
+    current_user: User = Depends(get_current_user),
+    company_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+) -> int:
+    if current_user.legacy_role == UserRole.SUPER_ADMIN.value:
+        if company_id:
+            return company_id
+        first_company = db.query(Company).filter(Company.is_active == True).first()
+        if first_company:
+            return first_company.id
+        return 1
+    if not current_user.company_id:
+        raise HTTPException(status_code=403, detail="Company not assigned")
+    return current_user.company_id
+
 @router.get("/job-work/stock-summary")
 def get_job_work_stock_summary(
     start_date: str,
     end_date: str,
-    company_id: int = Depends(get_company_id),
-    fy = Depends(get_active_financial_year),
+    party_name: Optional[str] = Query(None),
+    company_id: int = Depends(get_effective_company_id),
     db: Session = Depends(get_db)
 ):
     """
     Returns a stock summary (Opening, Inward, Outward, Closing) for all Party/Item combinations
     within the given date range. Correctly handles historical date-wise opening balance.
     """
-    start = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    start = parse_to_date(start_date) or datetime.now().date()
+    end = parse_to_date(end_date) or datetime.now().date()
 
     # 1. Fetch ALL Party Challan Items (Inward)
     # We need potentially all history to calculate opening balance correctly
@@ -310,41 +342,39 @@ def get_job_work_stock_summary(
         key = get_key(row.party_challan.party_id, row.item_id)
         if key not in stock_map:
             stock_map[key] = {
-                "party_name": row.party_challan.party.name if row.party_challan.party else "Unknown",
+                "party_name": row.party_challan.party.name if (row.party_challan and row.party_challan.party) else "Unknown",
+                "gstin": row.party_challan.party.gst_number if (row.party_challan and row.party_challan.party and row.party_challan.party.gst_number) else "",
                 "item_name": row.item.name if row.item else "Unknown",
                 "opening": 0.0,
                 "inward": 0.0,
                 "outward": 0.0,
                 "closing": 0.0
             }
-        
-        qty = float(row.quantity_ordered or 0)
-        t_date = row.party_challan.challan_date
 
-        if t_date < start:
-            stock_map[key]["opening"] += qty
-        elif start <= t_date <= end:
-            stock_map[key]["inward"] += qty
-        # Future inwards (after end_date) are ignored for this report
+        qty = float(row.quantity_ordered or 0)
+        t_date = parse_to_date(row.party_challan.challan_date)
+
+        if t_date:
+            if t_date < start:
+                stock_map[key]["opening"] += qty
+            elif start <= t_date <= end:
+                stock_map[key]["inward"] += qty
 
     # Process Outwards
     for row in outwards:
-        # We need to link back to PartyChallanItem to know Party/Item
         if not row.party_challan_item:
             continue
             
         pc_item = row.party_challan_item
-        # Verify nested relationships
         if not pc_item.party_challan or not pc_item.item:
             continue
 
         key = get_key(pc_item.party_challan.party_id, pc_item.item_id)
         
-        # If outward exists but inward doesn't (weird data anomaly?), ensure key exists
         if key not in stock_map:
-             # Fetch party/item names if missing
             stock_map[key] = {
-                "party_name": pc_item.party_challan.party.name if pc_item.party_challan.party else "Unknown",
+                "party_name": pc_item.party_challan.party.name if (pc_item.party_challan and pc_item.party_challan.party) else "Unknown",
+                "gstin": pc_item.party_challan.party.gst_number if (pc_item.party_challan and pc_item.party_challan.party and pc_item.party_challan.party.gst_number) else "",
                 "item_name": pc_item.item.name if pc_item.item else "Unknown",
                 "opening": 0.0,
                 "inward": 0.0,
@@ -353,23 +383,28 @@ def get_job_work_stock_summary(
             }
 
         qty = float(row.quantity or 0)
-        # Use 'challan' relationship name as per model definition
         if not row.challan:
             continue
             
-        t_date = row.challan.challan_date
+        t_date = parse_to_date(row.challan.challan_date)
 
-        if t_date < start:
-            stock_map[key]["opening"] -= qty # It reduces the opening stock available at start_date
-        elif start <= t_date <= end:
-            stock_map[key]["outward"] += qty
-        # Future outwards ignored
+        if t_date:
+            if t_date < start:
+                stock_map[key]["opening"] -= qty
+            elif start <= t_date <= end:
+                stock_map[key]["outward"] += qty
 
     # Calculate Closing and Filter empty
     result = []
+    clean_party = party_name.strip().lower() if (party_name and isinstance(party_name, str)) else None
+    if clean_party in ["all", "all parties", "undefined", "null", "none", ""]:
+        clean_party = None
+
     for k, v in stock_map.items():
         v["closing"] = v["opening"] + v["inward"] - v["outward"]
-        # Only include if there is some activity or non-zero balance
+        item_party = (v.get("party_name") or "").strip().lower()
+        if clean_party and item_party != clean_party:
+            continue
         if abs(v["opening"]) > 0 or v["inward"] > 0 or v["outward"] > 0 or abs(v["closing"]) > 0:
             result.append(v)
 
@@ -380,42 +415,88 @@ def get_job_work_stock_summary(
 async def get_job_work_stock_summary_pdf(
     start_date: str,
     end_date: str,
-    company_id: int = Depends(get_company_id),
-    fy = Depends(get_active_financial_year),
+    party_name: Optional[str] = Query(None),
+    company_id: int = Depends(get_effective_company_id),
     db: Session = Depends(get_db)
 ):
     """
-    Generates PDF for Job Work Stock Summary
+    Generates PDF for Job Work Stock Summary (Grouped by Party like GST Report)
     """
-    # 1. Fetch Data (Reusing logic or direct DB calls)
-    # Since we can't easily call the API function due to dependency injection,
-    # we'll call a helper or just reuse the logic. 
-    # For now, let's call the logic directly to avoid refactoring the API function signature.
+    stock_data = get_job_work_stock_summary(start_date, end_date, party_name, company_id, db)
     
-    # ... logic from get_job_work_stock_summary ...
-    stock_data = get_job_work_stock_summary(start_date, end_date, company_id, fy, db)
-    
-    # 2. Get Company Details
+    # Group stock_data by Party
+    grouped_stock = {}
+    for item in stock_data:
+        pname = item.get("party_name") or "Unknown"
+        if pname not in grouped_stock:
+            grouped_stock[pname] = {
+                "party_name": pname,
+                "gstin": item.get("gstin") or "",
+                "item_list": [],
+                "sub_opening": 0.0,
+                "sub_inward": 0.0,
+                "sub_outward": 0.0,
+                "sub_closing": 0.0
+            }
+        grouped_stock[pname]["item_list"].append(item)
+        grouped_stock[pname]["sub_opening"] += item.get("opening", 0.0)
+        grouped_stock[pname]["sub_inward"] += item.get("inward", 0.0)
+        grouped_stock[pname]["sub_outward"] += item.get("outward", 0.0)
+        grouped_stock[pname]["sub_closing"] += item.get("closing", 0.0)
+
+    grouped_list = list(grouped_stock.values())
+
+    # Get Company Details
     company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        class MockCompany:
+            name = "Company"
+            address = ""
+            gst_number = ""
+            phone = ""
+        company = MockCompany()
     
-    # 3. Calculate Totals
+    # Calculate Totals
     total_opening = sum(item['opening'] for item in stock_data)
     total_inward = sum(item['inward'] for item in stock_data)
     total_outward = sum(item['outward'] for item in stock_data)
     total_closing = sum(item['closing'] for item in stock_data)
     
-    # 4. Prepare Context
+    # QR verification code
+    import io, base64, qrcode
+    from app.core.config import get_backend_url
+    base_url = get_backend_url()
+    p_param = f"&party_name={party_name}" if party_name else ""
+    verify_url = f"{base_url}/public/reports/job-work-stock-summary?company_id={company_id}&start={start_date}&end={end_date}{p_param}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(verify_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    # Safe date string formatting
+    s_dt = parse_to_date(start_date)
+    e_dt = parse_to_date(end_date)
+    s_str = s_dt.strftime("%d/%m/%Y") if s_dt else start_date
+    e_str = e_dt.strftime("%d/%m/%Y") if e_dt else end_date
+
+    # Context
     context = {
         "request": {},
+        "grouped_stock": grouped_list,
         "stock_data": stock_data,
         "company": company,
-        "start_date": datetime.strptime(start_date, "%Y-%m-%d").strftime("%d/%m/%Y"),
-        "end_date": datetime.strptime(end_date, "%Y-%m-%d").strftime("%d/%m/%Y"),
+        "party_name": party_name,
+        "start_date": s_str,
+        "end_date": e_str,
         "generation_date": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
         "total_opening": total_opening,
         "total_inward": total_inward,
         "total_outward": total_outward,
-        "total_closing": total_closing
+        "total_closing": total_closing,
+        "qr_code": qr_code_b64
     }
 
     # 5. Render Template
@@ -2620,8 +2701,7 @@ async def get_grn_report_pdf(
     start_date: str,
     end_date: str,
     party_id: Optional[int] = None,
-    company_id: int = Depends(get_company_id),
-    fy = Depends(get_active_financial_year),
+    company_id: int = Depends(get_effective_company_id),
     db: Session = Depends(get_db)
 ):
     """
@@ -2629,8 +2709,8 @@ async def get_grn_report_pdf(
     """
     try:
         # 1. Fetch Data
-        start = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        start = parse_to_date(start_date) or datetime.now().date()
+        end = parse_to_date(end_date) or datetime.now().date()
         
         query = db.query(InvoiceItem).join(Invoice).join(Party).join(Item).outerjoin(DeliveryChallanItem).outerjoin(DeliveryChallan).filter(
             Invoice.company_id == company_id,
@@ -2689,17 +2769,39 @@ async def get_grn_report_pdf(
             
         # 2. Get Company Details
         company = db.query(Company).filter(Company.id == company_id).first()
+        if not company:
+            class MockCompany:
+                name = "Company"
+                address = ""
+                gst_number = ""
+                phone = ""
+            company = MockCompany()
+
+        # 3. QR verification code
+        import io, base64, qrcode
+        from app.core.config import get_backend_url
+        base_url = get_backend_url()
+        p_param = f"&party_id={party_id}" if party_id else ""
+        verify_url = f"{base_url}/public/reports/grn-report?company_id={company_id}&start={start_date}&end={end_date}{p_param}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(verify_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
         
-        # 3. Prepare Context
+        # 4. Prepare Context
         context = {
             "company": company,
             "grouped_items": grouped_data,
-            "start_date": start.strftime("%d-%m-%Y"),
-            "end_date": end.strftime("%d-%m-%Y"),
+            "start_date": start.strftime("%d/%m/%Y"),
+            "end_date": end.strftime("%d/%m/%Y"),
             "party_name": party_name,
             "grand_total_qty": total_qty,
             "grand_total_amount": total_amount,
-            "generation_date": datetime.now().strftime("%d-%m-%Y %H:%M")
+            "generation_date": datetime.now().strftime("%d/%m/%Y %I:%M %p"),
+            "qr_code": qr_code_b64
         }
 
 

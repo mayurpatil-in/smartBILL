@@ -174,6 +174,27 @@ def get_client_dashboard(
     }
 
 
+@router.get("/company-info")
+def get_client_company_info(
+    client: ClientLogin = Depends(get_current_client),
+    db: Session = Depends(get_db)
+):
+    company_id = client.party.company_id
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    return {
+        "name": company.name,
+        "gst_number": company.gst_number,
+        "phone": company.phone,
+        "email": company.email,
+        "address": company.address,
+        "pincode": company.pincode,
+        "logo": company.logo
+    }
+
+
 @router.get("/invoices", response_model=List[InvoiceResponse])
 def get_client_invoices(
     financial_year_id: int | None = None,
@@ -188,6 +209,77 @@ def get_client_invoices(
         invoices_query = invoices_query.filter(Invoice.financial_year_id == financial_year_id)
     invoices = invoices_query.order_by(desc(Invoice.invoice_date)).all()
     return invoices
+
+@router.get("/invoices/{invoice_id}/details")
+def get_client_invoice_details(
+    invoice_id: int,
+    client: ClientLogin = Depends(get_current_client),
+    db: Session = Depends(get_db)
+):
+    from app.models.invoice_item import InvoiceItem
+
+    invoice = db.query(Invoice).options(
+        joinedload(Invoice.party),
+        joinedload(Invoice.financial_year),
+        joinedload(Invoice.items).joinedload(InvoiceItem.item)
+    ).filter(
+        Invoice.id == invoice_id,
+        Invoice.party_id == client.party_id
+    ).first()
+
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    company = db.query(Company).filter(Company.id == invoice.company_id).first()
+
+    subtotal = float(invoice.subtotal or 0)
+    gst_amount = float(invoice.gst_amount or 0)
+    eff_gst_rate = round((gst_amount / subtotal * 100), 1) if subtotal > 0 else 18.0
+
+    items = []
+    for item in invoice.items:
+        item_qty = float(item.quantity or 0)
+        item_rate = float(item.rate or 0)
+        item_amount = float(item.amount or (item_qty * item_rate))
+        item_hsn = item.item.hsn_code if (item.item and hasattr(item.item, 'hsn_code')) else None
+        item_name = item.item.name if item.item else "Invoice Item"
+
+        items.append({
+            "id": item.id,
+            "item_name": item_name,
+            "hsn_code": item_hsn,
+            "quantity": item_qty,
+            "unit": "Pcs",
+            "rate": item_rate,
+            "amount": item_amount,
+            "gst_rate": eff_gst_rate,
+            "gst_amount": round(item_amount * (eff_gst_rate / 100), 2),
+        })
+
+    return {
+        "id": invoice.id,
+        "invoice_number": invoice.invoice_number,
+        "invoice_date": str(invoice.invoice_date),
+        "due_date": str(invoice.due_date) if invoice.due_date else None,
+        "status": invoice.status,
+        "subtotal": subtotal,
+        "gst_amount": gst_amount,
+        "discount_amount": float(getattr(invoice, "discount_amount", 0) or 0),
+        "round_off": float(getattr(invoice, "round_off", 0) or 0),
+        "grand_total": float(invoice.grand_total or 0),
+        "notes": invoice.notes,
+        "terms": getattr(invoice, "terms", None),
+        "company": {
+            "name": company.name if company else "",
+            "gst_number": company.gst_number if company else "",
+            "phone": company.phone if company else "",
+            "email": company.email if company else "",
+            "address": company.address if company else ""
+        },
+        "items": items
+    }
+
+
 
 @router.get("/invoices/{invoice_id}/download")
 async def download_invoice_pdf(
@@ -446,6 +538,179 @@ def get_client_ledger(
         "closing_balance": running_balance,
         "items": final_items
     }
+
+
+@router.get("/ledger/download")
+async def download_client_ledger_pdf(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    financial_year_id: Optional[int] = None,
+    client: ClientLogin = Depends(get_current_client),
+    db: Session = Depends(get_db)
+):
+    """
+    Renders and returns a professional Statement of Account HTML document
+    using the executive party_statement.html template.
+    """
+    from jinja2 import Environment, FileSystemLoader
+    import os, io, base64, qrcode
+    from datetime import datetime
+    from app.models.company import Company
+    from app.core.config import get_backend_url
+    from app.core.security import create_url_signature
+
+    party = client.party
+    company = db.query(Company).get(party.company_id) if party else None
+
+    # 1. Invoices
+    invoices_query = db.query(Invoice).filter(
+        Invoice.party_id == party.id,
+        Invoice.status != "CANCELLED"
+    )
+    if financial_year_id:
+        invoices_query = invoices_query.filter(Invoice.financial_year_id == financial_year_id)
+    if start_date:
+        invoices_query = invoices_query.filter(Invoice.invoice_date >= start_date)
+    if end_date:
+        invoices_query = invoices_query.filter(Invoice.invoice_date <= end_date)
+    invoices = invoices_query.all()
+
+    # 2. Payments
+    payments_query = db.query(Payment).filter(
+        Payment.party_id == party.id,
+        Payment.payment_type.in_(["RECEIVED"])
+    )
+    if financial_year_id:
+        payments_query = payments_query.filter(Payment.financial_year_id == financial_year_id)
+    if start_date:
+        payments_query = payments_query.filter(Payment.payment_date >= start_date)
+    if end_date:
+        payments_query = payments_query.filter(Payment.payment_date <= end_date)
+    payments = payments_query.all()
+
+    # 3. Opening Balance
+    opening_balance = float(party.opening_balance) if party and party.opening_balance else 0.0
+    if start_date:
+        prior_inv_query = db.query(func.sum(Invoice.grand_total)).filter(
+            Invoice.party_id == party.id,
+            Invoice.status != "CANCELLED",
+            Invoice.invoice_date < start_date
+        )
+        if financial_year_id:
+            prior_inv_query = prior_inv_query.filter(Invoice.financial_year_id == financial_year_id)
+        prior_inv = prior_inv_query.scalar() or 0
+
+        prior_pay_query = db.query(func.sum(Payment.amount)).filter(
+            Payment.party_id == party.id,
+            Payment.payment_type == "RECEIVED",
+            Payment.payment_date < start_date
+        )
+        if financial_year_id:
+            prior_pay_query = prior_pay_query.filter(Payment.financial_year_id == financial_year_id)
+        prior_pay = prior_pay_query.scalar() or 0
+
+        opening_balance = opening_balance + float(prior_inv) - float(prior_pay)
+
+    # 4. Merge transactions
+    ledger_items = []
+    total_debit = 0.0
+    total_credit = 0.0
+
+    for inv in invoices:
+        amt = float(inv.grand_total)
+        total_debit += amt
+        ledger_items.append({
+            "date": inv.invoice_date,
+            "type": "INVOICE",
+            "ref_number": inv.invoice_number,
+            "description": "Invoice Generated",
+            "debit": amt,
+            "credit": 0.0,
+            "raw_date": inv.invoice_date
+        })
+
+    for pay in payments:
+        amt = float(pay.amount)
+        total_credit += amt
+        ledger_items.append({
+            "date": pay.payment_date,
+            "type": "PAYMENT",
+            "ref_number": pay.reference_number or "-",
+            "description": f"Payment via {pay.payment_mode}",
+            "debit": 0.0,
+            "credit": amt,
+            "raw_date": pay.payment_date
+        })
+
+    def get_sort_date(item):
+        d = item["raw_date"]
+        if isinstance(d, datetime):
+            return d.date()
+        return d
+
+    ledger_items.sort(key=get_sort_date)
+
+    # 5. Running Balance & Formatted Rows
+    running_balance = opening_balance
+    formatted_transactions = []
+    for item in ledger_items:
+        running_balance = running_balance + item["debit"] - item["credit"]
+        d_val = item["raw_date"]
+        d_str = d_val.strftime("%d/%m/%Y") if hasattr(d_val, "strftime") else str(d_val)
+        formatted_transactions.append({
+            "date": d_str,
+            "type": item["type"],
+            "ref": item["ref_number"],
+            "ref_number": item["ref_number"],
+            "description": item["description"],
+            "debit": f"{item['debit']:,.2f}" if item["debit"] > 0 else "-",
+            "credit": f"{item['credit']:,.2f}" if item["credit"] > 0 else "-",
+            "balance": f"{running_balance:,.2f}"
+        })
+
+    # Financial Year string
+    fy_str = "All Periods"
+    if financial_year_id:
+        fy_obj = db.query(FinancialYear).get(financial_year_id)
+        if fy_obj:
+            fy_str = f"{fy_obj.start_date.year}-{str(fy_obj.end_date.year)[-2:]}"
+
+    # QR verification code
+    base_url = get_backend_url()
+    signature = create_url_signature(str(party.id))
+    verify_url = f"{base_url}/public/reports/statement/download?party_id={party.id}&company_id={party.company_id}&token={signature}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(verify_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    template = env.get_template("party_statement.html")
+
+    s_date_str = start_date.strftime("%d/%m/%Y") if start_date else (formatted_transactions[0]["date"] if formatted_transactions else datetime.now().strftime("%d/%m/%Y"))
+    e_date_str = end_date.strftime("%d/%m/%Y") if end_date else datetime.now().strftime("%d/%m/%Y")
+
+    html_content = template.render(
+        company=company,
+        party=party,
+        financial_year=fy_str,
+        start_date=s_date_str,
+        end_date=e_date_str,
+        generation_date=datetime.now().strftime("%d-%m-%Y %H:%M"),
+        transactions=formatted_transactions,
+        opening_balance=f"{opening_balance:,.2f}",
+        closing_balance=f"{running_balance:,.2f}",
+        total_debit=f"{total_debit:,.2f}",
+        total_credit=f"{total_credit:,.2f}",
+        qr_code=qr_code_b64,
+        qr_code_b64=qr_code_b64
+    )
+
+    return Response(content=html_content, media_type="text/html")
 
 
 @router.get("/profile")

@@ -24,6 +24,24 @@ def init_db():
     
     print("Creating tables...")
     Base.metadata.create_all(bind=engine)
+    
+    # Safe auto-migration for new SalaryAdvance columns
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TABLE salary_advances ADD COLUMN deducted_month INTEGER"))
+                conn.commit()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE salary_advances ADD COLUMN deducted_year INTEGER"))
+                conn.commit()
+            except Exception:
+                pass
+    except Exception as e:
+        print("Column migration for salary_advances skipped:", e)
+
     print("Tables created successfully!")
 
     # --- SEED DEFAULT SUPER ADMIN ---

@@ -36,6 +36,7 @@ export default function ClientLedger() {
   const [financialYears, setFinancialYears] = useState([]);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState("");
   const [showFYDropdown, setShowFYDropdown] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
   const fetchLedger = async () => {
     setLoading(true);
@@ -185,45 +186,49 @@ export default function ClientLedger() {
     toast.success("Statement exported successfully");
   };
 
-  // Print functionality
-  const handlePrint = () => {
-    window.print();
-    toast.success("Opening print dialog...");
+  const [printingPDF, setPrintingPDF] = useState(false);
+
+  // Print Executive Statement PDF
+  const handlePrintPDF = async () => {
+    setPrintingPDF(true);
+    try {
+      const token = localStorage.getItem("client_token");
+      const params = new URLSearchParams();
+      if (dateRange.start) params.append("start_date", dateRange.start);
+      if (dateRange.end) params.append("end_date", dateRange.end);
+      if (selectedFinancialYear) params.append("financial_year_id", selectedFinancialYear);
+
+      const url = `${import.meta.env.VITE_API_URL}/client/ledger/download${params.toString() ? "?" + params.toString() : ""}`;
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to load PDF statement");
+
+      const html = await res.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, "_blank");
+      if (!printWindow) {
+        toast.error("Popup blocked - please allow popups for this site");
+        return;
+      }
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        URL.revokeObjectURL(blobUrl);
+      }, 600);
+      toast.success("Statement opened — select 'Save as PDF' to download.", { duration: 5000 });
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setPrintingPDF(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Print-only Header */}
-      <div className="hidden print:block mb-8">
-        <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">
-            STATEMENT OF ACCOUNT
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {dateRange.start && dateRange.end
-              ? `Period: ${format(new Date(dateRange.start), "dd MMM yyyy")} to ${format(new Date(dateRange.end), "dd MMM yyyy")}`
-              : "All Transactions"}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Generated on: {format(new Date(), "dd MMM yyyy, hh:mm a")}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-          <div>
-            <p className="font-semibold text-gray-700">Opening Balance:</p>
-            <p className="text-lg font-bold">
-              ₹{ledgerData.opening_balance.toLocaleString("en-IN")}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="font-semibold text-gray-700">Closing Balance:</p>
-            <p className="text-lg font-bold">
-              ₹{ledgerData.closing_balance.toLocaleString("en-IN")}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div>
@@ -254,11 +259,12 @@ export default function ClientLedger() {
             <span className="sm:hidden">Export</span>
           </button>
           <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium flex-1 md:flex-initial justify-center"
+            onClick={handlePrintPDF}
+            disabled={printingPDF}
+            className="flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors text-sm font-medium flex-1 md:flex-initial justify-center shadow-md shadow-blue-500/20"
           >
             <Printer size={16} />
-            <span className="hidden sm:inline">Print</span>
+            <span>{printingPDF ? "Loading..." : "Print / Save PDF"}</span>
           </button>
         </div>
       </div>
@@ -462,8 +468,33 @@ export default function ClientLedger() {
         </div>
       </div>
 
-      {/* Ledger Table */}
+      {/* Ledger Table Section */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+        {/* Table Type Filter Tabs */}
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex gap-2">
+            {[
+              { key: "ALL", label: "All Transactions" },
+              { key: "INVOICE", label: "Invoices Only" },
+              { key: "PAYMENT", label: "Payments Only" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setTypeFilter(key)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  typeFilter === key
+                    ? "bg-indigo-600 text-white shadow-md"
+                    : "bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-gray-500">
+            Showing {ledgerData.items.filter(item => typeFilter === "ALL" || item.type === typeFilter).length} entries
+          </span>
+        </div>
         {loading ? (
           <div className="p-12 space-y-4">
             {[1, 2, 3, 4].map((i) => (
@@ -510,7 +541,9 @@ export default function ClientLedger() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {ledgerData.items.map((item, idx) => (
+                  {ledgerData.items
+                    .filter((item) => typeFilter === "ALL" || item.type === typeFilter)
+                    .map((item, idx) => (
                     <tr
                       key={idx}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"

@@ -37,9 +37,16 @@ export const getDailyAttendance = async (date) => {
   return response.data;
 };
 
-export const getEmployeeSalary = async (userId, month, year) => {
+export const getEmployeeSalary = async (userId, month, year, deductAdvances = true) => {
   const response = await api.get(`/employees/${userId}/salary`, {
-    params: { month, year },
+    params: { month, year, deduct_advances: deductAdvances },
+  });
+  return response.data;
+};
+
+export const payEmployeeSalary = async (userId, month, year, paymentMethod, deductAdvances = true) => {
+  const response = await api.post(`/employees/${userId}/salary/pay`, null, {
+    params: { month, year, payment_method: paymentMethod, deduct_advances: deductAdvances },
   });
   return response.data;
 };
@@ -61,18 +68,16 @@ export const getSalaryAdvances = async (userId) => {
   return response.data;
 };
 
+export const deleteSalaryAdvance = async (advanceId) => {
+  const response = await api.delete(`/employees/advances/${advanceId}`);
+  return response.data;
+};
+
 export const uploadDocument = async (userId, formData) => {
   const response = await api.post(`/employees/${userId}/upload`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
-  });
-  return response.data;
-};
-
-export const payEmployeeSalary = async (userId, month, year, paymentMethod) => {
-  const response = await api.post(`/employees/${userId}/salary/pay`, null, {
-    params: { month, year, payment_method: paymentMethod },
   });
   return response.data;
 };

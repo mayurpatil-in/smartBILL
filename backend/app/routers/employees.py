@@ -31,9 +31,14 @@ from app.schemas.user import (
     AttendanceCreate, AttendanceResponse, SalarySlip,
     SalaryAdvanceCreate, SalaryAdvanceResponse
 )
+from pydantic import BaseModel
 from app.core.dependencies import get_company_id, get_active_financial_year, get_current_user, require_role
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.models.expense import Expense
+
+class EmployeePasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -243,6 +248,29 @@ async def download_my_salary_slip(
         media_type="text/html",
         headers={"Content-Disposition": f"inline; filename={filename}"}
     )
+
+
+@router.put("/me/change-password")
+def change_my_password(
+    data: EmployeePasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Allow employee to change their own login password
+    """
+    if not current_user.password_hash:
+        raise HTTPException(status_code=400, detail="Account password is not set")
+        
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+        
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long")
+        
+    current_user.password_hash = get_password_hash(data.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
 
 # ================================
 # EMPLOYEE CRUD
@@ -602,6 +630,29 @@ def get_salary_advances(
     ).order_by(SalaryAdvance.date.desc()).all()
     return advances
 
+
+@router.delete("/advances/{advance_id}")
+def delete_salary_advance(
+    advance_id: int,
+    company_id: int = Depends(get_company_id),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a salary advance record
+    """
+    advance = db.query(SalaryAdvance).join(User).filter(
+        SalaryAdvance.id == advance_id,
+        User.company_id == company_id
+    ).first()
+    
+    if not advance:
+        raise HTTPException(status_code=404, detail="Salary advance record not found")
+        
+    db.delete(advance)
+    db.commit()
+    return {"message": "Salary advance deleted successfully"}
+
+
 @router.get("/attendance/daily")
 def get_daily_attendance(
     date_str: date,
@@ -624,6 +675,7 @@ def calculate_salary(
     user_id: int,
     month: int,
     year: int,
+    deduct_advances: bool = True,
     company_id: int = Depends(get_company_id),
     db: Session = Depends(get_db)
 ):
@@ -633,10 +685,20 @@ def calculate_salary(
             User.company_id == company_id
         ).first()
 
-        if not user or not user.employee_profile:
-            raise HTTPException(status_code=404, detail="Employee or profile not found")
+        if not user:
+            raise HTTPException(status_code=404, detail="Employee not found")
 
         profile = user.employee_profile
+        if not profile:
+            class MockProfile:
+                base_salary = 0.0
+                salary_type = SalaryType.MONTHLY
+                work_hours_per_day = 8.0
+                enable_tds = False
+                tds_percentage = 0.0
+                professional_tax = 0.0
+            profile = MockProfile()
+
         base_salary = float(profile.base_salary or 0.0)
         
         # Get attendance
@@ -721,17 +783,6 @@ def calculate_salary(
         elif profile.salary_type == SalaryType.DAILY:
             calculated_amount = base_salary * present_days
 
-        # Calculate Advances (Get all advances for this month)
-        advances = db.query(SalaryAdvance).filter(
-            SalaryAdvance.user_id == user_id,
-            extract('month', SalaryAdvance.date) == month,
-            extract('year', SalaryAdvance.date) == year
-        ).all()
-        
-        total_advances = sum([float(a.amount) for a in advances])
-        
-        # final_payable calculated later after tax
-
         # Check if already paid
         # Construct description to match pay_salary logic
         month_name = date(year, month, 1).strftime("%B")
@@ -742,7 +793,93 @@ def calculate_salary(
             Expense.description == expected_desc,
             Expense.company_id == company_id
         ).first()
-        
+
+        is_paid = existing_expense is not None
+
+        # Calculate Advances
+        _, days_in_calc_month = monthrange(year, month)
+        cutoff_date = date(year, month, days_in_calc_month)
+
+        # Ensure DB columns deducted_month and deducted_year exist on live database
+        try:
+            from sqlalchemy import text
+            db.execute(text("ALTER TABLE salary_advances ADD COLUMN IF NOT EXISTS deducted_month INTEGER"))
+            db.execute(text("ALTER TABLE salary_advances ADD COLUMN IF NOT EXISTS deducted_year INTEGER"))
+            db.commit()
+        except Exception:
+            db.rollback()
+            try:
+                from sqlalchemy import text
+                db.execute(text("ALTER TABLE salary_advances ADD COLUMN deducted_month INTEGER"))
+                db.commit()
+            except Exception:
+                db.rollback()
+            try:
+                from sqlalchemy import text
+                db.execute(text("ALTER TABLE salary_advances ADD COLUMN deducted_year INTEGER"))
+                db.commit()
+            except Exception:
+                db.rollback()
+
+        try:
+            if is_paid:
+                # For paid salaries, fetch advances deducted for this specific month/year
+                advances = db.query(SalaryAdvance).filter(
+                    SalaryAdvance.user_id == user_id,
+                    SalaryAdvance.deducted_month == month,
+                    SalaryAdvance.deducted_year == year
+                ).all()
+
+                # Legacy fallback for historical paid records created before deducted_month tracking
+                if not advances and deduct_advances:
+                    legacy_advances = db.query(SalaryAdvance).filter(
+                        SalaryAdvance.user_id == user_id,
+                        SalaryAdvance.date <= cutoff_date,
+                        SalaryAdvance.is_deducted == True,
+                        SalaryAdvance.deducted_month == None
+                    ).order_by(SalaryAdvance.date.asc()).all()
+
+                    if legacy_advances:
+                        advances = legacy_advances
+                        for adv in legacy_advances:
+                            adv.deducted_month = month
+                            adv.deducted_year = year
+                        try:
+                            db.commit()
+                        except Exception:
+                            db.rollback()
+
+                total_advances = sum([float(a.amount) for a in advances])
+            elif deduct_advances:
+                # For pending salaries, fetch all unsettled advances up to cutoff_date
+                advances = db.query(SalaryAdvance).filter(
+                    SalaryAdvance.user_id == user_id,
+                    SalaryAdvance.date <= cutoff_date,
+                    SalaryAdvance.is_deducted == False
+                ).order_by(SalaryAdvance.date.asc()).all()
+                
+                total_advances = sum([float(a.amount) for a in advances])
+            else:
+                total_advances = 0.0
+        except Exception as query_err:
+            print(f"Warning: Salary advance deduction query fallback triggered: {query_err}")
+            # Graceful fallback if database schema does not have new columns yet
+            if is_paid:
+                advances = db.query(SalaryAdvance).filter(
+                    SalaryAdvance.user_id == user_id,
+                    SalaryAdvance.date <= cutoff_date,
+                    SalaryAdvance.is_deducted == True
+                ).all()
+            elif deduct_advances:
+                advances = db.query(SalaryAdvance).filter(
+                    SalaryAdvance.user_id == user_id,
+                    SalaryAdvance.date <= cutoff_date,
+                    SalaryAdvance.is_deducted == False
+                ).all()
+            else:
+                advances = []
+            total_advances = sum([float(a.amount) for a in advances])
+
         # Calculate Tax (TDS)
         # Gross Earnings = Base Pay + OT + Bonus
         gross_earnings = calculated_amount + total_overtime_pay + total_bonus
@@ -757,8 +894,6 @@ def calculate_salary(
         
         final_payable = gross_earnings - total_advances - tax_deduction - professional_tax
         
-        is_paid = existing_expense is not None
-
         return SalarySlip(
             user_id=user_id,
             month=f"{year}-{month:02d}",
@@ -774,6 +909,8 @@ def calculate_salary(
             final_payable=round(final_payable, 2),
             is_paid=is_paid
         )
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"CRITICAL ERROR in calculate_salary for user {user_id}: {e}")
         import traceback
@@ -920,6 +1057,7 @@ def pay_salary(
     month: int,
     year: int,
     payment_method: str = "Cash",
+    deduct_advances: bool = True,
     company_id: int = Depends(get_company_id),
     fy = Depends(get_active_financial_year),
     db: Session = Depends(get_db)
@@ -929,7 +1067,7 @@ def pay_salary(
     """
     # 1. Calculate Salary (Reuse logic)
     try:
-        slip = calculate_salary(user_id, month, year, company_id, db)
+        slip = calculate_salary(user_id, month, year, deduct_advances, company_id, db)
     except HTTPException as e:
         raise e
     
@@ -958,10 +1096,30 @@ def pay_salary(
     )
     
     db.add(expense)
+    
+    # 4. Mark pending salary advances up to this month as deducted/settled ONLY if deduct_advances is enabled
+    if deduct_advances:
+        _, days_in_calc_month = monthrange(year, month)
+        cutoff_date = date(year, month, days_in_calc_month)
+
+        advances = db.query(SalaryAdvance).filter(
+            SalaryAdvance.user_id == user_id,
+            SalaryAdvance.date <= cutoff_date,
+            SalaryAdvance.is_deducted == False
+        ).all()
+        for adv in advances:
+            adv.is_deducted = True
+            try:
+                adv.deducted_month = month
+                adv.deducted_year = year
+            except Exception:
+                pass
+
     db.commit()
     db.refresh(expense)
     
     return {"message": "Salary paid and expense created", "expense_id": expense.id}
+
 
 
 @router.get("/{user_id}/id-card/pdf")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 from typing import List, Optional
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -168,6 +168,63 @@ def delete_expense(
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
         
+    # If deleting a Salary expense, revert advances back to is_deducted = False (Pending)
+    if expense.category == "Salary" and expense.description:
+        try:
+            import re
+            from calendar import monthrange
+            from app.models.salary_advance import SalaryAdvance
+            from app.models.user import User
+
+            month_map = {
+                "January": 1, "February": 2, "March": 3, "April": 4,
+                "May": 5, "June": 6, "July": 7, "August": 8,
+                "September": 9, "October": 10, "November": 11, "December": 12
+            }
+
+            match = re.search(r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})', expense.description, re.IGNORECASE)
+            if match:
+                m_str, y_str = match.group(1).capitalize(), match.group(2)
+                month = month_map.get(m_str)
+                year = int(y_str)
+
+                # Try finding user by payee_name
+                user = None
+                if expense.payee_name:
+                    user = db.query(User).filter(
+                        func.lower(User.name) == func.lower(expense.payee_name.strip()),
+                        User.company_id == company_id
+                    ).first()
+
+                # Fallback: Extract employee name from description ("Salary for <Name> - Month Year")
+                if not user and "Salary for " in expense.description:
+                    desc_parts = expense.description.split(" - ")
+                    if len(desc_parts) >= 2:
+                        emp_name_clean = desc_parts[0].replace("Salary for ", "").strip()
+                        user = db.query(User).filter(
+                            func.lower(User.name) == func.lower(emp_name_clean),
+                            User.company_id == company_id
+                        ).first()
+
+                if user and month and year:
+                    _, days_in_month = monthrange(year, month)
+                    cutoff_date = date(year, month, days_in_month)
+
+                    advances = db.query(SalaryAdvance).filter(
+                        SalaryAdvance.user_id == user.id,
+                        or_(
+                            and_(SalaryAdvance.deducted_month == month, SalaryAdvance.deducted_year == year),
+                            and_(SalaryAdvance.is_deducted == True, SalaryAdvance.date <= cutoff_date)
+                        )
+                    ).all()
+
+                    for adv in advances:
+                        adv.is_deducted = False
+                        adv.deducted_month = None
+                        adv.deducted_year = None
+        except Exception as e:
+            print("Failed to revert salary advances on expense deletion:", e)
+
     db.delete(expense)
     db.commit()
     

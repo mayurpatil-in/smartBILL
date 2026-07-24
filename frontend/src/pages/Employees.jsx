@@ -23,8 +23,12 @@ import {
   Coffee,
   PartyPopper,
   Settings,
+  Eye,
+  FileSpreadsheet,
+  PlusCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import * as XLSX from "xlsx";
 
 import { API_URL } from "../api/axios";
 import AddEmployeeModal from "../components/AddEmployeeModal";
@@ -35,7 +39,9 @@ import SalaryAdvanceModal from "../components/SalaryAdvanceModal";
 import PdfPreviewModal from "../components/PdfPreviewModal";
 import CompanyHolidays from "../components/CompanyHolidays";
 import CompanyOffDays from "../components/CompanyOffDays";
+import EmployeeDetailsDrawer from "../components/EmployeeDetailsDrawer";
 import { generateSalarySlip } from "../utils/pdfGenerator";
+import { formatDateDDMMYYYY } from "../utils/dateUtils";
 import {
   getEmployees,
   deleteEmployee,
@@ -106,6 +112,9 @@ export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [salaryTypeFilter, setSalaryTypeFilter] = useState("all");
+  const [designationFilter, setDesignationFilter] = useState("all");
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -113,6 +122,11 @@ export default function Employees() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Drawer & Advance Modal States
+  const [drawerEmployee, setDrawerEmployee] = useState(null);
+  const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
+  const [advanceEmployee, setAdvanceEmployee] = useState(null);
 
   const { t } = useTranslation();
 
@@ -160,7 +174,7 @@ export default function Employees() {
   };
 
   const handleStatusToggle = async (e, employee) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     try {
       await updateEmployee(employee.id, { is_active: !employee.is_active });
       setEmployees(
@@ -168,8 +182,17 @@ export default function Employees() {
           e.id === employee.id ? { ...e, is_active: !employee.is_active } : e,
         ),
       );
+      if (drawerEmployee && drawerEmployee.id === employee.id) {
+        setDrawerEmployee((prev) =>
+          prev ? { ...prev, is_active: !prev.is_active } : null
+        );
+      }
       toast.success(
-        t("employees.status_updated", { status: !employee.is_active ? t("employees.active") : t("employees.inactive") })
+        t("employees.status_updated", {
+          status: !employee.is_active
+            ? t("employees.active")
+            : t("employees.inactive"),
+        })
       );
     } catch (err) {
       console.error(err);
@@ -191,11 +214,85 @@ export default function Employees() {
     }
   };
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchQuery.toLowerCase()),
+  const handleExportExcel = () => {
+    if (!filteredEmployees.length) {
+      toast.error("No employee records to export");
+      return;
+    }
+
+    const exportData = filteredEmployees.map((emp) => {
+      const p = emp.employee_profile || {};
+      return {
+        "Employee ID": `EMP-${String(p.company_employee_id || emp.id).padStart(3, "0")}`,
+        "Full Name": emp.name,
+        "Email Address": emp.email,
+        "Phone Number": p.phone || "N/A",
+        "Designation": p.designation || "N/A",
+        "Joining Date": formatDateDDMMYYYY(p.joining_date),
+        "Status": emp.is_active ? "Active" : "Inactive",
+        "Salary Type": (p.salary_type || "MONTHLY").toUpperCase(),
+        "Base Salary (₹)": parseFloat(p.base_salary || 0),
+        "Bank Name": p.bank_name || "N/A",
+        "Account Number": p.account_number || "N/A",
+        "IFSC Code": p.ifsc_code || "N/A",
+        "UPI ID": p.upi_id || "N/A",
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+    XLSX.writeFile(
+      workbook,
+      `Employee_Directory_${new Date().toISOString().split("T")[0]}.xlsx`
+    );
+    toast.success("Employee Directory exported to Excel");
+  };
+
+  const uniqueDesignations = Array.from(
+    new Set(
+      employees
+        .map((e) => e.employee_profile?.designation)
+        .filter(Boolean)
+    )
   );
+
+  const filteredEmployees = employees.filter((emp) => {
+    const p = emp.employee_profile || {};
+    const empCode = `EMP-${String(p.company_employee_id || emp.id).padStart(3, "0")}`;
+
+    const matchesQuery =
+      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.phone || "").includes(searchQuery) ||
+      (p.designation || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      empCode.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "active"
+        ? emp.is_active
+        : !emp.is_active;
+
+    const matchesSalaryType =
+      salaryTypeFilter === "all"
+        ? true
+        : (p.salary_type || "monthly").toLowerCase() ===
+          salaryTypeFilter.toLowerCase();
+
+    const matchesDesignation =
+      designationFilter === "all"
+        ? true
+        : (p.designation || "") === designationFilter;
+
+    return (
+      matchesQuery &&
+      matchesStatus &&
+      matchesSalaryType &&
+      matchesDesignation
+    );
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -307,7 +404,8 @@ export default function Employees() {
 
           {/* List Content */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex gap-4">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              {/* Search */}
               <div className="relative flex-1 max-w-md">
                 <Search
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -320,8 +418,59 @@ export default function Employees() {
                   placeholder={t("employees.search_placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm"
                 />
+              </div>
+
+              {/* Filters & Export */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active Only</option>
+                  <option value="inactive">Inactive Only</option>
+                </select>
+
+                {/* Salary Type Filter */}
+                <select
+                  value={salaryTypeFilter}
+                  onChange={(e) => setSalaryTypeFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none"
+                >
+                  <option value="all">All Pay Types</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="daily">Daily</option>
+                </select>
+
+                {/* Designation Filter */}
+                {uniqueDesignations.length > 0 && (
+                  <select
+                    value={designationFilter}
+                    onChange={(e) => setDesignationFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none max-w-[150px] truncate"
+                  >
+                    <option value="all">All Roles</option>
+                    {uniqueDesignations.map((desig) => (
+                      <option key={desig} value={desig}>
+                        {desig}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Export Excel Button */}
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-all shadow-md transform hover:scale-105 active:scale-95"
+                  title="Export Filtered List to Excel"
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Export Excel</span>
+                </button>
               </div>
             </div>
 
@@ -383,7 +532,8 @@ export default function Employees() {
                     filteredEmployees.map((emp, index) => (
                       <tr
                         key={emp.id}
-                        className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
+                        onClick={() => setDrawerEmployee(emp)}
+                        className="group cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/30 dark:hover:from-blue-900/10 dark:hover:to-cyan-900/10 transition-all duration-300 hover:shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
                       >
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
@@ -391,9 +541,9 @@ export default function Employees() {
                               {emp.name.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-semibold text-gray-900 dark:text-white">
-                                {emp.name}
-                                <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full dark:bg-blue-900/30 dark:text-blue-400">
+                              <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span>{emp.name}</span>
+                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full dark:bg-blue-900/30 dark:text-blue-400">
                                   #
                                   {emp.employee_profile?.company_employee_id ||
                                     emp.id}
@@ -451,8 +601,25 @@ export default function Employees() {
                             {emp.is_active ? t("employees.active") : t("employees.inactive")}
                           </span>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-6 py-5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setDrawerEmployee(emp)}
+                              className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                              title="View Employee Profile Drawer"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setAdvanceEmployee(emp);
+                                setIsAdvanceModalOpen(true);
+                              }}
+                              className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
+                              title="Record Salary Advance"
+                            >
+                              <PlusCircle size={16} />
+                            </button>
                             <button
                               onClick={() => handleDownloadIDCard(emp)}
                               className="p-2 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md"
@@ -516,6 +683,30 @@ export default function Employees() {
         employee={selectedEmployee}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={loadEmployees}
+      />
+
+      {/* Employee Details Drawer */}
+      <EmployeeDetailsDrawer
+        employee={drawerEmployee}
+        isOpen={!!drawerEmployee}
+        onClose={() => setDrawerEmployee(null)}
+        onEdit={(emp) => {
+          setSelectedEmployee(emp);
+          setIsAddModalOpen(true);
+        }}
+        onStatusToggle={handleStatusToggle}
+        onDownloadIDCard={handleDownloadIDCard}
+        onOpenAdvanceModal={(emp) => {
+          setAdvanceEmployee(emp);
+          setIsAdvanceModalOpen(true);
+        }}
+      />
+
+      {/* Salary Advance Modal */}
+      <SalaryAdvanceModal
+        isOpen={isAdvanceModalOpen}
+        onClose={() => setIsAdvanceModalOpen(false)}
+        employee={advanceEmployee}
       />
 
       <ConfirmDialog
@@ -885,13 +1076,14 @@ function PayrollView({ employees }) {
             setSelectedEmpForPay(null);
           }}
           employee={selectedEmpForPay}
-          amount={salaries[selectedEmpForPay.id]?.final_payable || 0}
+          slip={salaries[selectedEmpForPay.id]}
           month={month}
           year={year}
           onSuccess={() => {
             toast.success("Salary Paid & Expense Created");
             setPayModalOpen(false);
             setSelectedEmpForPay(null);
+            calculateAll(); // Refresh payroll status
           }}
         />
       )}
@@ -916,22 +1108,27 @@ function PaySalaryModal({
   isOpen,
   onClose,
   employee,
-  amount,
+  slip,
   month,
   year,
   onSuccess,
 }) {
   const { t } = useTranslation();
   const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [deductAdvances, setDeductAdvances] = useState(true);
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
+
+  const advanceAmount = slip?.total_advances_deducted || 0;
+  const baseNetPayable = slip?.final_payable || 0;
+  const netPayable = deductAdvances ? baseNetPayable : baseNetPayable + advanceAmount;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await payEmployeeSalary(employee.id, month, year, paymentMethod);
+      await payEmployeeSalary(employee.id, month, year, paymentMethod, deductAdvances);
       onSuccess();
     } catch (error) {
       console.error(error);
@@ -967,7 +1164,7 @@ function PaySalaryModal({
                 Net Payable Amount
               </span>
               <span className="text-lg font-bold text-gray-900 dark:text-white">
-                ₹{amount}
+                ₹{netPayable.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="text-xs text-gray-500">
@@ -978,6 +1175,32 @@ function PaySalaryModal({
               {year}
             </div>
           </div>
+
+          {/* Toggle advance deduction if employee has pending advances */}
+          {advanceAmount > 0 && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="deduct_advances_toggle"
+                checked={deductAdvances}
+                onChange={(e) => setDeductAdvances(e.target.checked)}
+                className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <label
+                htmlFor="deduct_advances_toggle"
+                className="text-xs text-amber-900 dark:text-amber-200 cursor-pointer select-none"
+              >
+                <span className="font-bold block">
+                  Deduct Pending Salary Advance (₹{advanceAmount.toLocaleString("en-IN")})
+                </span>
+                <span className="text-[11px] text-amber-700 dark:text-amber-300 block mt-0.5">
+                  {deductAdvances
+                    ? "Advance will be deducted from this month's pay & marked as Settled."
+                    : "Advance deduction skipped! Advance remains Pending for future months."}
+                </span>
+              </label>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1005,7 +1228,7 @@ function PaySalaryModal({
             </button>
             <button
               type="submit"
-              disabled={loading || amount <= 0}
+              disabled={loading || netPayable <= 0}
               className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-green-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Processing..." : "Confirm Payment"}
